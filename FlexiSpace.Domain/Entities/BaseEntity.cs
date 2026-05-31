@@ -6,7 +6,13 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Domain.Entities
 {
-    internal class BaseEntity
+    public class BaseEntity
     {
+        public string Name { get; set; }
+        public string CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string UpdatedBy { get; set; }
+        public DateTime UpdatedAt { get;set; }
+        public bool IsActive { get; set; }
     }
 }
