@@ -15,12 +15,15 @@ namespace FlexiSpace.Domain.Entities
             Notification = new HashSet<Notification>();
         }
 
-        public string UserId { get; set; }
+        public string UserId { get; set; } = Ulid.NewUlid().ToString();
+        public string PhoneNumber { get; set; }
+        public DateTime Dob { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
         public RoleEnum Role { get; set; }
 
         public virtual Profile Profile { get; set; }
+        public virtual ICollection <UserOTP> UserOTPs { get; set; }
         public virtual ICollection<Notification> Notification { get; set; }
     }
 }

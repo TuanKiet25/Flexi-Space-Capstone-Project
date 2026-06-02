@@ -1,64 +1,26 @@
 using FlexiSpace.Application;
-using Microsoft.EntityFrameworkCore.Storage;
+using FlexiSpace.Application.IRepositories;
+using FlexiSpace.Infrastructure.Repositories;
 
 namespace FlexiSpace.Infrastructure
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _dbContext;
-        private IDbContextTransaction? _transaction;
-
+        public IUserRepository userRepository { get; }
+        public IUserOTPRepository userOTPRepository { get; }
         public UnitOfWork(AppDbContext dbContext)
         {
             _dbContext = dbContext;
+            userRepository = new UserRepository(_dbContext);
+            userOTPRepository = new UserOTPRepository(_dbContext);
         }
+
+
 
         public async Task<int> SaveChangesAsync()
         {
             return await _dbContext.SaveChangesAsync();
-        }
-
-        public async Task BeginTransactionAsync()
-        {
-            _transaction = await _dbContext.Database.BeginTransactionAsync();
-        }
-
-        public async Task CommitTransactionAsync()
-        {
-            try
-            {
-                await SaveChangesAsync();
-                await _transaction?.CommitAsync()!;
-            }
-            catch
-            {
-                await RollbackTransactionAsync();
-                throw;
-            }
-            finally
-            {
-                _transaction?.Dispose();
-                _transaction = null;
-            }
-        }
-
-        public async Task RollbackTransactionAsync()
-        {
-            try
-            {
-                await _transaction?.RollbackAsync()!;
-            }
-            finally
-            {
-                _transaction?.Dispose();
-                _transaction = null;
-            }
-        }
-
-        public void Dispose()
-        {
-            _transaction?.Dispose();
-            _dbContext?.Dispose();
         }
     }
 }

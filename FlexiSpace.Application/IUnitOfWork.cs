@@ -1,10 +1,12 @@
+using FlexiSpace.Application.IRepositories;
+
 namespace FlexiSpace.Application
 {
-    public interface IUnitOfWork : IDisposable
+    public interface IUnitOfWork
     {
+        IUserRepository userRepository { get; }
+        IUserOTPRepository userOTPRepository { get; }
         Task<int> SaveChangesAsync();
-        Task BeginTransactionAsync();
-        Task CommitTransactionAsync();
-        Task RollbackTransactionAsync();
+
     }
 }
