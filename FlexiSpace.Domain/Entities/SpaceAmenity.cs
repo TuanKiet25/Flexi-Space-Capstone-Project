@@ -11,6 +11,6 @@ namespace FlexiSpace.Domain.Entities
         public string SpaceId { get; set; }
         public long AmenityId { get; set; }
         public virtual Space Space { get; set; }
-        public virtual long Amenity { get; set; }
+        public virtual Amentity Amenity { get; set; }
     }
 }

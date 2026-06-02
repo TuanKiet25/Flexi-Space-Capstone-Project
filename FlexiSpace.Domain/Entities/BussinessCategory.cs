@@ -14,6 +14,8 @@ namespace FlexiSpace.Domain.Entities
             Listings = new HashSet<Listing>();
         }
 
+        public long Id { get; set; }
+
         public virtual ICollection<SpaceAllowedCategory> SpaceAllowedCategories { get; set; }
         public virtual ICollection<Listing> Listings { get; set; }
     }
