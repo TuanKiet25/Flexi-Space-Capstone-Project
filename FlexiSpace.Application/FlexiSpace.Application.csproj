@@ -15,4 +15,8 @@
     <ProjectReference Include="..\FlexiSpace.Domain\FlexiSpace.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mapper\" />
+  </ItemGroup>
+
 </Project>

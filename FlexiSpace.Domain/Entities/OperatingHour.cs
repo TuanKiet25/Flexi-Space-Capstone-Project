@@ -9,7 +9,7 @@ namespace FlexiSpace.Domain.Entities
     public class OperatingHour : BaseEntity
     {
         public long Id { get; set; }
-        public string SpaceId { get; set; }
+        public long SpaceId { get; set; }
         public int DayOfWeek { get; set; }
         public TimeOnly OpenTime { get; set; }
         public TimeOnly CloseTime { get; set; }

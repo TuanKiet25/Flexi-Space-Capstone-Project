@@ -22,7 +22,7 @@ namespace FlexiSpace.Infrastructure.Configurations
 
             builder.HasOne(p => p.Listing)
                    .WithMany(l => l.PrimaryBookingRequests)
-                     .HasForeignKey("ListingId")
+                     .HasForeignKey(p => p.ListingId)
                      .OnDelete(DeleteBehavior.Restrict);
 
                  builder.HasOne(p => p.Review)

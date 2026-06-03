@@ -8,7 +8,7 @@ namespace FlexiSpace.Domain.Entities
 {
     public class SpaceAllowedCategory
     {
-        public string SpaceId { get; set; }
+        public long SpaceId { get; set; }
         public long BussinessCategoryId { get; set; }
         public virtual Space Space { get; set; }
         public virtual BussinessCategory BussinessCategory { get; set; }

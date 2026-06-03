@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Domain.Entities
 {
-    public class Profile : BaseEntity
+    public class UserProfile : BaseEntity
     {
         public string Id { get; set; }
         public string UserId { get; set; }

@@ -23,7 +23,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(u => u.Profile)
                    .WithOne(p => p.User)
-                   .HasForeignKey<Profile>(p => p.UserId)
+                   .HasForeignKey<UserProfile>(p => p.UserId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -137,8 +137,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<long>("PrimaryBookingRequestId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("SpaceId")
-                        .HasColumnType("text");
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -289,8 +289,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<TimeOnly>("OpenTime")
                         .HasColumnType("time without time zone");
 
-                    b.Property<string>("SpaceId")
-                        .HasColumnType("text");
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -374,7 +374,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("LessorId")
                         .HasColumnType("text");
 
-                    b.Property<long?>("ListingId")
+                    b.Property<long>("ListingId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")
@@ -386,8 +386,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<long?>("ReviewId1")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("SpaceId")
-                        .HasColumnType("text");
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp without time zone");
@@ -412,49 +412,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasIndex("SpaceId");
 
                     b.ToTable("PrimaryBookingRequests");
-                });
-
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.Profile", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AvartarUrl")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Profiles");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Review", b =>
@@ -521,8 +478,11 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Space", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Address")
                         .HasColumnType("text");
@@ -569,8 +529,8 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SpaceAllowedCategory", b =>
                 {
-                    b.Property<string>("SpaceId")
-                        .HasColumnType("text");
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("BussinessCategoryId")
                         .HasColumnType("bigint");
@@ -584,8 +544,8 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SpaceAmenity", b =>
                 {
-                    b.Property<string>("SpaceId")
-                        .HasColumnType("text");
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("AmenityId")
                         .HasColumnType("bigint");
@@ -629,7 +589,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
-                    b.Property<long>("PrimaryBookingRequestId")
+                    b.Property<long?>("PrimaryBookingRequestId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("ReviewId1")
@@ -648,8 +608,7 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     b.HasIndex("LessorId");
 
-                    b.HasIndex("PrimaryBookingRequestId")
-                        .IsUnique();
+                    b.HasIndex("PrimaryBookingRequestId");
 
                     b.HasIndex("ReviewId1");
 
@@ -774,6 +733,49 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.ToTable("UserOTPs");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.UserProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AvartarUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Profiles");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Listing", b =>
                 {
                     b.HasOne("FlexiSpace.Domain.Entities.BussinessCategory", "BussinessCategory")
@@ -789,7 +791,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
                         .WithMany("Listing")
                         .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("BussinessCategory");
 
@@ -824,7 +827,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
                         .WithMany("OperatingHour")
                         .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Space");
                 });
@@ -839,7 +843,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
                         .WithMany("PrimaryBookingRequests")
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("FlexiSpace.Domain.Entities.Review", null)
                         .WithMany("PrimaryBookingRequest")
@@ -848,23 +853,14 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
                         .WithMany("PrimaryBookingRequest")
                         .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Lessor");
 
                     b.Navigation("Listing");
 
                     b.Navigation("Space");
-                });
-
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.Profile", b =>
-                {
-                    b.HasOne("FlexiSpace.Domain.Entities.User", "User")
-                        .WithOne("Profile")
-                        .HasForeignKey("FlexiSpace.Domain.Entities.Profile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Review", b =>
@@ -952,10 +948,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("FlexiSpace.Domain.Entities.PrimaryBookingRequest", "PrimaryBookingRequest")
-                        .WithOne("SubBookingRequest")
-                        .HasForeignKey("FlexiSpace.Domain.Entities.SubBookingRequest", "PrimaryBookingRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithMany("SubBookingRequests")
+                        .HasForeignKey("PrimaryBookingRequestId");
 
                     b.HasOne("FlexiSpace.Domain.Entities.Review", null)
                         .WithMany("SubBookingRequest")
@@ -986,6 +980,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.UserProfile", b =>
+                {
+                    b.HasOne("FlexiSpace.Domain.Entities.User", "User")
+                        .WithOne("Profile")
+                        .HasForeignKey("FlexiSpace.Domain.Entities.UserProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Amentity", b =>
                 {
                     b.Navigation("SpaceAmenity");
@@ -1009,7 +1013,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     b.Navigation("Review");
 
-                    b.Navigation("SubBookingRequest");
+                    b.Navigation("SubBookingRequests");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Review", b =>

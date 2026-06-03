@@ -10,7 +10,7 @@ namespace FlexiSpace.Infrastructure
         }
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<UserOTP> UserOTPs { get; set; }
-        public virtual DbSet<Profile> Profiles { get; set; }
+        public virtual DbSet<UserProfile> Profiles { get; set; }
         public virtual DbSet<Notification> Notifications { get; set; }
         public virtual DbSet<Space> Spaces { get; set; }
         public virtual DbSet<Listing> Listings { get; set; }

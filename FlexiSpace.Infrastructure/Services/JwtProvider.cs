@@ -1,5 +1,6 @@
 ﻿using FlexiSpace.Application.IServices;
 using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Enum;
 using FlexiSpace.Infrastructure.MappingOptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -30,8 +31,9 @@ namespace FlexiSpace.Infrastructure.Services
             new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.Name),
-            new Claim(JwtRegisteredClaimNames.Jti, Ulid.NewUlid().ToString())
-        };
+            new Claim(JwtRegisteredClaimNames.Jti, Ulid.NewUlid().ToString()),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+            };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -44,7 +46,16 @@ namespace FlexiSpace.Infrastructure.Services
                 signingCredentials: creds
             );
 
+            GlobalVariables.CurrentUserId = user.UserId;
+            GlobalVariables.Role = user.Role;
+
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+    }
+
+    public static class GlobalVariables
+    {
+        public static string? CurrentUserId { get; set; }
+        public static RoleEnum? Role { get; set; }
     }
 }

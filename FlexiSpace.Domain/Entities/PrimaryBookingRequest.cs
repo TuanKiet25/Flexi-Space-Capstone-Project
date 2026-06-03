@@ -11,9 +11,10 @@ namespace FlexiSpace.Domain.Entities
     {
 
         public long Id { get; set; }
-        public required string SpaceId { get; set; }
-        public required string LessorId { get; set; }
-        public required string LesseeId { get; set; }
+        public long SpaceId { get; set; }
+        public long ListingId { get; set; }
+        public string LessorId { get; set; }
+        public string LesseeId { get; set; }
         public decimal Price { get; set; }
         public int Duration { get; set; }
         public DateTime StartDate { get; set; }
@@ -22,7 +23,7 @@ namespace FlexiSpace.Domain.Entities
 
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
-        public virtual SubBookingRequest SubBookingRequest { get; set; }
+        public virtual ICollection<SubBookingRequest> SubBookingRequests { get; set; }
         public virtual Listing Listing { get; set; }
         public virtual Review Review { get; set; }
     }

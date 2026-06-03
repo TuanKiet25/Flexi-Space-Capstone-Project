@@ -154,7 +154,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "Spaces",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "text", nullable: false),
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OwnerId = table.Column<string>(type: "text", nullable: true),
                     Address = table.Column<string>(type: "text", nullable: true),
                     City = table.Column<string>(type: "text", nullable: true),
@@ -235,7 +236,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SpaceId = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: false),
                     CreatorId = table.Column<string>(type: "text", nullable: true),
                     AllowedStartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
@@ -281,7 +282,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SpaceId = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     DayOfWeek = table.Column<int>(type: "integer", nullable: false),
                     OpenTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
                     CloseTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
@@ -308,7 +309,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "SpaceAllowedCategories",
                 columns: table => new
                 {
-                    SpaceId = table.Column<string>(type: "text", nullable: false),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     BussinessCategoryId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -332,7 +333,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "SpaceAmenities",
                 columns: table => new
                 {
-                    SpaceId = table.Column<string>(type: "text", nullable: false),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     AmenityId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -387,7 +388,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SpaceId = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
+                    ListingId = table.Column<long>(type: "bigint", nullable: false),
                     LessorId = table.Column<string>(type: "text", nullable: true),
                     LesseeId = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
@@ -395,7 +397,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    ListingId = table.Column<long>(type: "bigint", nullable: true),
                     ReviewId1 = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
@@ -477,11 +478,11 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: false),
                     LessorId = table.Column<string>(type: "text", nullable: true),
                     LesseeId = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: true),
                     ReviewId1 = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
@@ -498,8 +499,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                         name: "FK_SubBookingRequests_PrimaryBookingRequests_PrimaryBookingReq~",
                         column: x => x.PrimaryBookingRequestId,
                         principalTable: "PrimaryBookingRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_SubBookingRequests_Reviews_ReviewId1",
                         column: x => x.ReviewId1,
@@ -615,8 +615,7 @@ namespace FlexiSpace.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_SubBookingRequests_PrimaryBookingRequestId",
                 table: "SubBookingRequests",
-                column: "PrimaryBookingRequestId",
-                unique: true);
+                column: "PrimaryBookingRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SubBookingRequests_ReviewId1",

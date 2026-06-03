@@ -10,7 +10,6 @@ namespace FlexiSpace.Domain.Entities
     public class SubBookingRequest : BaseEntity
     {
         public long Id { get; set; }
-        public long PrimaryBookingRequestId { get; set; }
         public string LessorId { get; set; }
         public string LesseeId { get; set; }
         public decimal Price { get; set; }
