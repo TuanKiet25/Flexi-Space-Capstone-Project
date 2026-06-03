@@ -6,6 +6,9 @@ namespace FlexiSpace.Application
     {
         IUserRepository userRepository { get; }
         IUserOTPRepository userOTPRepository { get; }
+        ISpaceAmenityRepository spaceAmenityRepository { get; }
+        ISpaceRepository spaceRepository { get; }
+        ISpaceAllowedCategoryRepository spaceAllowedCategoryRepository { get; }
         Task<int> SaveChangesAsync();
 
     }

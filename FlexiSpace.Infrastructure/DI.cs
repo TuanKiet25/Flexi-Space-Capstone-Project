@@ -4,12 +4,14 @@ using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.Services;
+using FlexiSpace.Infrastructure.Helper;
 using FlexiSpace.Infrastructure.MappingOptions;
 using FlexiSpace.Infrastructure.Repositories;
 using FlexiSpace.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using AutoMapper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,12 +40,17 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();  
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserOTPRepository, UserOTPRepository>();
+            services.AddScoped<ISpaceRepository, SpaceRepository>();
+            services.AddScoped<ISpaceAmenityRepository, SpaceAmenityRepository>();
+            services.AddScoped<ISpaceAllowedCategoryRepository, SpaceAllowedCategoryRepository>();
+            services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
             #region services
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IJwtProvider, JwtProvider>();
+            services.AddScoped<ISpaceService, SpaceService>();
             services.AddHttpClient<ITurnstileService, TurnstileService>();
             #endregion
             //Đăng ký auto mapper

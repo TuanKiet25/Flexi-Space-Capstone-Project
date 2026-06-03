@@ -39,6 +39,7 @@ namespace FlexiSpace.Application.IRepositories
 
         Task<T> GetByIdAsync(Guid id);
         Task DeleteAsync(Guid id);
+        Task SaveChangesAsync();
         void RemoveRange(IEnumerable<T> entities);
     }
 
