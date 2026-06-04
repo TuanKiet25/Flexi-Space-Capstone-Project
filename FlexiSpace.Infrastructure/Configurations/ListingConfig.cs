@@ -14,17 +14,6 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithMany()
                    .HasForeignKey(l => l.CreatorId)
                    .OnDelete(DeleteBehavior.Restrict);
-
-                 builder.HasOne(l => l.BussinessCategory)
-                     .WithMany(b => b.Listings)
-                     .HasForeignKey("BussinessCategoryId")
-                     .OnDelete(DeleteBehavior.Restrict);
-
-                 builder.HasOne(l => l.ListingSlot)
-                     .WithOne(s => s.Listing)
-                     .HasForeignKey<ListingSlot>(s => s.ListingId)
-                     .OnDelete(DeleteBehavior.Cascade);
-
             builder.HasMany(l => l.PrimaryBookingRequests)
                    .WithOne(p => p.Listing)
                      .HasForeignKey("ListingId")

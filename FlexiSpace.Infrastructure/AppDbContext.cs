@@ -14,7 +14,6 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<Notification> Notifications { get; set; }
         public virtual DbSet<Space> Spaces { get; set; }
         public virtual DbSet<Listing> Listings { get; set; }
-        public virtual DbSet<ListingSlot> ListingSlots { get; set; }
         public virtual DbSet<PrimaryBookingRequest> PrimaryBookingRequests { get; set; }
         public virtual DbSet<SubBookingRequest> SubBookingRequests { get; set; }
         public virtual DbSet<Amentity> Amenities { get; set; }

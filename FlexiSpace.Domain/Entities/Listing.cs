@@ -20,14 +20,11 @@ namespace FlexiSpace.Domain.Entities
         public string CreatorId { get; set; }
         public DateTime AllowedStartTime { get; set; }
         public DateTime AllowedEndTime { get; set; }
-        public decimal HourlyRate { get; set; }
         public string Description { get; set; }
         public ListingStatusEnum Status { get; set; }
 
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
-        public virtual ListingSlot ListingSlot { get; set; }
-        public virtual BussinessCategory BussinessCategory { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequests { get; set; }
     }
 }
