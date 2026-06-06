@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260603095629_init")]
+    [Migration("20260605173527_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -48,8 +48,11 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
-                    b.Property<int>("Number")
+                    b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -58,6 +61,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SpaceId");
 
                     b.ToTable("Amenities");
                 });
@@ -110,9 +115,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<DateTime>("AllowedStartTime")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<long?>("BussinessCategoryId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -124,9 +126,6 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
-
-                    b.Property<decimal>("HourlyRate")
-                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -154,62 +153,11 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BussinessCategoryId");
-
                     b.HasIndex("CreatorId");
 
                     b.HasIndex("SpaceId");
 
                     b.ToTable("Listings");
-                });
-
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.ListingSlot", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<long>("ListingId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId")
-                        .IsUnique();
-
-                    b.ToTable("ListingSlots");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Notification", b =>
@@ -545,21 +493,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.ToTable("SpaceAllowedCategories");
                 });
 
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.SpaceAmenity", b =>
-                {
-                    b.Property<long>("SpaceId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("AmenityId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("SpaceId", "AmenityId");
-
-                    b.HasIndex("AmenityId");
-
-                    b.ToTable("SpaceAmenities");
-                });
-
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SubBookingRequest", b =>
                 {
                     b.Property<long>("Id")
@@ -779,13 +712,19 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.ToTable("Profiles");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.Amentity", b =>
+                {
+                    b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
+                        .WithMany("Amenity")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Space");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Listing", b =>
                 {
-                    b.HasOne("FlexiSpace.Domain.Entities.BussinessCategory", "BussinessCategory")
-                        .WithMany("Listings")
-                        .HasForeignKey("BussinessCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("FlexiSpace.Domain.Entities.User", "Lessor")
                         .WithMany()
                         .HasForeignKey("CreatorId")
@@ -797,22 +736,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("BussinessCategory");
-
                     b.Navigation("Lessor");
 
                     b.Navigation("Space");
-                });
-
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.ListingSlot", b =>
-                {
-                    b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
-                        .WithOne("ListingSlot")
-                        .HasForeignKey("FlexiSpace.Domain.Entities.ListingSlot", "ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Notification", b =>
@@ -924,25 +850,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Space");
                 });
 
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.SpaceAmenity", b =>
-                {
-                    b.HasOne("FlexiSpace.Domain.Entities.Amentity", "Amenity")
-                        .WithMany("SpaceAmenity")
-                        .HasForeignKey("AmenityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
-                        .WithMany("SpaceAmenity")
-                        .HasForeignKey("SpaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Amenity");
-
-                    b.Navigation("Space");
-                });
-
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SubBookingRequest", b =>
                 {
                     b.HasOne("FlexiSpace.Domain.Entities.User", "Lessor")
@@ -993,22 +900,13 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.Amentity", b =>
-                {
-                    b.Navigation("SpaceAmenity");
-                });
-
             modelBuilder.Entity("FlexiSpace.Domain.Entities.BussinessCategory", b =>
                 {
-                    b.Navigation("Listings");
-
                     b.Navigation("SpaceAllowedCategories");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Listing", b =>
                 {
-                    b.Navigation("ListingSlot");
-
                     b.Navigation("PrimaryBookingRequests");
                 });
 
@@ -1028,6 +926,8 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Space", b =>
                 {
+                    b.Navigation("Amenity");
+
                     b.Navigation("Listing");
 
                     b.Navigation("OperatingHour");
@@ -1035,8 +935,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("PrimaryBookingRequest");
 
                     b.Navigation("SpaceAllowedCategory");
-
-                    b.Navigation("SpaceAmenity");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SubBookingRequest", b =>

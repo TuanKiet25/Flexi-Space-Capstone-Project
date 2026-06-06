@@ -20,14 +20,18 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
         public bool IsDeleted { get; set; } = false;
         public bool IsActive { get; set; } = true;
 
-        public List<SpaceAmenityVModel>? SpaceAmenities { get; set; }
+        public List<AmenityVModel>? Amenities { get; set; }
         public List<OperatingHourVmodel>? OperatingHours { get; set; }
         public List<SpaceAllowedCategoryVModel>? SpaceAllowedCategories { get; set; }
     }
 
-    public class SpaceAmenityVModel
+    public class AmenityVModel
     {
-        public long AmenityId { get; set; }
+        public string? Name { get; set; }
+        public int? Quantity { get; set; }
+        public bool? IsActive { get; set; }
+        [JsonIgnore]
+        public DateTime? CreatedBy { get; set; }
     }
 
     public class OperatingHourVmodel
@@ -39,6 +43,6 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
 
     public class SpaceAllowedCategoryVModel
     {
-        public long BussinessCategoryId { get; set; }
+        public long? BussinessCategoryId { get; set; }
     }
 }

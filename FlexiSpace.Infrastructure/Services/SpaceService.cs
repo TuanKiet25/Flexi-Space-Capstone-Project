@@ -31,7 +31,7 @@ namespace FlexiSpace.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        private string? ValidateCreateSpaceRQ(CreateSpaceRQ space)
+        private async Task<string?> ValidateCreateSpaceRQ(CreateSpaceRQ space)
         {
             try
             {
@@ -40,17 +40,16 @@ namespace FlexiSpace.Application.Services
                 string InvalidOperatingHours_OpenTime = "Operating hours are invalid. Open time must be before close time.";
                 string InvalidOperatingHours_DayOfWeek = "Operating hours are invalid. Day of week must be between 0 (Sunday) and 6 (Saturday).";
 
-                if(space.SpaceAmenities != null && space.SpaceAmenities.Any())
-                    foreach (var amenity in space.SpaceAmenities)
-                    {
-                        if (_unitOfWork.spaceAmenityRepository.GetAsync(x => x.AmenityId == amenity.AmenityId) == null)
-                            return "Failed to initialize space amenity repository.";
-                    }
+                //them validate cho Amentity
+
                 if(space.SpaceAllowedCategories != null && space.SpaceAllowedCategories.Any())
                     foreach (var category in space.SpaceAllowedCategories)
                     {
-                        if (_unitOfWork.spaceAllowedCategoryRepository.GetAsync(x => x.BussinessCategoryId == category.BussinessCategoryId) == null)
-                            return "Failed to initialize space allowed category repository.";
+                        var name = await _unitOfWork.bussinessCategoryRepository.GetAsync(x => x.Id == category.BussinessCategoryId);
+                            if (name == null)
+                            {
+                                return $"Not found spaceAllowedCategories {category.BussinessCategoryId}.";
+                            }
                     }
                 if (string.IsNullOrEmpty(space.Address) || string.IsNullOrEmpty(space.City))
                     return NullAddressOrCity;
@@ -72,7 +71,8 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var validationError = ValidateCreateSpaceRQ(space);
+                var validationError = await ValidateCreateSpaceRQ(space);
+                string a = validationError ?? string.Empty;
                 if (validationError != null)
                 {
                     return new ServiceResult<CreateSpaceRQ>
@@ -125,7 +125,7 @@ namespace FlexiSpace.Application.Services
                     include: x => x.Include(s => s.Owner)
                               .Include(s => s.PrimaryBookingRequest)
                               .Include(s => s.Listing)
-                              .Include(s => s.SpaceAmenity)
+                              .Include(s => s.Amenity)
                               .Include(s => s.OperatingHour)
                               .Include(s => s.SpaceAllowedCategory)
                     );
