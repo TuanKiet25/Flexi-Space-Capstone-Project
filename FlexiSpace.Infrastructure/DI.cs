@@ -42,8 +42,9 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IUserOTPRepository, UserOTPRepository>();
             services.AddScoped<ISpaceRepository, SpaceRepository>();
-            services.AddScoped<ISpaceAmenityRepository, SpaceAmenityRepository>();
             services.AddScoped<ISpaceAllowedCategoryRepository, SpaceAllowedCategoryRepository>();
+            services.AddScoped<IBussinessCategoryRepository, BussinessCategoryRepository>();
+            services.AddScoped<IAmentityRepository, AmentityRepository>();
             services.AddScoped<IListingRepository, ListingRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
@@ -55,6 +56,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<ISpaceService, SpaceService>();
             services.AddScoped<IListingService, ListingService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IBussinessCategoryService, BussinessCategoryService>();
             services.AddHttpClient<ITurnstileService, TurnstileService>();
             #endregion
             //Đăng ký auto mapper

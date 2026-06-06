@@ -10,8 +10,9 @@ namespace FlexiSpace.Infrastructure
         public IUserRepository userRepository { get; }
         public IUserOTPRepository userOTPRepository { get; }
         public ISpaceRepository spaceRepository {  get; }
-        public ISpaceAmenityRepository spaceAmenityRepository { get; }
         public ISpaceAllowedCategoryRepository spaceAllowedCategoryRepository { get; }
+        public IBussinessCategoryRepository bussinessCategoryRepository { get; }
+        public IAmentityRepository amenityRepository { get; }
         public IListingRepository listingRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
@@ -20,9 +21,10 @@ namespace FlexiSpace.Infrastructure
             userRepository = new UserRepository(_dbContext);
             userOTPRepository = new UserOTPRepository(_dbContext);
             spaceRepository = new SpaceRepository(_dbContext);
-            spaceAmenityRepository = new SpaceAmenityRepository(_dbContext);
             spaceAllowedCategoryRepository = new SpaceAllowedCategoryRepository(_dbContext);
             listingRepository = new ListingRepository(_dbContext);
+            bussinessCategoryRepository = new BussinessCategoryRepository(_dbContext);
+            amenityRepository = new AmentityRepository(_dbContext);
         }
 
 

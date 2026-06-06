@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Application.IRepositories
 {
-    public interface ISpaceAmenityRepository : IGenericRepository<SpaceAmenity>
+    public interface IBussinessCategoryRepository : IGenericRepository<BussinessCategory>
     {
     }
 }

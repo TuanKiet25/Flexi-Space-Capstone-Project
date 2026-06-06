@@ -8,14 +8,10 @@ namespace FlexiSpace.Domain.Entities
 {
     public class Amentity : BaseEntity
     {
-        public Amentity()
-        {
-            SpaceAmenity = new HashSet<SpaceAmenity>();
-        }
-
         public long Id { get; set; }
-        public int Number { get; set; }
+        public long SpaceId { get; set; }
+        public int Quantity { get; set; }
 
-        public virtual ICollection<SpaceAmenity> SpaceAmenity { get; set; }
+        public virtual Space Space { get; set; }
     }
 }

@@ -10,9 +10,9 @@ namespace FlexiSpace.Infrastructure.Configurations
         {
             builder.HasKey(a => a.Id);
 
-            builder.HasMany(a => a.SpaceAmenity)
-                   .WithOne(sa => sa.Amenity)
-                   .HasForeignKey(sa => sa.AmenityId)
+            builder.HasOne(s => s.Space)
+                   .WithMany(s => s.Amenity)
+                   .HasForeignKey(s => s.SpaceId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

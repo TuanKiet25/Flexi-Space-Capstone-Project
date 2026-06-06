@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Infrastructure.Repositories
 {
-    public class SpaceAmenityRepository : GenericRepository<SpaceAmenity>, ISpaceAmenityRepository
+    public class AmentityRepository : GenericRepository<Amentity>, IAmentityRepository
     {
-        public SpaceAmenityRepository(AppDbContext context) : base(context)
+        public AmentityRepository(AppDbContext context) : base(context)
         {
         }
     }
