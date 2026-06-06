@@ -8,7 +8,8 @@ namespace FlexiSpace.Domain.Enum
 {
     public enum ListingStatusEnum
     {
-        Active,
-        Inactive
+        Pending,
+        Accepted,
+        Canceled,
     }
 }

@@ -1,0 +1,23 @@
+﻿using FlexiSpace.Application.ViewModels.Requests;
+using FlexiSpace.Application.ViewModels.Responses;
+using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Enum;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FlexiSpace.Application.IServices
+{
+    public interface IListingService
+    {
+        Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing);
+        Task<ServiceResult<List<ListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status);
+        Task<ServiceResult<ListingResponse>> GetListingByIdAsync(long id);
+        Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing);
+        Task<ServiceResult<ListingResponse>> HardDeleteListingAsync(long id);
+        Task<ServiceResult<ListingResponse>> AcceptOrCancelListingAsync(long id, ListingStatusRequest request);
+        Task<ServiceResult<ListingResponse>> SoftDeleteListingAsync(long id);
+    }
+}
