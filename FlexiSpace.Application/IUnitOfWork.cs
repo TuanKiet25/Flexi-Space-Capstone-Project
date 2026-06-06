@@ -10,6 +10,7 @@ namespace FlexiSpace.Application
         ISpaceAllowedCategoryRepository spaceAllowedCategoryRepository { get; }
         IBussinessCategoryRepository bussinessCategoryRepository { get; }
         IAmentityRepository amenityRepository { get; }
+        IListingRepository listingRepository { get; }
         Task<int> SaveChangesAsync();
 
     }

@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FlexiSpace.Infrastructure
 {
@@ -44,6 +45,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<ISpaceAllowedCategoryRepository, SpaceAllowedCategoryRepository>();
             services.AddScoped<IBussinessCategoryRepository, BussinessCategoryRepository>();
             services.AddScoped<IAmentityRepository, AmentityRepository>();
+            services.AddScoped<IListingRepository, ListingRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -52,6 +54,8 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<ISpaceService, SpaceService>();
+            services.AddScoped<IListingService, ListingService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IBussinessCategoryService, BussinessCategoryService>();
             services.AddHttpClient<ITurnstileService, TurnstileService>();
             #endregion
