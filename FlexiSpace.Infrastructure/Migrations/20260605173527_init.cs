@@ -13,26 +13,6 @@ namespace FlexiSpace.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Amenities",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Number = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Amenities", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "BussinessCategories",
                 columns: table => new
                 {
@@ -231,6 +211,33 @@ namespace FlexiSpace.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Amenities",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Amenities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Amenities_Spaces_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Spaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Listings",
                 columns: table => new
                 {
@@ -241,10 +248,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     CreatorId = table.Column<string>(type: "text", nullable: true),
                     AllowedStartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     AllowedEndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    HourlyRate = table.Column<decimal>(type: "numeric", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    BussinessCategoryId = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
@@ -256,12 +261,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Listings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Listings_BussinessCategories_BussinessCategoryId",
-                        column: x => x.BussinessCategoryId,
-                        principalTable: "BussinessCategories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Listings_Spaces_SpaceId",
                         column: x => x.SpaceId,
@@ -325,59 +324,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         name: "FK_SpaceAllowedCategories_Spaces_SpaceId",
                         column: x => x.SpaceId,
                         principalTable: "Spaces",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SpaceAmenities",
-                columns: table => new
-                {
-                    SpaceId = table.Column<long>(type: "bigint", nullable: false),
-                    AmenityId = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SpaceAmenities", x => new { x.SpaceId, x.AmenityId });
-                    table.ForeignKey(
-                        name: "FK_SpaceAmenities_Amenities_AmenityId",
-                        column: x => x.AmenityId,
-                        principalTable: "Amenities",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SpaceAmenities_Spaces_SpaceId",
-                        column: x => x.SpaceId,
-                        principalTable: "Spaces",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ListingSlots",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ListingId = table.Column<long>(type: "bigint", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    Price = table.Column<decimal>(type: "numeric", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ListingSlots", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ListingSlots_Listings_ListingId",
-                        column: x => x.ListingId,
-                        principalTable: "Listings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -514,9 +460,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Listings_BussinessCategoryId",
-                table: "Listings",
-                column: "BussinessCategoryId");
+                name: "IX_Amenities_SpaceId",
+                table: "Amenities",
+                column: "SpaceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Listings_CreatorId",
@@ -527,12 +473,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "IX_Listings_SpaceId",
                 table: "Listings",
                 column: "SpaceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ListingSlots_ListingId",
-                table: "ListingSlots",
-                column: "ListingId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId",
@@ -598,11 +538,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 column: "BussinessCategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SpaceAmenities_AmenityId",
-                table: "SpaceAmenities",
-                column: "AmenityId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Spaces_OwnerId",
                 table: "Spaces",
                 column: "OwnerId");
@@ -652,10 +587,6 @@ namespace FlexiSpace.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Listings_BussinessCategories_BussinessCategoryId",
-                table: "Listings");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_Listings_Spaces_SpaceId",
                 table: "Listings");
 
@@ -696,7 +627,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                 table: "SubBookingRequests");
 
             migrationBuilder.DropTable(
-                name: "ListingSlots");
+                name: "Amenities");
 
             migrationBuilder.DropTable(
                 name: "Notifications");
@@ -714,16 +645,10 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "SpaceAllowedCategories");
 
             migrationBuilder.DropTable(
-                name: "SpaceAmenities");
-
-            migrationBuilder.DropTable(
                 name: "Transactions");
 
             migrationBuilder.DropTable(
                 name: "UserOTPs");
-
-            migrationBuilder.DropTable(
-                name: "Amenities");
 
             migrationBuilder.DropTable(
                 name: "BussinessCategories");

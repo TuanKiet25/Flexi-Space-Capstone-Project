@@ -15,12 +15,12 @@ namespace FlexiSpace.Infrastructure.MappingOptions
         public  SpaceMapping()
         {
             CreateMap<OperatingHourVmodel, OperatingHour>().ReverseMap();
-            CreateMap<SpaceAmenityVModel, SpaceAmenity>().ReverseMap();
+            CreateMap<AmenityVModel, Amentity>().ReverseMap();
             CreateMap<SpaceAllowedCategoryVModel, SpaceAllowedCategory>().ReverseMap();
             CreateMap<Space, GetAllSpace>().ReverseMap();
             CreateMap<CreateSpaceRQ, Space>()
                 .ForMember(dest => dest.OperatingHour, opt => opt.MapFrom(src => src.OperatingHours))
-                .ForMember(dest => dest.SpaceAmenity, opt => opt.MapFrom(src => src.SpaceAmenities))
+                .ForMember(dest => dest.Amenity, opt => opt.MapFrom(src => src.Amenities))
                 .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
                 .ReverseMap();
         }

@@ -19,7 +19,7 @@ namespace FlexiSpace.Application.ViewModels.Responses.Space
         public User? Owner { get; set; }
         public List<PrimaryBookingRequest>? PrimaryBookingRequests { get; set; }
         public List<Listing>? Listings { get; set; }
-        public List<SpaceAmenity>? SpaceAmenities { get; set; }
+        public List<Amentity>? Amenities { get; set; }
         public List<OperatingHour>? OperatingHours { get; set; }
         public List<SpaceAllowedCategory>? SpaceAllowedCategories { get; set; }
     }

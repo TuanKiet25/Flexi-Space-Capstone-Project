@@ -12,7 +12,6 @@ namespace FlexiSpace.Domain.Entities
         {
             PrimaryBookingRequest = new HashSet<PrimaryBookingRequest>();
             Listing = new HashSet<Listing>();
-            SpaceAmenity = new HashSet<SpaceAmenity>();
             OperatingHour = new HashSet<OperatingHour>();
             SpaceAllowedCategory = new HashSet<SpaceAllowedCategory>();
         }
@@ -27,7 +26,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Owner { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
         public virtual ICollection<Listing> Listing { get; set; }
-        public virtual ICollection<SpaceAmenity> SpaceAmenity { get; set; }
+        public virtual ICollection<Amentity> Amenity { get; set; }
         public virtual ICollection<OperatingHour> OperatingHour { get; set; }
         public virtual ICollection<SpaceAllowedCategory> SpaceAllowedCategory { get; set; }
     }
