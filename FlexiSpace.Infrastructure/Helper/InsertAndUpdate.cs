@@ -43,26 +43,69 @@ namespace FlexiSpace.Infrastructure.Helper
                 await _childEntity.AddRangeAsync(childEntities);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
-                return (new ServiceResult<P>
+                return new ServiceResult<P>
                 {
                     IsSuccess = true,
                     Data = parentEntity
-                });
+                };
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return (new ServiceResult<P>
+                return new ServiceResult<P>
                 {
                     IsSuccess = false,
                     Message = ex.Message
-                });
+                };
             }
         }
 
-        public Task<ServiceResult<P>> Update(P parentEntity, IEnumerable<C> tobeAdded, IEnumerable<C> tobeUpdated)
-        {
-            throw new NotImplementedException();
-        }
+        //public async Task<ServiceResult<P>> Update(P parentEntity, IEnumerable<C> tobeAdded, IEnumerable<C> tobeUpdated)
+        //{
+        //    using var transaction = _dbContext.Database.BeginTransaction();
+        //    try
+        //    {
+        //        var updateDate = DateTime.Now;
+        //        var updateBy = GlobalVariables.CurrentUserId;
+        //        parentEntity.UpdatedAt = updateDate;
+        //        parentEntity.UpdatedBy = updateBy;
+        //        _dbContext.Entry(parentEntity).CurrentValues.SetValues(parentEntity);
+        //        _dbContext.Entry(parentEntity).Property(e => e.CreatedAt).IsModified = false;
+        //        _dbContext.Entry(parentEntity).Property(e => e.CreatedBy).IsModified = false;
+        //        tobeAdded.ToList().ForEach(c =>
+        //        {
+        //            c.CreatedAt = updateDate;
+        //            c.CreatedBy = updateBy;
+        //        });
+        //        await _childEntity.AddRangeAsync(tobeAdded);
+        //        foreach (var c in tobeUpdated)
+        //        {
+        //            var existing = await _childEntity.FirstOrDefaultAsync(x => x.Id == c.Id);
+        //            if (existing != null)
+        //            {
+        //                _dbContext.Entry(existing).CurrentValues.SetValues(c);
+        //                existing.UpdatedAt = updateDate;
+        //                existing.UpdatedBy = updateBy;
+        //            }
+        //        }
+        //        _childEntity.UpdateRange(tobeUpdated);
+        //        await _dbContext.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //        return new ServiceResult<P>
+        //        {
+        //            IsSuccess = true,
+        //            Data = parentEntity
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        return new ServiceResult<P>
+        //        {
+        //            IsSuccess = false,
+        //            Message = ex.Message
+        //        };
+        //    }
+        //}
     }
 }

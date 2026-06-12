@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -244,12 +245,14 @@ namespace FlexiSpace.Infrastructure.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SpaceId = table.Column<long>(type: "bigint", nullable: false),
-                    PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: false),
                     CreatorId = table.Column<string>(type: "text", nullable: true),
                     AllowedStartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     AllowedEndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
+                    CacelReason = table.Column<string>(type: "text", nullable: true),
+                    Price = table.Column<decimal>(type: "numeric", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
+                    ListingPictures = table.Column<List<string>>(type: "text[]", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
