@@ -17,12 +17,22 @@ namespace FlexiSpace.Infrastructure.MappingOptions
             CreateMap<OperatingHourVmodel, OperatingHour>().ReverseMap();
             CreateMap<AmenityVModel, Amentity>().ReverseMap();
             CreateMap<SpaceAllowedCategoryVModel, SpaceAllowedCategory>().ReverseMap();
-            CreateMap<Space, GetAllSpace>().ReverseMap();
+            CreateMap<GetAllSpace, Space>()
+                .ForMember(dest => dest.OperatingHour, opt => opt.MapFrom(src => src.OperatingHours))
+                .ForMember(dest => dest.Amenity, opt => opt.MapFrom(src => src.Amenities))
+                .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
+                .ReverseMap();
+            CreateMap<Space, GetSpaceByIdRP>()
+                .ForMember(dest => dest.OperatingHours, opt => opt.MapFrom(src => src.OperatingHour))
+                .ForMember(dest => dest.Amenities, opt => opt.MapFrom(src => src.Amenity))
+                .ForMember(dest => dest.SpaceAllowedCategories, opt => opt.MapFrom(src => src.SpaceAllowedCategory))
+                .ReverseMap();
             CreateMap<CreateSpaceRQ, Space>()
                 .ForMember(dest => dest.OperatingHour, opt => opt.MapFrom(src => src.OperatingHours))
                 .ForMember(dest => dest.Amenity, opt => opt.MapFrom(src => src.Amenities))
                 .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
                 .ReverseMap();
+            CreateMap<CreateSpaceRQ, CreateSpaceRP>().ReverseMap();
         }
     }
 }

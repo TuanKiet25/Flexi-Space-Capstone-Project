@@ -27,5 +27,26 @@ namespace FlexiSpace.Web.Controllers
             var result = await _spaceService.Create(space);
             return HandleResult(result);
         }
+
+        [HttpGet("GetById{id:long}")]
+        public async Task<IActionResult> GetSpaceById(long id)
+        {
+            var result = await _spaceService.GetById(id);
+            return HandleResult(result);
+        }
+
+        [HttpPut("Update{id:long}")]
+        public async Task<IActionResult> UpdateSpace(long id, [FromBody] CreateSpaceRQ space)
+        {
+            var result = await _spaceService.Update(id, space);
+            return HandleResult(result);
+        }
+
+        [HttpDelete("Delete{id:long}")]
+        public async Task<IActionResult> DeleteSpace(long id)
+        {
+            var result = await _spaceService.Delete(id);
+            return HandleResult(result);
+        }
     }
 }

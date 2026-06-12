@@ -10,7 +10,8 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
 {
     public class CreateSpaceRQ
     {
-        
+        [JsonIgnore]
+        public long? Id { get; set; }
         public string? Name { get; set; }
         [JsonIgnore]
         public string? OwnerId { get; set; }
@@ -23,6 +24,16 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
         public List<AmenityVModel>? Amenities { get; set; }
         public List<OperatingHourVmodel>? OperatingHours { get; set; }
         public List<SpaceAllowedCategoryVModel>? SpaceAllowedCategories { get; set; }
+    }
+
+    public class CreateSpaceRP : CreateSpaceRQ
+    {
+        public new long Id { get; set; }
+        public new string? OwnerId { get; set; }
+    }
+
+    public class UpdateSpaceRQ : CreateSpaceRQ
+    {
     }
 
     public class AmenityVModel
