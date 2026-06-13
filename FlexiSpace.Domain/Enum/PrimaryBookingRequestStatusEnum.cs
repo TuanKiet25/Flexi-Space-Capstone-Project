@@ -8,8 +8,10 @@ namespace FlexiSpace.Domain.Enum
 {
     public enum PrimaryBookingRequestStatusEnum
     {
-        Pending,
-        Accepted,
-        Rejected
+        Pending ,      // Chờ xử lý
+        Negotiating ,  // Đang nhắn tin đàm phán/thương lượng giá
+        Approved ,     // Đã chấp thuận (Chuẩn bị ký hợp đồng)
+        Rejected,     // Bị từ chối
+        Canceled      // Khách chủ động hủy yêu cầu
     }
 }

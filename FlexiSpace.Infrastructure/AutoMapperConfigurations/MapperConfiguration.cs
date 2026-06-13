@@ -14,8 +14,13 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
     {
         public MapperConfiguration()
         {
-          CreateMap<Listing, ListingResponse>().ReverseMap();
-          CreateMap<ListingRequest, Listing>().ReverseMap();    
+            CreateMap<Listing, ListingResponse>().ReverseMap();
+            CreateMap<ListingRequest, Listing>().ReverseMap();
+
+
+            CreateMap<PrimaryBookingRequest, BookingResponse>();
+            CreateMap<BookingRequest, PrimaryBookingRequest>();
+
         }
     }
 }

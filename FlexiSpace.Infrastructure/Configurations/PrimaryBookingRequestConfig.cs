@@ -10,10 +10,32 @@ namespace FlexiSpace.Infrastructure.Configurations
         {
             builder.HasKey(p => p.Id);
 
+            builder.Property(p => p.LessorId)
+                   .IsRequired();
+
+            builder.Property(p => p.LesseeId)
+                   .IsRequired();
+
+            builder.Property(p => p.Duration)
+                   .IsRequired();
+
+            builder.Property(p => p.ExpectedEndDate)
+                   .IsRequired();
+
+            builder.Property(p => p.ExpectedStartDate)
+                   .IsRequired();
+
+            builder.Property(p => p.Status)
+                   .IsRequired();
+
             builder.HasOne(p => p.Lessor)
                    .WithMany()
                    .HasForeignKey(p => p.LessorId)
                    .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(p => p.Lessee)
+                    .WithMany()
+                    .HasForeignKey(p => p.LesseeId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(p => p.Space)
                    .WithMany(s => s.PrimaryBookingRequest)
@@ -22,12 +44,17 @@ namespace FlexiSpace.Infrastructure.Configurations
 
             builder.HasOne(p => p.Listing)
                    .WithMany(l => l.PrimaryBookingRequests)
-                     .HasForeignKey(p => p.ListingId)
-                     .OnDelete(DeleteBehavior.Restrict);
+                   .HasForeignKey(p => p.ListingId)
+                   .OnDelete(DeleteBehavior.Restrict);
 
-                 builder.HasOne(p => p.Review)
-                     .WithOne()
-                     .HasForeignKey<Review>(r => r.BookingRequestId)
+            builder.HasMany(p => p.SubBookingRequests)
+                   .WithOne(s => s.PrimaryBookingRequest)
+                   .HasForeignKey("PrimaryBookingRequestId")
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(p => p.Review)
+                   .WithOne()
+                   .HasForeignKey<Review>(r => r.BookingRequestId)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }
