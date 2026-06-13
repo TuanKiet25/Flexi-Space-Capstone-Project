@@ -1,24 +1,26 @@
 ﻿using FlexiSpace.Infrastructure;
-using FlexiSpace.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Add services to the container.
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+}); 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     // (Tùy chọn) Cấu hình tiêu đề cho Swagger UI
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "FlexiSpace API", Version = "v1" });
-
     // 1. Định nghĩa cơ chế bảo mật (Security Definition)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {

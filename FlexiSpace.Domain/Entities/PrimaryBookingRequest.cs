@@ -15,12 +15,15 @@ namespace FlexiSpace.Domain.Entities
         public long ListingId { get; set; }
         public string LessorId { get; set; }
         public string LesseeId { get; set; }
-        public decimal Price { get; set; }
+        public decimal? OfferedPrice { get; set; }
         public int Duration { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DurationUnitEnum DurationUnit { get; set; }
+        public DateTime ExpectedStartDate { get; set; }
+        public DateTime ExpectedEndDate { get; set; }
+        public string Purpose { get; set; } 
+        public string Note { get; set; }
         public PrimaryBookingRequestStatusEnum Status { get; set; }
-
+        public virtual User Lessee { get; set; }
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
         public virtual ICollection<SubBookingRequest> SubBookingRequests { get; set; }

@@ -46,6 +46,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IBussinessCategoryRepository, BussinessCategoryRepository>();
             services.AddScoped<IAmentityRepository, AmentityRepository>();
             services.AddScoped<IListingRepository, ListingRepository>();
+            services.AddScoped<IPrimaryBookingRequestRepository, PrimaryBookingRequestRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -55,6 +56,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<ISpaceService, SpaceService>();
             services.AddScoped<IListingService, ListingService>();
+            services.AddScoped<IPrimaryBookingRequestService, PrimaryBookingRequestService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IBussinessCategoryService, BussinessCategoryService>();
             services.AddHttpClient<ITurnstileService, TurnstileService>();
