@@ -67,7 +67,38 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<CreateSpaceRQ>> Create(CreateSpaceRQ space)
+        private void ReplaceSpaceChildren(Space existingSpace, CreateSpaceRQ space)
+        {
+            if (space.Amenities != null)
+            {
+                existingSpace.Amenity ??= new List<Amentity>();
+                existingSpace.Amenity.Clear();
+                foreach (var amenity in _mapper.Map<List<Amentity>>(space.Amenities))
+                {
+                    existingSpace.Amenity.Add(amenity);
+                }
+            }
+
+            if (space.OperatingHours != null)
+            {
+                existingSpace.OperatingHour.Clear();
+                foreach (var operatingHour in _mapper.Map<List<OperatingHour>>(space.OperatingHours))
+                {
+                    existingSpace.OperatingHour.Add(operatingHour);
+                }
+            }
+
+            if (space.SpaceAllowedCategories != null)
+            {
+                existingSpace.SpaceAllowedCategory.Clear();
+                foreach (var category in _mapper.Map<List<SpaceAllowedCategory>>(space.SpaceAllowedCategories))
+                {
+                    existingSpace.SpaceAllowedCategory.Add(category);
+                }
+            }
+        }
+
+        public async Task<ServiceResult<CreateSpaceRP>> Create(CreateSpaceRQ space)
         {
             try
             {
@@ -75,7 +106,7 @@ namespace FlexiSpace.Application.Services
                 string a = validationError ?? string.Empty;
                 if (validationError != null)
                 {
-                    return new ServiceResult<CreateSpaceRQ>
+                    return new ServiceResult<CreateSpaceRP>
                     {
                         IsSuccess = false,
                         Message = validationError
@@ -89,23 +120,24 @@ namespace FlexiSpace.Application.Services
                 var insertResult = await insertAndUpdateOperatingHours.Insert(parentSpace, [..parentSpace.OperatingHour]);
                 if (!insertResult.IsSuccess)
                 {
-                    return new ServiceResult<CreateSpaceRQ>
+                    return new ServiceResult<CreateSpaceRP>
                     {
                         IsSuccess = false,
                         Message = insertResult.Message ?? "Failed to create space."
                     };
                 }
-
-                return new ServiceResult<CreateSpaceRQ>
+                
+                var result = _mapper.Map<CreateSpaceRQ, CreateSpaceRP>(space);
+                return new ServiceResult<CreateSpaceRP>
                 {
                     IsSuccess = true,
-                    Data = space,
+                    Data = result,
                     Message = "Space created successfully."
                 };
             }
             catch
             {
-                return new ServiceResult<CreateSpaceRQ>
+                return new ServiceResult<CreateSpaceRP>
                 {
                     IsSuccess = false,
                     Message = "Failed to create space."
@@ -118,7 +150,8 @@ namespace FlexiSpace.Application.Services
             try
             {
                 var spaces = await _spaceRepository.GetAllAsync(
-                    filter: x => (string.IsNullOrEmpty(filter.OwnerId) || x.OwnerId == filter.OwnerId) &&
+                    filter: x => !x.IsDeleted &&
+                                (string.IsNullOrEmpty(filter.OwnerId) || x.OwnerId == filter.OwnerId) &&
                                 (string.IsNullOrEmpty(filter.Address) || x.Address.Contains(filter.Address)) &&
                                 (string.IsNullOrEmpty(filter.City) || x.City.Contains(filter.City)) &&
                                 (filter.Area <= 0 || x.Area >= filter.Area),
@@ -139,6 +172,145 @@ namespace FlexiSpace.Application.Services
             catch (Exception ex)
             {
                 return new ServiceResult<IEnumerable<GetAllSpace>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<GetSpaceByIdRP>> GetById(long id)
+        {
+            try
+            {
+                var space = await _spaceRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted,
+                    include: x => x.Include(s => s.Owner)
+                              .Include(s => s.PrimaryBookingRequest)
+                              .Include(s => s.Listing)
+                              .Include(s => s.Amenity)
+                              .Include(s => s.OperatingHour)
+                              .Include(s => s.SpaceAllowedCategory));
+
+                if (space == null)
+                {
+                    return new ServiceResult<GetSpaceByIdRP>
+                    {
+                        IsSuccess = false,
+                        Message = "Space not found."
+                    };
+                }
+
+                return new ServiceResult<GetSpaceByIdRP>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<GetSpaceByIdRP>(space)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<GetSpaceByIdRP>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<GetSpaceByIdRP>> Update(long id, CreateSpaceRQ space)
+        {
+            try
+            {
+                var validationError = await ValidateCreateSpaceRQ(space);
+                if (validationError != null)
+                {
+                    return new ServiceResult<GetSpaceByIdRP>
+                    {
+                        IsSuccess = false,
+                        Message = validationError
+                    };
+                }
+
+                var existingSpace = await _spaceRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted,
+                    include: x => x.Include(s => s.Owner)
+                              .Include(s => s.PrimaryBookingRequest)
+                              .Include(s => s.Listing)
+                              .Include(s => s.Amenity)
+                              .Include(s => s.OperatingHour)
+                              .Include(s => s.SpaceAllowedCategory));
+
+                if (existingSpace == null)
+                {
+                    return new ServiceResult<GetSpaceByIdRP>
+                    {
+                        IsSuccess = false,
+                        Message = "Space not found."
+                    };
+                }
+
+                existingSpace.Name = space.Name ?? existingSpace.Name;
+                existingSpace.Address = space.Address ?? existingSpace.Address;
+                existingSpace.City = space.City ?? existingSpace.City;
+                existingSpace.Area = space.Area;
+                existingSpace.IsActive = space.IsActive;
+                existingSpace.IsDeleted = space.IsDeleted;
+                existingSpace.UpdatedBy = GlobalVariables.CurrentUserId;
+                existingSpace.UpdatedAt = DateTime.Now;
+
+                ReplaceSpaceChildren(existingSpace, space);
+
+                await _spaceRepository.UpdateAsync(existingSpace);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<GetSpaceByIdRP>
+                {
+                    IsSuccess = true,
+                    Message = "Space updated successfully.",
+                    Data = _mapper.Map<GetSpaceByIdRP>(existingSpace)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<GetSpaceByIdRP>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<string>> Delete(long id)
+        {
+            try
+            {
+                var existingSpace = await _spaceRepository.GetAsync(x => x.Id == id && !x.IsDeleted);
+                if (existingSpace == null)
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        Message = "Space not found."
+                    };
+                }
+
+                existingSpace.IsDeleted = true;
+                existingSpace.IsActive = false;
+                existingSpace.UpdatedBy = GlobalVariables.CurrentUserId;
+                existingSpace.UpdatedAt = DateTime.Now;
+
+                await _spaceRepository.UpdateAsync(existingSpace);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<string>
+                {
+                    IsSuccess = true,
+                    Data = "Space deleted successfully."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<string>
                 {
                     IsSuccess = false,
                     Message = ex.Message

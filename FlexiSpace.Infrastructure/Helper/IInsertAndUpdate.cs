@@ -11,6 +11,6 @@ namespace FlexiSpace.Infrastructure.Helper
     public interface IInsertAndUpdate<P, C> where P : BaseEntity where C : BaseEntity
     {
         Task<ServiceResult<P>> Insert(P parentEntity, List<C> childEntities);
-        Task<ServiceResult<P>> Update(P parentEntity, IEnumerable<C> tobeAdded, IEnumerable<C> tobeUpdated);
+        //Task<ServiceResult<P>> Update(P parentEntity, IEnumerable<C> tobeAdded, IEnumerable<C> tobeUpdated);
     }
 }
