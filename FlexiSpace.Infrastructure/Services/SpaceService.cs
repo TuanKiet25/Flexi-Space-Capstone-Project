@@ -14,21 +14,147 @@ using FlexiSpace.Domain.Entities;
 using FlexiSpace.Infrastructure.Services;
 using FlexiSpace.Infrastructure.Helper;
 using FlexiSpace.Infrastructure;
+using Microsoft.Extensions.Hosting;
+using System.IO;
+using System.Text.Json;
+using System.Threading;
 
 namespace FlexiSpace.Application.Services
 {
     public class SpaceService : ISpaceService
     {
+        private const string VietnamAddressFileName = "vietnam_address.json";
+        private static readonly SemaphoreSlim AddressCacheLock = new(1, 1);
+        private static IReadOnlyList<AddressNodeRP>? _addressCache;
+
         private readonly ISpaceRepository _spaceRepository;
         private readonly IMapper _mapper;
         private readonly IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours;
         private readonly IUnitOfWork _unitOfWork;
-        public SpaceService(ISpaceRepository spaceRepository, IMapper mapper, IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours, IUnitOfWork unitOfWork)
+        private readonly IHostEnvironment _hostEnvironment;
+
+        public SpaceService(
+            ISpaceRepository spaceRepository,
+            IMapper mapper,
+            IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours,
+            IUnitOfWork unitOfWork,
+            IHostEnvironment hostEnvironment)
         {
             _spaceRepository = spaceRepository;
             _mapper = mapper;
             this.insertAndUpdateOperatingHours = insertAndUpdateOperatingHours;
             _unitOfWork = unitOfWork;
+            _hostEnvironment = hostEnvironment;
+        }
+
+        private async Task<IReadOnlyList<AddressNodeRP>> GetAddressCacheAsync()
+        {
+            if (_addressCache != null)
+            {
+                return _addressCache;
+            }
+
+            await AddressCacheLock.WaitAsync();
+            try
+            {
+                if (_addressCache != null)
+                {
+                    return _addressCache;
+                }
+
+                var filePath = Path.Combine(_hostEnvironment.ContentRootPath, "SeedData", VietnamAddressFileName);
+                if (!File.Exists(filePath))
+                {
+                    throw new FileNotFoundException("Address seed file was not found.", filePath);
+                }
+
+                var jsonContent = await File.ReadAllTextAsync(filePath);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var addresses = JsonSerializer.Deserialize<List<AddressNodeRP>>(jsonContent, options) ?? new List<AddressNodeRP>();
+                _addressCache = addresses;
+
+                return _addressCache;
+            }
+            finally
+            {
+                AddressCacheLock.Release();
+            }
+        }
+
+        public async Task<ServiceResult<IEnumerable<AddressOptionRP>>> GetAddress(string? provinceCode, string? districtCode)
+        {
+            try
+            {
+                var addresses = await GetAddressCacheAsync();
+
+                if (string.IsNullOrWhiteSpace(provinceCode))
+                {
+                    return new ServiceResult<IEnumerable<AddressOptionRP>>
+                    {
+                        IsSuccess = true,
+                        Data = addresses.Select(x => new AddressOptionRP
+                        {
+                            Value = x.Value,
+                            Label = x.Label
+                        }).ToList()
+                    };
+                }
+
+                var province = addresses.FirstOrDefault(x => x.Value == provinceCode);
+                if (province == null)
+                {
+                    return new ServiceResult<IEnumerable<AddressOptionRP>>
+                    {
+                        IsSuccess = false,
+                        Message = "Province not found."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(districtCode))
+                {
+                    return new ServiceResult<IEnumerable<AddressOptionRP>>
+                    {
+                        IsSuccess = true,
+                        Data = province.Children.Select(x => new AddressOptionRP
+                        {
+                            Value = x.Value,
+                            Label = x.Label
+                        }).ToList()
+                    };
+                }
+
+                var district = province.Children.FirstOrDefault(x => x.Value == districtCode);
+                if (district == null)
+                {
+                    return new ServiceResult<IEnumerable<AddressOptionRP>>
+                    {
+                        IsSuccess = false,
+                        Message = "District not found."
+                    };
+                }
+
+                return new ServiceResult<IEnumerable<AddressOptionRP>>
+                {
+                    IsSuccess = true,
+                    Data = district.Children.Select(x => new AddressOptionRP
+                    {
+                        Value = x.Value,
+                        Label = x.Label
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<IEnumerable<AddressOptionRP>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
         }
 
         private async Task<string?> ValidateCreateSpaceRQ(CreateSpaceRQ space)
@@ -42,14 +168,14 @@ namespace FlexiSpace.Application.Services
 
                 //them validate cho Amentity
 
-                if(space.SpaceAllowedCategories != null && space.SpaceAllowedCategories.Any())
+                if (space.SpaceAllowedCategories != null && space.SpaceAllowedCategories.Any())
                     foreach (var category in space.SpaceAllowedCategories)
                     {
                         var name = await _unitOfWork.bussinessCategoryRepository.GetAsync(x => x.Id == category.BussinessCategoryId);
-                            if (name == null)
-                            {
-                                return $"Not found spaceAllowedCategories {category.BussinessCategoryId}.";
-                            }
+                        if (name == null)
+                        {
+                            return $"Not found spaceAllowedCategories {category.BussinessCategoryId}.";
+                        }
                     }
                 if (string.IsNullOrEmpty(space.Address) || string.IsNullOrEmpty(space.City))
                     return NullAddressOrCity;
@@ -61,7 +187,8 @@ namespace FlexiSpace.Application.Services
                     return InvalidOperatingHours_DayOfWeek;
 
                 return null;
-            }catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
