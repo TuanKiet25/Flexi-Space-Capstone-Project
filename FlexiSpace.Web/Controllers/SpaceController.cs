@@ -21,6 +21,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpGet("GetAddress")]
+        public async Task<IActionResult> GetAddress([FromQuery] string? provinceCode, [FromQuery] string? districtCode)
+        {
+            var result = await _spaceService.GetAddress(provinceCode, districtCode);
+            return HandleResult(result);
+        }
+
         [HttpPost("Create")]
         public async Task<IActionResult> CreateSpace([FromBody] CreateSpaceRQ space)
         {

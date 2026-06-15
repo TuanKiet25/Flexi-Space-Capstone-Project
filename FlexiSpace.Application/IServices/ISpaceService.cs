@@ -12,6 +12,7 @@ namespace FlexiSpace.Application.IServices
     public interface ISpaceService
     {
         Task<ServiceResult<IEnumerable<GetAllSpace>>> GetAll(FilterGetAllSpace filter);
+        Task<ServiceResult<IEnumerable<AddressOptionRP>>> GetAddress(string? provinceCode, string? districtCode);
         Task<ServiceResult<CreateSpaceRP>> Create(CreateSpaceRQ space);
         Task<ServiceResult<GetSpaceByIdRP>> GetById(long id);
         Task<ServiceResult<GetSpaceByIdRP>> Update(long id, CreateSpaceRQ space);
