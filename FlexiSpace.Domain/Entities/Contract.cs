@@ -17,6 +17,9 @@ namespace FlexiSpace.Domain.Entities
         public long SpaceId { get; set; }
         public long PrimaryBookingRequestId { get; set; }
         public string Description { get; set; }
+        //dien tich
+        public decimal Acreage { get; set; }
+        //thoi gian thue tinh theo don vi ngay, thang, gio
         public int Duration { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
