@@ -76,6 +76,32 @@ namespace FlexiSpace.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Conversations",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    LessorId = table.Column<string>(type: "text", nullable: true),
+                    LesseeId = table.Column<string>(type: "text", nullable: true),
+                    LastMessage = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Conversations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Conversations_Users_LesseeId",
+                        column: x => x.LesseeId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Conversations_Users_LessorId",
+                        column: x => x.LessorId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Notifications",
                 columns: table => new
                 {
@@ -212,6 +238,34 @@ namespace FlexiSpace.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Messages",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    ConversationId = table.Column<string>(type: "text", nullable: true),
+                    SenderId = table.Column<string>(type: "text", nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    CreateAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Messages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Messages_Conversations_ConversationId",
+                        column: x => x.ConversationId,
+                        principalTable: "Conversations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Messages_Users_SenderId",
+                        column: x => x.SenderId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Amenities",
                 columns: table => new
                 {
@@ -339,12 +393,15 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     ListingId = table.Column<long>(type: "bigint", nullable: false),
-                    LessorId = table.Column<string>(type: "text", nullable: true),
-                    LesseeId = table.Column<string>(type: "text", nullable: true),
-                    Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    LessorId = table.Column<string>(type: "text", nullable: false),
+                    LesseeId = table.Column<string>(type: "text", nullable: false),
+                    OfferedPrice = table.Column<decimal>(type: "numeric", nullable: true),
                     Duration = table.Column<int>(type: "integer", nullable: false),
-                    StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    DurationUnit = table.Column<int>(type: "integer", nullable: false),
+                    ExpectedStartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ExpectedEndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    Purpose = table.Column<string>(type: "text", nullable: true),
+                    Note = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     ReviewId1 = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
@@ -370,6 +427,12 @@ namespace FlexiSpace.Infrastructure.Migrations
                         principalTable: "Spaces",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PrimaryBookingRequests_Users_LesseeId",
+                        column: x => x.LesseeId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PrimaryBookingRequests_Users_LessorId",
                         column: x => x.LessorId,
@@ -448,7 +511,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                         name: "FK_SubBookingRequests_PrimaryBookingRequests_PrimaryBookingReq~",
                         column: x => x.PrimaryBookingRequestId,
                         principalTable: "PrimaryBookingRequests",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SubBookingRequests_Reviews_ReviewId1",
                         column: x => x.ReviewId1,
@@ -468,6 +532,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                 column: "SpaceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Conversations_LesseeId",
+                table: "Conversations",
+                column: "LesseeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Conversations_LessorId",
+                table: "Conversations",
+                column: "LessorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Listings_CreatorId",
                 table: "Listings",
                 column: "CreatorId");
@@ -478,6 +552,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                 column: "SpaceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Messages_ConversationId",
+                table: "Messages",
+                column: "ConversationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_SenderId",
+                table: "Messages",
+                column: "SenderId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId",
                 table: "Notifications",
                 column: "UserId");
@@ -486,6 +570,11 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "IX_OperatingHours_SpaceId",
                 table: "OperatingHours",
                 column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PrimaryBookingRequests_LesseeId",
+                table: "PrimaryBookingRequests",
+                column: "LesseeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PrimaryBookingRequests_LessorId",
@@ -602,6 +691,10 @@ namespace FlexiSpace.Infrastructure.Migrations
                 table: "Listings");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_PrimaryBookingRequests_Users_LesseeId",
+                table: "PrimaryBookingRequests");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_PrimaryBookingRequests_Users_LessorId",
                 table: "PrimaryBookingRequests");
 
@@ -633,6 +726,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "Amenities");
 
             migrationBuilder.DropTable(
+                name: "Messages");
+
+            migrationBuilder.DropTable(
                 name: "Notifications");
 
             migrationBuilder.DropTable(
@@ -652,6 +748,9 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserOTPs");
+
+            migrationBuilder.DropTable(
+                name: "Conversations");
 
             migrationBuilder.DropTable(
                 name: "BussinessCategories");

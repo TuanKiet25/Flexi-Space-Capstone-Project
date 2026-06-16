@@ -12,6 +12,8 @@ namespace FlexiSpace.Application
         IAmentityRepository amenityRepository { get; }
         IListingRepository listingRepository { get; }
         IPrimaryBookingRequestRepository primaryBookingRequestRepository { get; }
+        IConversationRepository conversationRepository { get; }
+        IMessageRepository messageRepository { get; }
         Task<int> SaveChangesAsync();
 
     }

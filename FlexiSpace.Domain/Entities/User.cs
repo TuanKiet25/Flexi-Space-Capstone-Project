@@ -21,7 +21,6 @@ namespace FlexiSpace.Domain.Entities
         public string Email { get; set; }
         public string Password { get; set; }
         public RoleEnum Role { get; set; }
-
         public virtual UserProfile Profile { get; set; }
         public virtual ICollection <UserOTP> UserOTPs { get; set; }
         public virtual ICollection<Notification> Notification { get; set; }

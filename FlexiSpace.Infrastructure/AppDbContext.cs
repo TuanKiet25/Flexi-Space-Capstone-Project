@@ -23,7 +23,8 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<Review> Reviews { get; set; }
         public virtual DbSet<SpaceAllowedCategory> SpaceAllowedCategories { get; set; }
         public virtual DbSet<Transaction> Transactions { get; set; }
-
+        public virtual DbSet<Message> Messages { get; set; }
+        public virtual DbSet<Conversation> Conversations { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

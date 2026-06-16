@@ -1,4 +1,5 @@
 ﻿using FlexiSpace.Infrastructure;
+using FlexiSpace.Web.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -9,6 +10,7 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Add services to the container.
+builder.Services.AddSignalR();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -79,7 +81,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<ChatHub>("/chatHub");
 app.MapControllers();
 
 app.Run();

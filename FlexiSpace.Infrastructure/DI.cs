@@ -47,6 +47,8 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IAmentityRepository, AmentityRepository>();
             services.AddScoped<IListingRepository, ListingRepository>();
             services.AddScoped<IPrimaryBookingRequestRepository, PrimaryBookingRequestRepository>();
+            services.AddScoped<IConversationRepository, ConversationRepository>();
+            services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -60,11 +62,9 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IBussinessCategoryService, BussinessCategoryService>();
             services.AddHttpClient<ITurnstileService, TurnstileService>();
+            services.AddScoped<IConversationService, ConversationService>();
+            services.AddScoped<IMessageService, MessageService>();
             #endregion
-            //Đăng ký auto mapper
-            //services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
-            // Đăng ký JWT authentication
-
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
             services.Configure<MailOptions>(configuration.GetSection("MailSettings"));
