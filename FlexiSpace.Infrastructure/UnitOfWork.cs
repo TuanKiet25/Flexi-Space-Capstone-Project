@@ -15,6 +15,8 @@ namespace FlexiSpace.Infrastructure
         public IAmentityRepository amenityRepository { get; }
         public IListingRepository listingRepository { get; }
         public IPrimaryBookingRequestRepository primaryBookingRequestRepository { get; }
+        public IConversationRepository conversationRepository { get; }
+        public IMessageRepository messageRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -27,6 +29,8 @@ namespace FlexiSpace.Infrastructure
             bussinessCategoryRepository = new BussinessCategoryRepository(_dbContext);
             amenityRepository = new AmentityRepository(_dbContext);
             primaryBookingRequestRepository = new PrimaryBookingRequestRepository(_dbContext);
+            conversationRepository = new ConversationRepository(_dbContext);
+            messageRepository = new MessageRepository(_dbContext);
         }
 
 

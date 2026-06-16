@@ -46,8 +46,6 @@ namespace FlexiSpace.Infrastructure.Services
             {
                 await client.ConnectAsync(_mailOptions.SmtpServer, _mailOptions.Port, SecureSocketOptions.StartTls);
                 await client.AuthenticateAsync(_mailOptions.SenderEmail, _mailOptions.Password);
-
-                // Gửi mail
                 await client.SendAsync(message);
             }
             catch (Exception ex)
