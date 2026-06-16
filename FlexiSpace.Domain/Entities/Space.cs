@@ -14,6 +14,7 @@ namespace FlexiSpace.Domain.Entities
             Listing = new HashSet<Listing>();
             OperatingHour = new HashSet<OperatingHour>();
             SpaceAllowedCategory = new HashSet<SpaceAllowedCategory>();
+            Contract = new HashSet<Contract>();
         }
 
         public long Id { get; set; }
@@ -24,6 +25,7 @@ namespace FlexiSpace.Domain.Entities
         public string SpacePictures { get; set; }
 
         public virtual User Owner { get; set; }
+        public virtual ICollection<Contract> Contract { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
         public virtual ICollection<Listing> Listing { get; set; }
         public virtual ICollection<Amentity> Amenity { get; set; }
