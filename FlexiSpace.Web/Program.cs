@@ -84,4 +84,8 @@ app.UseAuthorization();
 app.MapHub<ChatHub>("/chatHub");
 app.MapControllers();
 
+using (var scope = app.Services.CreateScope())
+{
+    await FlexiSpace.Web.Extensions.DataSeeder.SeedAdminAccountAsync(scope.ServiceProvider);
+}
 app.Run();
