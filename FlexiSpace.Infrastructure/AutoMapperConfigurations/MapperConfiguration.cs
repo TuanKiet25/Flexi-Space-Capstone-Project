@@ -21,6 +21,9 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<PrimaryBookingRequest, BookingResponse>();
             CreateMap<BookingRequest, PrimaryBookingRequest>();
 
+            CreateMap<Contract, ContractResponse>();
+            CreateMap<ContractRequest, Contract>();
+
         }
     }
 }

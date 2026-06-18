@@ -46,6 +46,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IBussinessCategoryRepository, BussinessCategoryRepository>();
             services.AddScoped<IAmentityRepository, AmentityRepository>();
             services.AddScoped<IListingRepository, ListingRepository>();
+            services.AddScoped<IContractRepository, ContractRepository>();
             services.AddScoped<IPrimaryBookingRequestRepository, PrimaryBookingRequestRepository>();
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
@@ -58,6 +59,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<ISpaceService, SpaceService>();
             services.AddScoped<IListingService, ListingService>();
+            services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IPrimaryBookingRequestService, PrimaryBookingRequestService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IBussinessCategoryService, BussinessCategoryService>();

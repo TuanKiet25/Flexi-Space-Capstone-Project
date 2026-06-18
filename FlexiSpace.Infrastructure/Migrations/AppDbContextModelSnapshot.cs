@@ -99,6 +99,86 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.ToTable("BussinessCategories");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.Contract", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Acreage")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LesseeId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LesseeNumberCard")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LessorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LessorNumberCard")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<long>("PrimaryBookingRequestId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SpaceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrimaryBookingRequestId");
+
+                    b.HasIndex("SpaceId");
+
+                    b.ToTable("Contracts");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Conversation", b =>
                 {
                     b.Property<string>("Id")
@@ -792,6 +872,25 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Space");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.Contract", b =>
+                {
+                    b.HasOne("FlexiSpace.Domain.Entities.PrimaryBookingRequest", "PrimaryBookingRequest")
+                        .WithMany("Contracts")
+                        .HasForeignKey("PrimaryBookingRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
+                        .WithMany("Contract")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PrimaryBookingRequest");
+
+                    b.Navigation("Space");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Conversation", b =>
                 {
                     b.HasOne("FlexiSpace.Domain.Entities.User", "Lessee")
@@ -1030,6 +1129,8 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PrimaryBookingRequest", b =>
                 {
+                    b.Navigation("Contracts");
+
                     b.Navigation("Review");
 
                     b.Navigation("SubBookingRequests");
@@ -1045,6 +1146,8 @@ namespace FlexiSpace.Infrastructure.Migrations
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Space", b =>
                 {
                     b.Navigation("Amenity");
+
+                    b.Navigation("Contract");
 
                     b.Navigation("Listing");
 
