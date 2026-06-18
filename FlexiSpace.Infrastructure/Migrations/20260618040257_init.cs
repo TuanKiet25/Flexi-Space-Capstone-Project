@@ -395,7 +395,10 @@ namespace FlexiSpace.Infrastructure.Migrations
                     LesseeId = table.Column<string>(type: "text", nullable: true),
                     SpaceId = table.Column<long>(type: "bigint", nullable: false),
                     PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: false),
+                    LessorNumberCard = table.Column<string>(type: "text", nullable: true),
+                    LesseeNumberCard = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
+                    Acreage = table.Column<decimal>(type: "numeric", nullable: false),
                     Duration = table.Column<int>(type: "integer", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
@@ -419,16 +422,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         principalTable: "Spaces",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Contracts_Users_LesseeId",
-                        column: x => x.LesseeId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                    table.ForeignKey(
-                        name: "FK_Contracts_Users_LessorId",
-                        column: x => x.LessorId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
                 });
 
             migrationBuilder.CreateTable(
@@ -576,16 +569,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "IX_Amenities_SpaceId",
                 table: "Amenities",
                 column: "SpaceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Contracts_LesseeId",
-                table: "Contracts",
-                column: "LesseeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Contracts_LessorId",
-                table: "Contracts",
-                column: "LessorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Contracts_PrimaryBookingRequestId",

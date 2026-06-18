@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260616162115_init")]
+    [Migration("20260618040257_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -110,6 +110,9 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<decimal>("Acreage")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -137,7 +140,13 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("LesseeId")
                         .HasColumnType("text");
 
+                    b.Property<string>("LesseeNumberCard")
+                        .HasColumnType("text");
+
                     b.Property<string>("LessorId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LessorNumberCard")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
@@ -165,10 +174,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("LesseeId");
-
-                    b.HasIndex("LessorId");
 
                     b.HasIndex("PrimaryBookingRequestId");
 
@@ -872,14 +877,6 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Contract", b =>
                 {
-                    b.HasOne("FlexiSpace.Domain.Entities.User", "Lessee")
-                        .WithMany()
-                        .HasForeignKey("LesseeId");
-
-                    b.HasOne("FlexiSpace.Domain.Entities.User", "Lessor")
-                        .WithMany()
-                        .HasForeignKey("LessorId");
-
                     b.HasOne("FlexiSpace.Domain.Entities.PrimaryBookingRequest", "PrimaryBookingRequest")
                         .WithMany("Contracts")
                         .HasForeignKey("PrimaryBookingRequestId")
@@ -891,10 +888,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasForeignKey("SpaceId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Lessee");
-
-                    b.Navigation("Lessor");
 
                     b.Navigation("PrimaryBookingRequest");
 

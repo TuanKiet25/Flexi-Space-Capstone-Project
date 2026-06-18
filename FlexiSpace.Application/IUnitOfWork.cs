@@ -11,6 +11,7 @@ namespace FlexiSpace.Application
         IBussinessCategoryRepository bussinessCategoryRepository { get; }
         IAmentityRepository amenityRepository { get; }
         IListingRepository listingRepository { get; }
+        IContractRepository contractRepository { get; }
         IPrimaryBookingRequestRepository primaryBookingRequestRepository { get; }
         IConversationRepository conversationRepository { get; }
         IMessageRepository messageRepository { get; }

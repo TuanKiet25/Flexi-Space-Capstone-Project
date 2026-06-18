@@ -16,6 +16,10 @@ namespace FlexiSpace.Domain.Entities
         public string LesseeId { get; set; }
         public long SpaceId { get; set; }
         public long PrimaryBookingRequestId { get; set; }
+        // so cmnd nguoi cho thue
+        public string LessorNumberCard { get; set; }
+        // so cmnd nguoi thue
+        public string LesseeNumberCard { get; set; }
         public string Description { get; set; }
         //dien tich
         public decimal Acreage { get; set; }
@@ -28,8 +32,6 @@ namespace FlexiSpace.Domain.Entities
         public decimal Price { get; set; }
         public ContractStatusEnum Status { get; set; }
 
-        public virtual User Lessor { get; set; }
-        public virtual User Lessee { get; set; }
         public virtual Space Space { get; set; }
         public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
     }
