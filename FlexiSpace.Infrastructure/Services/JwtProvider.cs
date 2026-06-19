@@ -46,16 +46,10 @@ namespace FlexiSpace.Infrastructure.Services
                 signingCredentials: creds
             );
 
-            GlobalVariables.CurrentUserId = user.UserId;
-            GlobalVariables.Role = user.Role;
+            
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 
-    public static class GlobalVariables
-    {
-        public static string? CurrentUserId { get; set; }
-        public static RoleEnum? Role { get; set; }
-    }
 }

@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Application.ViewModels.Requests.BussinessCategoryRQ;
+using FlexiSpace.Application.ViewModels.Requests.BussinessCategoryRQ;
 using FlexiSpace.Application.ViewModels.Responses;
 using System;
 using System.Collections.Generic;
@@ -12,5 +12,8 @@ namespace FlexiSpace.Application.IServices
     {
         Task<ServiceResult<List<GetAllBussinessCategory>>> GetAll(FilterGetAllBussinessCategory filter);
         Task<ServiceResult<CreateBussinessCategory>> Create(CreateBussinessCategory bussinessCategory);
+        Task<ServiceResult<GetAllBussinessCategory>> GetById(long id);
+        Task<ServiceResult<GetAllBussinessCategory>> Update(long id, CreateBussinessCategory bussinessCategory);
+        Task<ServiceResult<string>> Delete(long id);
     }
 }
