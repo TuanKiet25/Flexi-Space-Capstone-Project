@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +17,8 @@ namespace FlexiSpace.Application.ViewModels.Requests.BussinessCategoryRQ
 
     public class GetAllBussinessCategory : BaseVModel
     {
+        public long Id { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class FilterGetAllBussinessCategory : BaseVModel

@@ -1,5 +1,6 @@
-﻿using FlexiSpace.Application.ViewModels.Requests.Space;
+using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
+using FlexiSpace.Application.IServices;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -17,12 +18,14 @@ namespace FlexiSpace.Infrastructure.Helper
         private readonly AppDbContext _dbContext;
         private readonly DbSet<P> _parentEntity;
         private readonly DbSet<C> _childEntity;
+        private readonly ICurrentUserService _currentUserService;
 
-        public InsertAndUpdate(AppDbContext dbContext)
+        public InsertAndUpdate(AppDbContext dbContext, ICurrentUserService currentUserService)
         {
             _dbContext = dbContext;
             _parentEntity = _dbContext.Set<P>();
             _childEntity = _dbContext.Set<C>();
+            _currentUserService = currentUserService;
         }
 
         public async Task<ServiceResult<P>> Insert(P parentEntity, List<C> childEntities)
@@ -31,7 +34,7 @@ namespace FlexiSpace.Infrastructure.Helper
             try
             {
                 var createDate = DateTime.Now;
-                var createBy = GlobalVariables.CurrentUserId;
+                var createBy = _currentUserService.UserId ?? "System";
                 parentEntity.CreatedAt = createDate;
                 parentEntity.CreatedBy = createBy;
                 _parentEntity.Add(parentEntity);
