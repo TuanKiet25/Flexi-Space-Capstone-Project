@@ -9,6 +9,22 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+// =========================================================
+// BƯỚC 1: THÊM CẤU HÌNH CORS VÀO ĐÂY
+// =========================================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.SetIsOriginAllowed(origin => true) // Cho phép mọi port localhost (3000, 5173,...)
+              .AllowAnyMethod()                   // Cho phép OPTIONS, POST, GET...
+              .AllowAnyHeader()                   // Cho phép mọi loại Header
+              .AllowCredentials();                // Cần thiết nếu sau này dùng SignalR / Cookie
+    });
+});
+// =========================================================
+
 // Add services to the container.
 builder.Services.AddSignalR();
 builder.Services.AddInfrastructureServices(builder.Configuration);
@@ -16,14 +32,13 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-}); 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+});
+
+// Swagger Configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    // (Tùy chọn) Cấu hình tiêu đề cho Swagger UI
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "FlexiSpace API", Version = "v1" });
-    // 1. Định nghĩa cơ chế bảo mật (Security Definition)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -37,22 +52,19 @@ builder.Services.AddSwaggerGen(c =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
     });
 });
+
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt SecretKey is missing!");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false; 
+        options.RequireHttpsMetadata = false;
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -79,6 +91,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// =========================================================
+// BƯỚC 2: KÍCH HOẠT CORS VÀ ROUTING ĐÚNG THỨ TỰ
+// =========================================================
+app.UseRouting();
+app.UseCors("AllowReactApp"); // Phải nằm trước UseAuthentication
+// =========================================================
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<ChatHub>("/chatHub");
@@ -88,4 +107,5 @@ using (var scope = app.Services.CreateScope())
 {
     await FlexiSpace.Web.Extensions.DataSeeder.SeedAdminAccountAsync(scope.ServiceProvider);
 }
+
 app.Run();
