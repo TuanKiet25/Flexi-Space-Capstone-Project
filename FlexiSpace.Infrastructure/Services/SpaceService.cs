@@ -244,11 +244,20 @@ namespace FlexiSpace.Application.Services
                         Message = validationError
                     };
                 }
+                var ownerId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+                if(ownerId == null)
+                {
+                    return new ServiceResult<CreateSpaceRP>
+                    {
+                        IsSuccess = false,
+                        Message = "Register first!"
+                    };
+                }
+                //space.OwnerId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                space.OwnerId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                var parentSpace = _mapper.Map<CreateSpaceRQ, Space>(space);
-
+                var parentSpace = _mapper.Map<Space>(space);
+                parentSpace.OwnerId = ownerId;
+                parentSpace.IsDeleted = false;
                 var insertResult = await insertAndUpdateOperatingHours.Insert(parentSpace, [..parentSpace.OperatingHour]);
                 if (!insertResult.IsSuccess)
                 {
@@ -258,8 +267,8 @@ namespace FlexiSpace.Application.Services
                         Message = insertResult.Message ?? "Failed to create space."
                     };
                 }
-                
-                var result = _mapper.Map<CreateSpaceRQ, CreateSpaceRP>(space);
+                var spaceResult = await _unitOfWork.spaceRepository.GetAsync(p => p.Id == parentSpace.Id, include: q => q.Include(p => p.Amenity).Include(p => p.OperatingHour).Include(p => p.SpaceAllowedCategory));
+                var result = _mapper.Map<CreateSpaceRP>(spaceResult);
                 return new ServiceResult<CreateSpaceRP>
                 {
                     IsSuccess = true,
@@ -267,12 +276,12 @@ namespace FlexiSpace.Application.Services
                     Message = "Space created successfully."
                 };
             }
-            catch
+            catch(Exception ex)
             {
                 return new ServiceResult<CreateSpaceRP>
                 {
                     IsSuccess = false,
-                    Message = "Failed to create space."
+                    Message = $"Failed to create space.{ex.Message}"
                 };
             }
         }
@@ -386,7 +395,6 @@ namespace FlexiSpace.Application.Services
                 existingSpace.City = space.City ?? existingSpace.City;
                 existingSpace.Area = space.Area;
                 existingSpace.IsActive = space.IsActive;
-                existingSpace.IsDeleted = space.IsDeleted;
                 existingSpace.UpdatedBy = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
                 existingSpace.UpdatedAt = DateTime.Now;
 

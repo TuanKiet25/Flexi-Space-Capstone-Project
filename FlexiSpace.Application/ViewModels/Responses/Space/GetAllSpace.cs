@@ -15,6 +15,7 @@ namespace FlexiSpace.Application.ViewModels.Responses.Space
         public string? Address { get; set; }
         public string? City { get; set; }
         public decimal Area { get; set; }
+        public bool IsDeleted { get; set; } 
 
         //public List<PrimaryBookingRequest>? PrimaryBookingRequests { get; set; }
         //public List<Listing>? Listings { get; set; }

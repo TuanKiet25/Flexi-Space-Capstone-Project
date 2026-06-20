@@ -10,15 +10,15 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
 {
     public class CreateSpaceRQ
     {
-        [JsonIgnore]
-        public long? Id { get; set; }
+        //[JsonIgnore]
+        //public long? Id { get; set; }
         public string? Name { get; set; }
-        [JsonIgnore]
-        public string? OwnerId { get; set; }
+        //[JsonIgnore]
+        //public string? OwnerId { get; set; }
         public string? Address { get; set; }
         public string? City { get; set; }
         public decimal Area { get; set; }
-        public bool IsDeleted { get; set; } = false;
+        //public bool IsDeleted { get; set; } = false;
         public bool IsActive { get; set; } = true;
 
         public List<AmenityVModel>? Amenities { get; set; }
@@ -28,8 +28,9 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
 
     public class CreateSpaceRP : CreateSpaceRQ
     {
-        public new long Id { get; set; }
-        public new string? OwnerId { get; set; }
+        public long Id { get; set; }
+        public string? OwnerId { get; set; }
+        public bool IsDeleted { get; set; } 
     }
 
     public class UpdateSpaceRQ : CreateSpaceRQ
