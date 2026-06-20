@@ -11,7 +11,6 @@ namespace FlexiSpace.Domain.Entities
     {
         public PrimaryBookingRequest()
         {
-            SubBookingRequests = new HashSet<SubBookingRequest>();
             Contracts = new HashSet<Contract>();
         }
 
@@ -31,7 +30,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Lessee { get; set; }
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
-        public virtual ICollection<SubBookingRequest> SubBookingRequests { get; set; }
         public virtual ICollection<Contract> Contracts { get; set; }
         public virtual Listing Listing { get; set; }
         public virtual Review Review { get; set; }
