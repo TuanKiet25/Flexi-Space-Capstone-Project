@@ -18,6 +18,8 @@ using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace FlexiSpace.Application.Services
 {
@@ -32,12 +34,14 @@ namespace FlexiSpace.Application.Services
         private readonly IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public SpaceService(
             ISpaceRepository spaceRepository,
             IMapper mapper,
             IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours,
             IUnitOfWork unitOfWork,
+            IHttpContextAccessor httpContextAccessor,
             IHostEnvironment hostEnvironment)
         {
             _spaceRepository = spaceRepository;
@@ -45,6 +49,7 @@ namespace FlexiSpace.Application.Services
             this.insertAndUpdateOperatingHours = insertAndUpdateOperatingHours;
             _unitOfWork = unitOfWork;
             _hostEnvironment = hostEnvironment;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         private async Task<IReadOnlyList<AddressNodeRP>> GetAddressCacheAsync()
@@ -240,7 +245,7 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
-                space.OwnerId = GlobalVariables.CurrentUserId;
+                space.OwnerId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 var parentSpace = _mapper.Map<CreateSpaceRQ, Space>(space);
 
@@ -382,7 +387,7 @@ namespace FlexiSpace.Application.Services
                 existingSpace.Area = space.Area;
                 existingSpace.IsActive = space.IsActive;
                 existingSpace.IsDeleted = space.IsDeleted;
-                existingSpace.UpdatedBy = GlobalVariables.CurrentUserId;
+                existingSpace.UpdatedBy = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
                 existingSpace.UpdatedAt = DateTime.Now;
 
                 ReplaceSpaceChildren(existingSpace, space);
@@ -423,7 +428,7 @@ namespace FlexiSpace.Application.Services
 
                 existingSpace.IsDeleted = true;
                 existingSpace.IsActive = false;
-                existingSpace.UpdatedBy = GlobalVariables.CurrentUserId;
+                existingSpace.UpdatedBy = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
                 existingSpace.UpdatedAt = DateTime.Now;
 
                 await _spaceRepository.UpdateAsync(existingSpace);
