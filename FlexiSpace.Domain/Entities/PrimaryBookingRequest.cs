@@ -9,6 +9,10 @@ namespace FlexiSpace.Domain.Entities
 {
     public class PrimaryBookingRequest : BaseEntity
     {
+        public PrimaryBookingRequest()
+        {
+            Contracts = new HashSet<Contract>();
+        }
 
         public long Id { get; set; }
         public long SpaceId { get; set; }
@@ -26,7 +30,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Lessee { get; set; }
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
-        public virtual ICollection<SubBookingRequest> SubBookingRequests { get; set; }
+        public virtual ICollection<Contract> Contracts { get; set; }
         public virtual Listing Listing { get; set; }
         public virtual Review Review { get; set; }
     }
