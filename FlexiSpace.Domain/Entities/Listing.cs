@@ -20,7 +20,7 @@ namespace FlexiSpace.Domain.Entities
         public DateTime AllowedStartTime { get; set; }
         public DateTime AllowedEndTime { get; set; }
         public string Description { get; set; }
-        public string CacelReason { get; set; }
+        public string CancelReason { get; set; }
         public decimal Price { get; set; }
         public ListingType ListingType { get; set; }
         public ListingStatusEnum Status { get; set; }
