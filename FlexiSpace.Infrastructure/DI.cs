@@ -50,6 +50,10 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IPrimaryBookingRequestRepository, PrimaryBookingRequestRepository>();
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
+            services.AddScoped<IShareSpaceDetailRepository, ShareSpaceDetailRepository>();
+            services.AddScoped<IShareSpaceCategoryRepository, ShareSpaceCategoryRepository>();
+            services.AddScoped<IAvailabilitiesTimeRepository, AvailabilitiesTimeRepository>();
+            services.AddScoped<ISharedSpaceAmenitiesRepository, SharedSpaceAmenitiesRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -79,7 +83,8 @@ namespace FlexiSpace.Infrastructure
                                   policy =>
                                   {
                                       // Cho phép origin của frontend được truy cập
-                                      policy.AllowAnyOrigin()
+                                      policy.SetIsOriginAllowed(origin => true)
+                                            .AllowAnyOrigin()
                                             .AllowAnyHeader()
                                             .AllowAnyMethod();
                                   });

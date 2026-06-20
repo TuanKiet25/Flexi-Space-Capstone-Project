@@ -10,20 +10,6 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-// =========================================================
-// BƯỚC 1: THÊM CẤU HÌNH CORS VÀO ĐÂY
-// =========================================================
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp", policy =>
-    {
-        policy.SetIsOriginAllowed(origin => true) // Cho phép mọi port localhost (3000, 5173,...)
-              .AllowAnyMethod()                   // Cho phép OPTIONS, POST, GET...
-              .AllowAnyHeader()                   // Cho phép mọi loại Header
-              .AllowCredentials();                // Cần thiết nếu sau này dùng SignalR / Cookie
-    });
-});
-// =========================================================
 
 // Add services to the container.
 builder.Services.AddSignalR();
