@@ -16,6 +16,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public DateTime AllowedStartTime { get; set; }
         public DateTime AllowedEndTime { get; set; }
         public string? Description { get; set; }
+        public ListingType ListingType { get; set; }
         public ListingStatusEnum Status { get; set; }
         required
         public string LessorName { get; set; }
@@ -26,7 +27,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } 
         public bool IsActive { get; set; }
-        public string? CacelReason { get; set; }
+        public string? CancelReason { get; set; }
         public List<string>? ListingPictures { get; set; }
 
     }

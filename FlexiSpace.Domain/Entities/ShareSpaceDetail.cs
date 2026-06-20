@@ -13,6 +13,7 @@ namespace FlexiSpace.Domain.Entities
         public int MaxSubRenter { get; set; }
         public virtual ICollection<AvailabilitiesTime> AvailabilitiesTimes { get; set; }
         public virtual ICollection<SharedSpaceAmenities> ShareSpaceAmenities { get; set; }
+        public virtual ICollection<ShareSpaceCategory> ShareSpaceCategories { get; set; }
         public virtual Listing Listing { get; set; }
         
     }

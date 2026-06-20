@@ -15,7 +15,13 @@ namespace FlexiSpace.Application
         IPrimaryBookingRequestRepository primaryBookingRequestRepository { get; }
         IConversationRepository conversationRepository { get; }
         IMessageRepository messageRepository { get; }
+        IShareSpaceDetailRepository shareSpaceDetailRepository { get; }
+        IShareSpaceCategoryRepository shareSpaceCategoryRepository { get; }
+        IAvailabilitiesTimeRepository availabilitiesTimeRepository { get; }
+        ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
         Task<int> SaveChangesAsync();
-
+        Task BeginTransactionAsync();
+        Task CommitTransactionAsync();
+        Task RollbackTransactionAsync();
     }
 }

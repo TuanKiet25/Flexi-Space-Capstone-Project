@@ -16,6 +16,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
         {
             CreateMap<Listing, ListingResponse>().ReverseMap();
             CreateMap<ListingRequest, Listing>().ReverseMap();
+           
 
 
             CreateMap<PrimaryBookingRequest, BookingResponse>();
@@ -23,7 +24,15 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
 
             CreateMap<Contract, ContractResponse>();
             CreateMap<ContractRequest, Contract>();
-
+            
+            CreateMap<SharedSpaceAmenities, ShareSpaceAmenitiesResponse>().ReverseMap();
+            CreateMap<ShareSpaceAmenitiesRequest, SharedSpaceAmenities>().ReverseMap();
+            CreateMap<AvailabilitiesTime, AvailabilitiesResponse>().ReverseMap();
+            CreateMap<AvailabilitiesTimeRequest, AvailabilitiesTime>().ReverseMap();
+            CreateMap<ShareSpaceCategory, ShareSpaceCategoryResponse>().ReverseMap();
+            CreateMap<ShareSpaceCategoryRequest, ShareSpaceCategory>().ReverseMap();
+            CreateMap<SharedListingRequest, Listing>().ReverseMap();
+            CreateMap<Listing, ShareListingResponse>().ReverseMap();
         }
     }
 }

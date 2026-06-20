@@ -1,12 +1,14 @@
 using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FlexiSpace.Infrastructure
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _dbContext;
+        private IDbContextTransaction? _transaction;
         public IUserRepository userRepository { get; }
         public IUserOTPRepository userOTPRepository { get; }
         public ISpaceRepository spaceRepository {  get; }
@@ -18,10 +20,15 @@ namespace FlexiSpace.Infrastructure
         public IPrimaryBookingRequestRepository primaryBookingRequestRepository { get; }
         public IConversationRepository conversationRepository { get; }
         public IMessageRepository messageRepository { get; }
+        public IShareSpaceDetailRepository shareSpaceDetailRepository { get; }
+        public IShareSpaceCategoryRepository shareSpaceCategoryRepository { get; }
+        public IAvailabilitiesTimeRepository availabilitiesTimeRepository { get; }
+        public ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
             _dbContext = dbContext;
+            _transaction = null;
             userRepository = new UserRepository(_dbContext);
             userOTPRepository = new UserOTPRepository(_dbContext);
             spaceRepository = new SpaceRepository(_dbContext);
@@ -33,6 +40,11 @@ namespace FlexiSpace.Infrastructure
             primaryBookingRequestRepository = new PrimaryBookingRequestRepository(_dbContext);
             conversationRepository = new ConversationRepository(_dbContext);
             messageRepository = new MessageRepository(_dbContext);
+            shareSpaceDetailRepository = new ShareSpaceDetailRepository(_dbContext);
+            shareSpaceCategoryRepository = new ShareSpaceCategoryRepository(_dbContext);
+            availabilitiesTimeRepository = new AvailabilitiesTimeRepository(_dbContext);
+            sharedSpaceAmenitiesRepository = new SharedSpaceAmenitiesRepository(_dbContext);
+
         }
 
 
@@ -40,6 +52,60 @@ namespace FlexiSpace.Infrastructure
         public async Task<int> SaveChangesAsync()
         {
             return await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task BeginTransactionAsync()
+        {
+            if (_transaction != null)
+            {
+                throw new InvalidOperationException("A transaction is already in progress.");
+            }
+
+            _transaction = await _dbContext.Database.BeginTransactionAsync();
+        }
+
+        public async Task CommitTransactionAsync()
+        {
+            try
+            {
+                if (_transaction != null)
+                {
+                    await _transaction.CommitAsync();
+                }
+            }
+            finally
+            {
+     
+                if (_transaction != null)
+                {
+                    await _transaction.DisposeAsync();
+                    _transaction = null;
+                }
+            }
+        }
+
+        public async Task RollbackTransactionAsync()
+        {
+            try
+            {
+                if (_transaction != null)
+                {
+                    await _transaction.RollbackAsync();
+                }
+            }
+            finally
+            {
+                if (_transaction != null)
+                {
+                    await _transaction.DisposeAsync();
+                    _transaction = null;
+                }
+            }
+        }
+        public void Dispose()
+        {
+            _transaction?.Dispose();
+            _dbContext.Dispose();
         }
     }
 }
