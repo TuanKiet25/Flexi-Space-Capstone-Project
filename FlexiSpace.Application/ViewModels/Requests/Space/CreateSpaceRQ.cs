@@ -1,4 +1,6 @@
 ﻿using FlexiSpace.Domain.Entities;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,9 +12,11 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
 {
     public class CreateSpaceRQ
     {
+        [BindNever]
         [JsonIgnore]
         public long? Id { get; set; }
         public string? Name { get; set; }
+        [BindNever]
         [JsonIgnore]
         public string? OwnerId { get; set; }
         public string? Address { get; set; }
@@ -24,6 +28,7 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
         public List<AmenityVModel>? Amenities { get; set; }
         public List<OperatingHourVmodel>? OperatingHours { get; set; }
         public List<SpaceAllowedCategoryVModel>? SpaceAllowedCategories { get; set; }
+        public List<IFormFile>? PictureURLs { get; set; }
     }
 
     public class CreateSpaceRP : CreateSpaceRQ

@@ -1,25 +1,27 @@
-﻿using FlexiSpace.Application.IRepositories;
+﻿using AutoMapper;
+using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
+using FlexiSpace.Application.ViewModels;
 using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Application.ViewModels.Responses.Space;
-using AutoMapper;
+using FlexiSpace.Domain.Entities;
+using FlexiSpace.Infrastructure;
+using FlexiSpace.Infrastructure.Helper;
+using FlexiSpace.Infrastructure.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using FlexiSpace.Domain.Entities;
-using FlexiSpace.Infrastructure.Services;
-using FlexiSpace.Infrastructure.Helper;
-using FlexiSpace.Infrastructure;
-using Microsoft.Extensions.Hosting;
 using System.IO;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
+using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FlexiSpace.Application.Services
 {
@@ -35,6 +37,7 @@ namespace FlexiSpace.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHostEnvironment _hostEnvironment;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IPictureURL _mediaService;
 
         public SpaceService(
             ISpaceRepository spaceRepository,
@@ -42,7 +45,8 @@ namespace FlexiSpace.Application.Services
             IInsertAndUpdate<Space, OperatingHour> insertAndUpdateOperatingHours,
             IUnitOfWork unitOfWork,
             IHttpContextAccessor httpContextAccessor,
-            IHostEnvironment hostEnvironment)
+            IHostEnvironment hostEnvironment,
+            IPictureURL mediaService)
         {
             _spaceRepository = spaceRepository;
             _mapper = mapper;
@@ -50,6 +54,7 @@ namespace FlexiSpace.Application.Services
             _unitOfWork = unitOfWork;
             _hostEnvironment = hostEnvironment;
             _httpContextAccessor = httpContextAccessor;
+            _mediaService = mediaService;
         }
 
         private async Task<IReadOnlyList<AddressNodeRP>> GetAddressCacheAsync()
@@ -250,6 +255,8 @@ namespace FlexiSpace.Application.Services
                 var parentSpace = _mapper.Map<CreateSpaceRQ, Space>(space);
 
                 var insertResult = await insertAndUpdateOperatingHours.Insert(parentSpace, [..parentSpace.OperatingHour]);
+
+
                 if (!insertResult.IsSuccess)
                 {
                     return new ServiceResult<CreateSpaceRP>
@@ -260,6 +267,18 @@ namespace FlexiSpace.Application.Services
                 }
                 
                 var result = _mapper.Map<CreateSpaceRQ, CreateSpaceRP>(space);
+
+
+                if (space.PictureURLs != null && space.PictureURLs.Any() && insertResult.Data != null)
+                {
+                    List<PictureURLVModel> uploadedImages = await _mediaService.UploadImagesAsync(space.PictureURLs, insertResult.Data.Id);
+
+                    if (uploadedImages.Any())
+                    {
+                        uploadedImages.First().IsPrimary = true;
+                    }
+                }
+
                 return new ServiceResult<CreateSpaceRP>
                 {
                     IsSuccess = true,
@@ -293,6 +312,7 @@ namespace FlexiSpace.Application.Services
                               .Include(s => s.Amenity)
                               .Include(s => s.OperatingHour)
                               .Include(s => s.SpaceAllowedCategory)
+                              .Include(s => s.PictureURL)
                     );
                 var mappedSpaces = _mapper.Map<IEnumerable<GetAllSpace>>(spaces);
                 return new ServiceResult<IEnumerable<GetAllSpace>>

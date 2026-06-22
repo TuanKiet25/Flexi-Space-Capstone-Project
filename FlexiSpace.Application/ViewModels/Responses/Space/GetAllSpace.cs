@@ -21,5 +21,6 @@ namespace FlexiSpace.Application.ViewModels.Responses.Space
         public List<AmenityVModel>? Amenities { get; set; }
         public List<OperatingHourVmodel>? OperatingHours { get; set; }
         public List<SpaceAllowedCategoryVModel>? SpaceAllowedCategories { get; set; }
+        public List<PictureURLVModel>? PictureURLs { get; set; }
     }
 }

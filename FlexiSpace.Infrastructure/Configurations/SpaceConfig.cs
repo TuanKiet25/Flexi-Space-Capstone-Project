@@ -24,6 +24,11 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(l => l.Space)
                    .HasForeignKey(l => l.SpaceId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(s => s.PictureURL)
+                   .WithOne(img => img.Space)
+                   .HasForeignKey(img => img.SpaceId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

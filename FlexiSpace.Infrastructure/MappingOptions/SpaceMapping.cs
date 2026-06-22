@@ -21,16 +21,19 @@ namespace FlexiSpace.Infrastructure.MappingOptions
                 .ForMember(dest => dest.OperatingHour, opt => opt.MapFrom(src => src.OperatingHours))
                 .ForMember(dest => dest.Amenity, opt => opt.MapFrom(src => src.Amenities))
                 .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
+                .ForMember(dest => dest.PictureURL, opt => opt.MapFrom(src => src.PictureURLs))
                 .ReverseMap();
             CreateMap<Space, GetSpaceByIdRP>()
                 .ForMember(dest => dest.OperatingHours, opt => opt.MapFrom(src => src.OperatingHour))
                 .ForMember(dest => dest.Amenities, opt => opt.MapFrom(src => src.Amenity))
                 .ForMember(dest => dest.SpaceAllowedCategories, opt => opt.MapFrom(src => src.SpaceAllowedCategory))
+                .ForMember(dest => dest.PictureURLs, opt => opt.MapFrom(src => src.PictureURL))
                 .ReverseMap();
             CreateMap<CreateSpaceRQ, Space>()
                 .ForMember(dest => dest.OperatingHour, opt => opt.MapFrom(src => src.OperatingHours))
                 .ForMember(dest => dest.Amenity, opt => opt.MapFrom(src => src.Amenities))
                 .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
+                //.ForMember(dest => dest.PictureURL, opt => opt.MapFrom(src => src.PictureURLs))
                 .ReverseMap();
             CreateMap<CreateSpaceRQ, CreateSpaceRP>().ReverseMap();
         }

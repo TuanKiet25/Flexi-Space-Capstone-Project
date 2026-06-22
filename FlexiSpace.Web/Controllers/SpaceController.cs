@@ -29,7 +29,7 @@ namespace FlexiSpace.Web.Controllers
         }
 
         [HttpPost("Create")]
-        public async Task<IActionResult> CreateSpace([FromBody] CreateSpaceRQ space)
+        public async Task<IActionResult> CreateSpace([FromForm] CreateSpaceRQ space)
         {
             var result = await _spaceService.Create(space);
             return HandleResult(result);
