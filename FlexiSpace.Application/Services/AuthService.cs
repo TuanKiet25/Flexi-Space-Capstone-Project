@@ -73,7 +73,7 @@ namespace FlexiSpace.Application.Services
                 if (!isHuman) throw new Exception("Xác thực CAPTCHA thất bại. Phát hiện hành vi Robot!");
 
                 // 2. Kiểm tra tài khoản đã tồn tại chưa
-                var emailExists = await _unitOfWork.userRepository.GetAsync(u => u.Email.Equals(request.Email));
+                var emailExists = await _unitOfWork.userRepository.GetAsync(u => u.Email == request.Email && u.IsActive == true);
                 if (emailExists != null) throw new Exception("Email này đã được sử dụng hệ thống.");
 
                 // 3. Khởi tạo Entity mới (Trạng thái mặc định: Chưa kích hoạt)

@@ -35,6 +35,11 @@ namespace FlexiSpace.Infrastructure.MappingOptions
                 .ForMember(dest => dest.SpaceAllowedCategory, opt => opt.MapFrom(src => src.SpaceAllowedCategories))
                 //.ForMember(dest => dest.PictureURL, opt => opt.MapFrom(src => src.PictureURLs))
                 .ReverseMap();
+            CreateMap<Space, CreateSpaceRP>()
+                .ForMember(dest => dest.OperatingHours, opt => opt.MapFrom(src => src.OperatingHour))
+                .ForMember(dest => dest.Amenities, opt => opt.MapFrom(src => src.Amenity))
+                .ForMember(dest => dest.SpaceAllowedCategories, opt => opt.MapFrom(src => src.SpaceAllowedCategory))
+                .ReverseMap();
             CreateMap<CreateSpaceRQ, CreateSpaceRP>().ReverseMap();
         }
     }

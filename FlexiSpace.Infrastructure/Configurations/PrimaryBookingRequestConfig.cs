@@ -47,11 +47,6 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .HasForeignKey(p => p.ListingId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasMany(p => p.SubBookingRequests)
-                   .WithOne(s => s.PrimaryBookingRequest)
-                   .HasForeignKey("PrimaryBookingRequestId")
-                   .OnDelete(DeleteBehavior.Cascade);
-
             builder.HasOne(p => p.Review)
                    .WithOne()
                    .HasForeignKey<Review>(r => r.BookingRequestId)

@@ -22,9 +22,9 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
         [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAllListings([FromQuery] ListingStatusEnum? status)
+        public async Task<IActionResult> GetAllListings([FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType)
         {
-            var result = await _listingService.GetAllListingsAsync(status);
+            var result = await _listingService.GetAllListingsAsync(status, listingType);
             return HandleResult(result);
         }
         [HttpGet("GetById/{id}")]
@@ -59,6 +59,19 @@ namespace FlexiSpace.Web.Controllers
         public async Task<IActionResult> SoftDeleteListing(long id)
         {
             var result = await _listingService.SoftDeleteListingAsync(id);
+            return HandleResult(result);
+        }
+        [HttpPost("CreateShareListing")]
+        public async Task<IActionResult> CreateShareListing(SharedListingRequest sharedListingRequest)
+        {
+            var result = await _listingService.CreateShareListingAsync(sharedListingRequest);
+            return HandleResult(result);
+        }
+
+        [HttpPut("UpdateShareListing/{id}")]
+        public async Task<IActionResult> UpdateShareListing(long id, SharedListingRequest sharedListingRequest)
+        {
+            var result = await _listingService.UpdateShareListingAsync(id, sharedListingRequest);
             return HandleResult(result);
         }
     }

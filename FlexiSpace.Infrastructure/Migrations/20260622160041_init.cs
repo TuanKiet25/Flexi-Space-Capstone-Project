@@ -283,8 +283,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                     AllowedStartTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     AllowedEndTime = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
-                    CacelReason = table.Column<string>(type: "text", nullable: true),
+                    CancelReason = table.Column<string>(type: "text", nullable: true),
                     Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    ListingType = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     ListingPictures = table.Column<List<string>>(type: "text[]", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
@@ -391,6 +392,104 @@ namespace FlexiSpace.Infrastructure.Migrations
                         column: x => x.SpaceId,
                         principalTable: "Spaces",
                         principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShareSpaceDetails",
+                columns: table => new
+                {
+                    ListingId = table.Column<long>(type: "bigint", nullable: false),
+                    MaxSubRenter = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShareSpaceDetails", x => x.ListingId);
+                    table.ForeignKey(
+                        name: "FK_ShareSpaceDetails_Listings_ListingId",
+                        column: x => x.ListingId,
+                        principalTable: "Listings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AvailabilitiesTimes",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ShareSpaceDetailId = table.Column<long>(type: "bigint", nullable: false),
+                    DaysOfWeek = table.Column<string>(type: "text", nullable: true),
+                    Specificdate = table.Column<DateOnly>(type: "date", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    EndTime = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
+                    ValidFrom = table.Column<DateOnly>(type: "date", nullable: false),
+                    ValidTo = table.Column<DateOnly>(type: "date", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AvailabilitiesTimes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AvailabilitiesTimes_ShareSpaceDetails_ShareSpaceDetailId",
+                        column: x => x.ShareSpaceDetailId,
+                        principalTable: "ShareSpaceDetails",
+                        principalColumn: "ListingId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SharedSpaceAmenities",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AmenityId = table.Column<long>(type: "bigint", nullable: false),
+                    ShareSpaceDetailId = table.Column<long>(type: "bigint", nullable: false),
+                    IsIncluded = table.Column<bool>(type: "boolean", nullable: false),
+                    Price = table.Column<decimal>(type: "numeric", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SharedSpaceAmenities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SharedSpaceAmenities_Amenities_AmenityId",
+                        column: x => x.AmenityId,
+                        principalTable: "Amenities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SharedSpaceAmenities_ShareSpaceDetails_ShareSpaceDetailId",
+                        column: x => x.ShareSpaceDetailId,
+                        principalTable: "ShareSpaceDetails",
+                        principalColumn: "ListingId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShareSpaceCategory",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BussinessCategoryId = table.Column<long>(type: "bigint", nullable: false),
+                    ShareSpaceDetailId = table.Column<long>(type: "bigint", nullable: false),
+                    Note = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShareSpaceCategory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ShareSpaceCategory_BussinessCategories_BussinessCategoryId",
+                        column: x => x.BussinessCategoryId,
+                        principalTable: "BussinessCategories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ShareSpaceCategory_ShareSpaceDetails_ShareSpaceDetailId",
+                        column: x => x.ShareSpaceDetailId,
+                        principalTable: "ShareSpaceDetails",
+                        principalColumn: "ListingId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -532,52 +631,15 @@ namespace FlexiSpace.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "SubBookingRequests",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    LessorId = table.Column<string>(type: "text", nullable: true),
-                    LesseeId = table.Column<string>(type: "text", nullable: true),
-                    Price = table.Column<decimal>(type: "numeric", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    PrimaryBookingRequestId = table.Column<long>(type: "bigint", nullable: true),
-                    ReviewId1 = table.Column<long>(type: "bigint", nullable: true),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SubBookingRequests", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_SubBookingRequests_PrimaryBookingRequests_PrimaryBookingReq~",
-                        column: x => x.PrimaryBookingRequestId,
-                        principalTable: "PrimaryBookingRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SubBookingRequests_Reviews_ReviewId1",
-                        column: x => x.ReviewId1,
-                        principalTable: "Reviews",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_SubBookingRequests_Users_LessorId",
-                        column: x => x.LessorId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_Amenities_SpaceId",
                 table: "Amenities",
                 column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AvailabilitiesTimes_ShareSpaceDetailId",
+                table: "AvailabilitiesTimes",
+                column: "ShareSpaceDetailId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Contracts_PrimaryBookingRequestId",
@@ -677,15 +739,29 @@ namespace FlexiSpace.Infrastructure.Migrations
                 column: "ReviewerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reviews_SubBookingRequestId",
-                table: "Reviews",
-                column: "SubBookingRequestId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Reviews_TargetUserId",
                 table: "Reviews",
                 column: "TargetUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SharedSpaceAmenities_AmenityId",
+                table: "SharedSpaceAmenities",
+                column: "AmenityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SharedSpaceAmenities_ShareSpaceDetailId",
+                table: "SharedSpaceAmenities",
+                column: "ShareSpaceDetailId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShareSpaceCategory_BussinessCategoryId",
+                table: "ShareSpaceCategory",
+                column: "BussinessCategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ShareSpaceCategory_ShareSpaceDetailId",
+                table: "ShareSpaceCategory",
+                column: "ShareSpaceDetailId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SpaceAllowedCategories_BussinessCategoryId",
@@ -696,21 +772,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "IX_Spaces_OwnerId",
                 table: "Spaces",
                 column: "OwnerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubBookingRequests_LessorId",
-                table: "SubBookingRequests",
-                column: "LessorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubBookingRequests_PrimaryBookingRequestId",
-                table: "SubBookingRequests",
-                column: "PrimaryBookingRequestId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubBookingRequests_ReviewId1",
-                table: "SubBookingRequests",
-                column: "ReviewId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_UserId",
@@ -736,14 +797,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 column: "ReviewId1",
                 principalTable: "Reviews",
                 principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Reviews_SubBookingRequests_SubBookingRequestId",
-                table: "Reviews",
-                column: "SubBookingRequestId",
-                principalTable: "SubBookingRequests",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
@@ -761,28 +814,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "FK_Reviews_PrimaryBookingRequests_BookingRequestId",
                 table: "Reviews");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_SubBookingRequests_PrimaryBookingRequests_PrimaryBookingReq~",
-                table: "SubBookingRequests");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Reviews_Users_ReviewerId",
-                table: "Reviews");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Reviews_Users_TargetUserId",
-                table: "Reviews");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_SubBookingRequests_Users_LessorId",
-                table: "SubBookingRequests");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_SubBookingRequests_Reviews_ReviewId1",
-                table: "SubBookingRequests");
-
             migrationBuilder.DropTable(
-                name: "Amenities");
+                name: "AvailabilitiesTimes");
 
             migrationBuilder.DropTable(
                 name: "Contracts");
@@ -803,6 +836,12 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "Profiles");
 
             migrationBuilder.DropTable(
+                name: "SharedSpaceAmenities");
+
+            migrationBuilder.DropTable(
+                name: "ShareSpaceCategory");
+
+            migrationBuilder.DropTable(
                 name: "SpaceAllowedCategories");
 
             migrationBuilder.DropTable(
@@ -813,6 +852,12 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Conversations");
+
+            migrationBuilder.DropTable(
+                name: "Amenities");
+
+            migrationBuilder.DropTable(
+                name: "ShareSpaceDetails");
 
             migrationBuilder.DropTable(
                 name: "BussinessCategories");
@@ -827,13 +872,10 @@ namespace FlexiSpace.Infrastructure.Migrations
                 name: "Listings");
 
             migrationBuilder.DropTable(
-                name: "Users");
-
-            migrationBuilder.DropTable(
                 name: "Reviews");
 
             migrationBuilder.DropTable(
-                name: "SubBookingRequests");
+                name: "Users");
         }
     }
 }

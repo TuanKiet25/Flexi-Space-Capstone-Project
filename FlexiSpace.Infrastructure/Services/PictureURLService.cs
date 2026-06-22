@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using FlexiSpace.Application;
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels;
 using FlexiSpace.Domain.Entities;
@@ -19,13 +20,16 @@ namespace FlexiSpace.Infrastructure.Services
         private readonly Cloudinary _cloudinary;
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public PictureURLService(Cloudinary cloudinary, AppDbContext db, IMapper mapper)
+        public PictureURLService(Cloudinary cloudinary, AppDbContext db, IMapper mapper, IUnitOfWork unitOfWork)
         {
             _cloudinary = cloudinary;
             _db = db;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
+
 
         public async Task<bool> DeleteImageFromCloudAsync(string publicId)
         {
@@ -37,8 +41,11 @@ namespace FlexiSpace.Infrastructure.Services
             return result.Result == "ok";
         }
 
-        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long spaceId)
+        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId)
         {
+            if(spaceId == null) throw new Exception("SpaceId is required");
+            var space = await _unitOfWork.spaceRepository.GetAsync(s => s.Id == spaceId.Value) ?? throw new Exception("Space not found");
+
             var spaceImages = new List<PictureURL>();
 
             if (files == null || !files.Any())
