@@ -1,5 +1,4 @@
-﻿using Elastic.Clients.Elasticsearch;
-using Elastic.Transport;
+﻿
 using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
@@ -11,13 +10,6 @@ using FlexiSpace.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FlexiSpace.Infrastructure
 {
@@ -71,6 +63,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IConversationService, ConversationService>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IDataSeederService, DataSeederService>();
+            services.AddScoped<IPictureURL, PictureURLService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

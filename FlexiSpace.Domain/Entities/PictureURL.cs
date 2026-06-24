@@ -9,7 +9,11 @@ namespace FlexiSpace.Domain.Entities
     public class PictureURL : BaseEntity
     {
         public long Id { get; set; }
-        public string URL { get; set; }
+        public string ImageUrl { get; set; }
+        public string PublicId { get; set; }
+        public bool IsPrimary { get; set; }
+        public long? SpaceId { get; set; }
 
+        public virtual Space Space { get; set; }
     }
 }

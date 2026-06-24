@@ -1,6 +1,7 @@
 ﻿using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Application.ViewModels.Responses.Space;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;

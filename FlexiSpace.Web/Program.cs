@@ -1,4 +1,7 @@
-﻿using FlexiSpace.Infrastructure;
+using CloudinaryDotNet;
+using FlexiSpace.Domain.Entities;
+using FlexiSpace.Infrastructure;
+using FlexiSpace.Web;
 using FlexiSpace.Web.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -48,6 +51,22 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt SecretKey is missing!");
+
+// 1. Lấy cấu hình từ appsettings.json
+var cloudinarySection = builder.Configuration.GetSection("CloudinarySettings");
+builder.Services.Configure<CloudinarySettings>(cloudinarySection);
+
+// 2. Đăng ký đối tượng Cloudinary vào DI
+builder.Services.AddScoped(sp =>
+{
+    var config = cloudinarySection.Get<CloudinarySettings>();
+    if (config == null)
+    {
+        throw new InvalidOperationException("Cloudinary configuration is missing!");
+    }
+    var account = new Account(config.CloudName, config.ApiKey, config.ApiSecret);
+    return new Cloudinary(account);
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

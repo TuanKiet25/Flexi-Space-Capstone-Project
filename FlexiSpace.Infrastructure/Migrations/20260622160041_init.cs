@@ -33,26 +33,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PictureURLs",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    URL = table.Column<string>(type: "text", nullable: true),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    CreatedBy = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PictureURLs", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -356,6 +336,35 @@ namespace FlexiSpace.Infrastructure.Migrations
                     table.PrimaryKey("PK_OperatingHours", x => x.Id);
                     table.ForeignKey(
                         name: "FK_OperatingHours_Spaces_SpaceId",
+                        column: x => x.SpaceId,
+                        principalTable: "Spaces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PictureURLs",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    PublicId = table.Column<string>(type: "text", nullable: true),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
+                    SpaceId = table.Column<long>(type: "bigint", nullable: true),
+                    Name = table.Column<string>(type: "text", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "text", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PictureURLs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PictureURLs_Spaces_SpaceId",
                         column: x => x.SpaceId,
                         principalTable: "Spaces",
                         principalColumn: "Id",
@@ -680,6 +689,11 @@ namespace FlexiSpace.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_OperatingHours_SpaceId",
                 table: "OperatingHours",
+                column: "SpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PictureURLs_SpaceId",
+                table: "PictureURLs",
                 column: "SpaceId");
 
             migrationBuilder.CreateIndex(

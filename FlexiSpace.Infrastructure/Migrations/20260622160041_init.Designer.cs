@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260620090445_init")]
+    [Migration("20260622160041_init")]
     partial class init
     {
         /// <inheritdoc />
@@ -448,17 +448,26 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
-                    b.Property<string>("URL")
+                    b.Property<string>("PublicId")
                         .HasColumnType("text");
+
+                    b.Property<long?>("SpaceId")
+                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -467,6 +476,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SpaceId");
 
                     b.ToTable("PictureURLs");
                 });
@@ -1024,6 +1035,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Space");
                 });
 
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.PictureURL", b =>
+                {
+                    b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
+                        .WithMany("PictureURL")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Space");
+                });
+
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PrimaryBookingRequest", b =>
                 {
                     b.HasOne("FlexiSpace.Domain.Entities.User", "Lessee")
@@ -1241,6 +1262,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Listing");
 
                     b.Navigation("OperatingHour");
+
+                    b.Navigation("PictureURL");
 
                     b.Navigation("PrimaryBookingRequest");
 

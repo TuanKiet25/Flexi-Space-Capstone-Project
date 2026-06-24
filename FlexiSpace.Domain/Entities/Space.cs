@@ -15,6 +15,7 @@ namespace FlexiSpace.Domain.Entities
             OperatingHour = new HashSet<OperatingHour>();
             SpaceAllowedCategory = new HashSet<SpaceAllowedCategory>();
             Contract = new HashSet<Contract>();
+            PictureURL = new HashSet<PictureURL>();
         }
 
         public long Id { get; set; }
@@ -31,5 +32,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual ICollection<Amentity> Amenity { get; set; }
         public virtual ICollection<OperatingHour> OperatingHour { get; set; }
         public virtual ICollection<SpaceAllowedCategory> SpaceAllowedCategory { get; set; }
+        public virtual ICollection<PictureURL> PictureURL { get; set; }
     }
 }
