@@ -77,6 +77,65 @@ namespace FlexiSpace.Infrastructure.Services
             }
         }
 
+        public async Task<ServiceResult<List<CreateBussinessCategory>>> CreateList(CreateBussinessCategories bussinessCategories)
+        {
+            try
+            {
+                // Validate input
+                if (bussinessCategories?.Categories == null || bussinessCategories.Categories.Count == 0)
+                {
+                    return new ServiceResult<List<CreateBussinessCategory>>
+                    {
+                        IsSuccess = false,
+                        Message = "Danh sách không được trống."
+                    };
+                }
+
+                // Validate each category
+                var createdCategories = new List<CreateBussinessCategory>();
+                var categoriesToAdd = new List<BussinessCategory>();
+                var userId = _currentUserService.UserId ?? "System";
+
+                foreach (var category in bussinessCategories.Categories)
+                {
+                    var validationMessage = ValidateCreateBussinessCategoryRQ(category);
+                    if (validationMessage != null)
+                    {
+                        return new ServiceResult<List<CreateBussinessCategory>>
+                        {
+                            IsSuccess = false,
+                            Message = $"Lỗi xác thực: {validationMessage}"
+                        };
+                    }
+
+                    category.CreatedBy = userId;
+                    var mappedCategory = _mapper.Map<CreateBussinessCategory, BussinessCategory>(category);
+                    mappedCategory.IsActive = category.IsActive ?? true;
+                    categoriesToAdd.Add(mappedCategory);
+                    createdCategories.Add(category);
+                }
+
+                // Add all categories
+                await _unitOfWork.bussinessCategoryRepository.AddRangeAsync(categoriesToAdd);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<List<CreateBussinessCategory>>
+                {
+                    IsSuccess = true,
+                    Data = createdCategories,
+                    Message = $"Tạo thành công {createdCategories.Count} danh mục."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<CreateBussinessCategory>>
+                {
+                    IsSuccess = false,
+                    Message = $"Lỗi khi tạo danh sách: {ex.Message}"
+                };
+            }
+        }
+
         public async Task<ServiceResult<List<GetAllBussinessCategory>>> GetAll(FilterGetAllBussinessCategory filter)
         {
             try

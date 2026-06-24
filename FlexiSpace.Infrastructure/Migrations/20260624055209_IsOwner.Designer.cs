@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260622160041_init")]
-    partial class init
+    [Migration("20260624055209_IsOwner")]
+    partial class IsOwner
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -249,11 +249,11 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime>("AllowedEndTime")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<DateOnly>("AllowedEndTime")
+                        .HasColumnType("date");
 
-                    b.Property<DateTime>("AllowedStartTime")
-                        .HasColumnType("timestamp without time zone");
+                    b.Property<DateOnly>("AllowedStartTime")
+                        .HasColumnType("date");
 
                     b.Property<string>("CancelReason")
                         .HasColumnType("text");
@@ -656,6 +656,15 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     b.Property<long>("ListingId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsLegalCommitted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LegalCommittedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("MaxSubRenter")
                         .HasColumnType("integer");

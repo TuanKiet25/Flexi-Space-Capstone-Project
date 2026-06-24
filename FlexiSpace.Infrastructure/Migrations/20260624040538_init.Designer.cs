@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using FlexiSpace.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624040538_init")]
+    partial class init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -653,15 +656,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                 {
                     b.Property<long>("ListingId")
                         .HasColumnType("bigint");
-
-                    b.Property<bool>("IsLegalCommitted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsOwner")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("LegalCommittedAt")
-                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("MaxSubRenter")
                         .HasColumnType("integer");

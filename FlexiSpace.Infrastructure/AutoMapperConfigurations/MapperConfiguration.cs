@@ -24,6 +24,8 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
 
             CreateMap<Contract, ContractResponse>();
             CreateMap<ContractRequest, Contract>();
+
+            CreateMap<Amentity, AmenityResponse>().ReverseMap();
             
             CreateMap<SharedSpaceAmenities, ShareSpaceAmenitiesResponse>().ReverseMap();
             CreateMap<ShareSpaceAmenitiesRequest, SharedSpaceAmenities>().ReverseMap();

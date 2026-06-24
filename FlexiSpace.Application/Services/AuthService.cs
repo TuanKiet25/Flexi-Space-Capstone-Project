@@ -51,7 +51,7 @@ namespace FlexiSpace.Application.Services
                 {
                     IsSuccess = true,
                     Message = "Đăng nhập thành công.",
-                    Data = new AuthResponse(accessToken, $"Đăng nhập thành công. {account.UserId + account.Role}") 
+                    Data = new AuthResponse(accessToken, $"Đăng nhập thành công. ID: {account.UserId} Role: {account.Role}") 
                 };
             }
             catch (Exception ex)

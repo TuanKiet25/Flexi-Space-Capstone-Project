@@ -11,6 +11,9 @@ namespace FlexiSpace.Domain.Entities
     {
         public long ListingId { get; set; }
         public int MaxSubRenter { get; set; }
+        public bool IsOwner { get; set; }
+        public bool IsLegalCommitted { get; set; }
+        public DateTime LegalCommittedAt { get; set; }
         public virtual ICollection<AvailabilitiesTime> AvailabilitiesTimes { get; set; }
         public virtual ICollection<SharedSpaceAmenities> ShareSpaceAmenities { get; set; }
         public virtual ICollection<ShareSpaceCategory> ShareSpaceCategories { get; set; }
