@@ -32,15 +32,32 @@ namespace FlexiSpace.Application.Services
             {
                 return "Không tìm thấy mặt bằng với Id đã cho.";
             }
-
-            DateTime currentTime = DateTime.Now;
-            if (listing.AllowedStartTime.Date < currentTime.Date || listing.AllowedEndTime.Date < currentTime.Date)
+           
+            DateOnly currentTime = DateOnly.FromDateTime(DateTime.Now);
+            if (listing.AllowedStartTime != null)
             {
-                return "Thời gian bắt đầu và kết thúc không thể nằm trong quá khứ.";
+                if (listing.AllowedStartTime < currentTime )
+                {
+                    return "Thời gian bắt đầu không thể nằm trong quá khứ.";
+                }
+                if (listing.AllowedStartTime >= listing.AllowedEndTime)
+                {
+                    return "Thời gian bắt đầu hợp đồng phải diễn ra trước thời gian kết thúc.";
+                }
             }
-            if (listing.AllowedStartTime.Date >= listing.AllowedEndTime.Date)
+            if(listing.AllowedEndTime != null)
             {
-                return "Thời gian bắt đầu hợp đồng phải diễn ra trước thời gian kết thúc.";
+                if(listing.AllowedEndTime < currentTime )
+                {
+                    return "Thời gian kết thúc không thể nằm trong quá khứ.";
+                }
+            }
+            if(listing.AllowedStartTime != null && listing.AllowedEndTime != null)
+            {
+               if(listing.AllowedStartTime >= listing.AllowedEndTime)
+                {
+                    return "Thời gian bắt đầu hợp đồng phải diễn ra trước thời gian kết thúc.";
+                }
             }
 
             if (listing.Price <= 0)
@@ -58,6 +75,40 @@ namespace FlexiSpace.Application.Services
                 {
                     return "Vui lòng thiết lập ít nhất một khung giờ cho thuê.";
                 }
+                if(sharedListing.ShareSpaceDetailIsOwner == false)
+                {
+                    if(listing.AllowedEndTime == null || listing.AllowedStartTime == null)
+                    {
+                        return "Vui lòng thiết lập thời gian bắt đầu và kết thúc hợp đồng chính khi bạn không phải là chủ sở hữu.";
+                    }
+                }
+                foreach (var time in sharedListing.ShareSpaceDetailAvailabilitiesTimes)
+                {
+                    // Kiểm tra ValidFrom và ValidTo của bản thân khung giờ
+                    if (time.ValidFrom != null && time.ValidTo != null && time.ValidFrom > time.ValidTo)
+                    {
+                        return "Trong khung giờ cho thuê, ngày bắt đầu (ValidFrom) không được lớn hơn ngày kết thúc (ValidTo).";
+                    }
+
+                    // Kiểm tra ValidFrom phải >= AllowedStartTime
+                    if (listing.AllowedStartTime != null && time.ValidFrom != null)
+                    {
+                        if (time.ValidFrom < listing.AllowedStartTime)
+                        {
+                            return $"Ngày bắt đầu khung giờ ({time.ValidFrom}) không được sớm hơn thời gian bắt đầu hợp đồng chính ({listing.AllowedStartTime}).";
+                        }
+                    }
+
+                    // Kiểm tra ValidTo phải <= AllowedEndTime
+                    if (listing.AllowedEndTime != null && time.ValidTo != null)
+                    {
+                        if (time.ValidTo > listing.AllowedEndTime)
+                        {
+                            return $"Ngày kết thúc khung giờ ({time.ValidTo}) không được trễ hơn thời gian cho phép của hợp đồng ({listing.AllowedEndTime}).";
+                        }
+                    }
+                }
+
             }
 
             return null;
@@ -347,6 +398,37 @@ namespace FlexiSpace.Application.Services
                         Message = checkValidation.ToString()
                     };
                 }
+                //Validation cơ sở vật chất có trong space không
+                if (sharedListingRequest.ShareSpaceDetailShareSpaceAmenities != null &&
+                sharedListingRequest.ShareSpaceDetailShareSpaceAmenities.Any())
+                {
+                    var requestedAmenityIds = sharedListingRequest.ShareSpaceDetailShareSpaceAmenities
+                        .Select(x => x.AmenityId)
+                        .Distinct()
+                        .ToList();
+                    var validSpaceAmenities = await _unitOfWork.amenityRepository
+                        .GetAllAsync(x => x.SpaceId == sharedListingRequest.SpaceId);
+                    var validAmenityIds = validSpaceAmenities.Select(x => x.Id).ToList();
+                    var invalidIds = requestedAmenityIds.Except(validAmenityIds).ToList();
+
+                    if (invalidIds.Any())
+                    {
+
+                        return new ServiceResult<ShareListingResponse>
+                        {
+                            IsSuccess = false,
+                            Message = $"Lỗi bảo mật: Các tiện ích có ID [{string.Join(", ", invalidIds)}] không tồn tại hoặc không thuộc về Mặt bằng (Space) hiện tại!"
+                        };
+                    }
+                }
+                if(sharedListingRequest.ShareSpaceDetailIsLegalCommitted == false)
+                {
+                    return new ServiceResult<ShareListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = $"Tích vào vô xác nhận các thỏa thuận"
+                    };
+                }
                 var newListing = _mapper.Map<Listing>(sharedListingRequest);
                 newListing.CreatorId = _currentUserService.UserId;
                 newListing.CreatedAt = DateTime.Now;
@@ -356,6 +438,8 @@ namespace FlexiSpace.Application.Services
                 newListing.ShareSpaceDetail = new ShareSpaceDetail
                 {
                     MaxSubRenter = sharedListingRequest.ShareSpaceDetailMaxSubRenter,
+                    IsLegalCommitted = sharedListingRequest.ShareSpaceDetailIsLegalCommitted,
+                    LegalCommittedAt =DateTime.Now,
                     AvailabilitiesTimes = sharedListingRequest.ShareSpaceDetailAvailabilitiesTimes?
                         .Select(x => _mapper.Map<AvailabilitiesTime>(x))
                         .ToList() ?? new List<AvailabilitiesTime>(),
@@ -440,7 +524,29 @@ namespace FlexiSpace.Application.Services
                         Message = checkValidation.ToString()
                     };
                 }
+                //Validation cơ sở vật chất có trong space không
+                if (sharedListingRequest.ShareSpaceDetailShareSpaceAmenities != null &&
+                sharedListingRequest.ShareSpaceDetailShareSpaceAmenities.Any())
+                {
+                    var requestedAmenityIds = sharedListingRequest.ShareSpaceDetailShareSpaceAmenities
+                        .Select(x => x.AmenityId)
+                        .Distinct()
+                        .ToList();
+                    var validSpaceAmenities = await _unitOfWork.amenityRepository
+                        .GetAllAsync(x => x.SpaceId == sharedListingRequest.SpaceId);
+                    var validAmenityIds = validSpaceAmenities.Select(x => x.Id).ToList();
+                    var invalidIds = requestedAmenityIds.Except(validAmenityIds).ToList();
 
+                    if (invalidIds.Any())
+                    {
+
+                        return new ServiceResult<ShareListingResponse>
+                        {
+                            IsSuccess = false,
+                            Message = $"Lỗi bảo mật: Các tiện ích có ID [{string.Join(", ", invalidIds)}] không tồn tại hoặc không thuộc về Mặt bằng (Space) hiện tại!"
+                        };
+                    }
+                }
                 _mapper.Map(sharedListingRequest, existingListing);
                 existingListing.UpdatedAt = DateTime.Now;
 

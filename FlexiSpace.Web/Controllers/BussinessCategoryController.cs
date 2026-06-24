@@ -29,6 +29,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpPost("CreateList")]
+        public async Task<IActionResult> CreateList([FromBody] CreateBussinessCategories bussinessCategories)
+        {
+            var result = await _bussinessCategoryService.CreateList(bussinessCategories);
+            return HandleResult(result);
+        }
+
         [HttpGet("GetById{id:long}")]
         public async Task<IActionResult> GetById(long id)
         {

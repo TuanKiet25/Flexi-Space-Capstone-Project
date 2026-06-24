@@ -12,6 +12,7 @@ namespace FlexiSpace.Application.IServices
     {
         Task<ServiceResult<List<GetAllBussinessCategory>>> GetAll(FilterGetAllBussinessCategory filter);
         Task<ServiceResult<CreateBussinessCategory>> Create(CreateBussinessCategory bussinessCategory);
+        Task<ServiceResult<List<CreateBussinessCategory>>> CreateList(CreateBussinessCategories bussinessCategories);
         Task<ServiceResult<GetAllBussinessCategory>> GetById(long id);
         Task<ServiceResult<GetAllBussinessCategory>> Update(long id, CreateBussinessCategory bussinessCategory);
         Task<ServiceResult<string>> Delete(long id);

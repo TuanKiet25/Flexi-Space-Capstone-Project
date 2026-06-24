@@ -64,6 +64,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IDataSeederService, DataSeederService>();
             services.AddScoped<IPictureURL, PictureURLService>();
+            services.AddScoped<IAmenityService, AmenityService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

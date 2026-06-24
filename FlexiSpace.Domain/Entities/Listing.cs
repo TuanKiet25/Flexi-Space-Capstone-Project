@@ -17,8 +17,8 @@ namespace FlexiSpace.Domain.Entities
         public long Id { get; set; }
         public long SpaceId { get; set; }
         public string CreatorId { get; set; }
-        public DateTime AllowedStartTime { get; set; }
-        public DateTime AllowedEndTime { get; set; }
+        public DateOnly AllowedStartTime { get; set; }
+        public DateOnly AllowedEndTime { get; set; }
         public string Description { get; set; }
         public string CancelReason { get; set; }
         public decimal Price { get; set; }

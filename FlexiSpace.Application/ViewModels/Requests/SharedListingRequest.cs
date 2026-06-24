@@ -10,6 +10,8 @@ namespace FlexiSpace.Application.ViewModels.Requests
     {
 
         public int ShareSpaceDetailMaxSubRenter { get; set; }
+        public bool ShareSpaceDetailIsOwner { get; set; }
+        public bool ShareSpaceDetailIsLegalCommitted { get; set; }
         public List<ShareSpaceAmenitiesRequest>? ShareSpaceDetailShareSpaceAmenities { get; set; }
         public List<AvailabilitiesTimeRequest>? ShareSpaceDetailAvailabilitiesTimes { get; set; }
         public List<ShareSpaceCategoryRequest>? ShareSpaceDetailShareSpaceCategories { get; set; }
