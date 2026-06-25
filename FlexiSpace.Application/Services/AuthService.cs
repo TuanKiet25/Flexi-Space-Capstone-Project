@@ -108,7 +108,7 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.userOTPRepository.AddAsync(userOtp);
                 await _unitOfWork.SaveChangesAsync();
                 // 5. Gửi mail chứa mã OTP cho người dùng
-                await _emailService.SendOtpEmailAsync(request.Email, otpCode);
+                await _emailService.ResendOtpEmailAsync(request.Email, otpCode);
                 return new ServiceResult<AuthResponse>
                 {
                     IsSuccess = true,
