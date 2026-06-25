@@ -35,6 +35,10 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<ShareSpaceCategoryRequest, ShareSpaceCategory>().ReverseMap();
             CreateMap<SharedListingRequest, Listing>().ReverseMap();
             CreateMap<Listing, ShareListingResponse>().ReverseMap();
+            
+            CreateMap<User, UserResponse>().ReverseMap();
+            CreateMap<ProfileRequest, UserProfile>().ReverseMap();
+            CreateMap<UserProfile, ProfileResponse>().ReverseMap();
         }
     }
 }

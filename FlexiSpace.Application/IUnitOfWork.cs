@@ -19,6 +19,7 @@ namespace FlexiSpace.Application
         IShareSpaceCategoryRepository shareSpaceCategoryRepository { get; }
         IAvailabilitiesTimeRepository availabilitiesTimeRepository { get; }
         ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
+        IProfileRepository profileRepository { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

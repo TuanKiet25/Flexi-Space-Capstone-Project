@@ -36,7 +36,7 @@ namespace FlexiSpace.Application.Services
                 // 2. Tìm tài khoản theo Email
                 var account = await _unitOfWork.userRepository.GetAsync(u => u.Email == request.Email);
                 if (account == null) throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
-
+                if(account.UserStatus == Domain.Enum.UserStatus.Banned) throw new Exception("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.");
                 // 3. Kiểm tra tính hợp lệ của mật khẩu
                 bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, account.Password);
                 if (!isPasswordValid) throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
