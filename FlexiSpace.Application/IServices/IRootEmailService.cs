@@ -7,10 +7,8 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Application.IServices
 {
-    public interface IEmailService
+    public interface IRootEmailService
     {
-        Task SendOtpEmailAsync(string email, string otpCode);
-        Task ResendOtpEmailAsync(string email, string otpCode);
-
+        Task SendEmailAsync(ResentEmailRequest request);
     }
 }

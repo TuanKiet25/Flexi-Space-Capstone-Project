@@ -68,11 +68,13 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IDataSeederService, DataSeederService>();
             services.AddScoped<IPictureURL, PictureURLService>();
             services.AddScoped<IAmenityService, AmenityService>();
+            services.AddScoped<IRootEmailService, RootEmailService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
             services.Configure<MailOptions>(configuration.GetSection("MailSettings"));
             services.Configure<TurnstileOptions>(configuration.GetSection("Turnstile"));
+            services.Configure<ResentEmailOptions>(configuration.GetSection("EmailSettings"));
             // Đăng ký CORS
             services.AddCors(options =>
             {
