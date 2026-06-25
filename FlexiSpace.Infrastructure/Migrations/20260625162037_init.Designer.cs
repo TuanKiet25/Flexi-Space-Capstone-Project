@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260624055209_IsOwner")]
-    partial class IsOwner
+    [Migration("20260625162037_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -460,6 +460,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("boolean");
 
+                    b.Property<long?>("ListingId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
@@ -475,9 +478,17 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("UserProfileId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("ListingId");
+
                     b.HasIndex("SpaceId");
+
+                    b.HasIndex("UserProfileId")
+                        .IsUnique();
 
                     b.ToTable("PictureURLs");
                 });
@@ -855,6 +866,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<int>("UserStatus")
+                        .HasColumnType("integer");
+
                     b.HasKey("UserId");
 
                     b.ToTable("Users");
@@ -889,10 +903,13 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.UserProfile", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<string>("UserId")
                         .HasColumnType("text");
 
-                    b.Property<string>("AvartarUrl")
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Bio")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -900,6 +917,12 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Gender")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -910,7 +933,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
-                    b.Property<string>("PhoneNumber")
+                    b.Property<string>("SocialLink")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -919,13 +942,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
+                    b.HasKey("UserId");
 
                     b.ToTable("Profiles");
                 });
@@ -1046,12 +1063,26 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PictureURL", b =>
                 {
+                    b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
+                        .WithMany("PictureURLs")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
                         .WithMany("PictureURL")
                         .HasForeignKey("SpaceId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("FlexiSpace.Domain.Entities.UserProfile", "UserProfile")
+                        .WithOne("Avatar")
+                        .HasForeignKey("FlexiSpace.Domain.Entities.PictureURL", "UserProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Listing");
+
                     b.Navigation("Space");
+
+                    b.Navigation("UserProfile");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PrimaryBookingRequest", b =>
@@ -1219,7 +1250,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.User", "User")
                         .WithOne("Profile")
                         .HasForeignKey("FlexiSpace.Domain.Entities.UserProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -1236,6 +1268,8 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Listing", b =>
                 {
+                    b.Navigation("PictureURLs");
+
                     b.Navigation("PrimaryBookingRequests");
 
                     b.Navigation("ShareSpaceDetail");
@@ -1286,6 +1320,11 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Profile");
 
                     b.Navigation("UserOTPs");
+                });
+
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.UserProfile", b =>
+                {
+                    b.Navigation("Avatar");
                 });
 #pragma warning restore 612, 618
         }

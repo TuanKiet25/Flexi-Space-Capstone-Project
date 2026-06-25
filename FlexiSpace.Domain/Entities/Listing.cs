@@ -12,6 +12,7 @@ namespace FlexiSpace.Domain.Entities
         public Listing()
         {
             PrimaryBookingRequests = new HashSet<PrimaryBookingRequest>();
+            PictureURLs = new HashSet<PictureURL>();
         }
 
         public long Id { get; set; }
@@ -29,5 +30,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequests { get; set; }
+        public virtual ICollection<PictureURL> PictureURLs { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
+using FlexiSpace.Application.IServices;
 using FlexiSpace.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -26,6 +27,7 @@ namespace FlexiSpace.Infrastructure
         public ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
         public IProfileRepository profileRepository { get; }
 
+
         public UnitOfWork(AppDbContext dbContext)
         {
             _dbContext = dbContext;
@@ -46,7 +48,6 @@ namespace FlexiSpace.Infrastructure
             availabilitiesTimeRepository = new AvailabilitiesTimeRepository(_dbContext);
             sharedSpaceAmenitiesRepository = new SharedSpaceAmenitiesRepository(_dbContext);
             profileRepository = new ProfileRepository(_dbContext);
-
         }
 
 
