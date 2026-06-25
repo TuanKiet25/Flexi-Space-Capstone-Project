@@ -20,6 +20,7 @@ namespace FlexiSpace.Domain.Entities
         public DateTime Dob { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
+        public UserStatus UserStatus { get; set; } 
         public RoleEnum Role { get; set; }
         public virtual UserProfile Profile { get; set; }
         public virtual ICollection <UserOTP> UserOTPs { get; set; }

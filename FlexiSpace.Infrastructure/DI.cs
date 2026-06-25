@@ -32,6 +32,7 @@ namespace FlexiSpace.Infrastructure
             #region Repositories
             services.AddScoped<IUnitOfWork, UnitOfWork>();  
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IProfileRepository, ProfileRepository>();
             services.AddScoped<IUserOTPRepository, UserOTPRepository>();
             services.AddScoped<ISpaceRepository, SpaceRepository>();
             services.AddScoped<ISpaceAllowedCategoryRepository, SpaceAllowedCategoryRepository>();
@@ -51,6 +52,8 @@ namespace FlexiSpace.Infrastructure
             // Đăng ký services
             #region services
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IProfileService, ProfileService>();
+            services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<ISpaceService, SpaceService>();

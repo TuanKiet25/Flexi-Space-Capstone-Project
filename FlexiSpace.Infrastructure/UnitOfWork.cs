@@ -24,6 +24,7 @@ namespace FlexiSpace.Infrastructure
         public IShareSpaceCategoryRepository shareSpaceCategoryRepository { get; }
         public IAvailabilitiesTimeRepository availabilitiesTimeRepository { get; }
         public ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
+        public IProfileRepository profileRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -44,6 +45,7 @@ namespace FlexiSpace.Infrastructure
             shareSpaceCategoryRepository = new ShareSpaceCategoryRepository(_dbContext);
             availabilitiesTimeRepository = new AvailabilitiesTimeRepository(_dbContext);
             sharedSpaceAmenitiesRepository = new SharedSpaceAmenitiesRepository(_dbContext);
+            profileRepository = new ProfileRepository(_dbContext);
 
         }
 

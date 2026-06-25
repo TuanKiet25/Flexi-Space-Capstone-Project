@@ -8,8 +8,7 @@ namespace FlexiSpace.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<UserProfile> builder)
         {
-            builder.HasKey(p => p.Id);
-
+            builder.HasKey(p => p.UserId);
             builder.HasOne(p => p.User)
                    .WithOne(u => u.Profile)
                    .HasForeignKey<UserProfile>(p => p.UserId)
