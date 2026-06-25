@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using FlexiSpace.Application;
@@ -41,15 +41,32 @@ namespace FlexiSpace.Infrastructure.Services
             return result.Result == "ok";
         }
 
-        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId)
+        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId)
         {
-            if(spaceId == null) throw new Exception("SpaceId is required");
-            var space = await _unitOfWork.spaceRepository.GetAsync(s => s.Id == spaceId.Value) ?? throw new Exception("Space not found");
+            if (spaceId == null && string.IsNullOrEmpty(userProfileId) && listingId == null)
+            {
+                throw new Exception("At least one target (SpaceId, UserProfileId, or ListingId) must be specified.");
+            }
 
-            var spaceImages = new List<PictureURL>();
+            if (spaceId.HasValue)
+            {
+                var space = await _unitOfWork.spaceRepository.GetAsync(s => s.Id == spaceId.Value) ?? throw new Exception("Space not found");
+            }
+
+            if (!string.IsNullOrEmpty(userProfileId))
+            {
+                var userProfile = await _unitOfWork.profileRepository.GetAsync(u => u.UserId == userProfileId) ?? throw new Exception("User not found");
+            }
+
+            if (listingId.HasValue)
+            {
+                var listing = await _unitOfWork.listingRepository.GetAsync(l => l.Id == listingId.Value) ?? throw new Exception("Listing not found");
+            }
+
+            var Images = new List<PictureURL>();
 
             if (files == null || !files.Any())
-                throw new Exception("null");
+                throw new Exception("No files provided for upload.");
 
             foreach (var file in files)
             {
@@ -68,21 +85,25 @@ namespace FlexiSpace.Infrastructure.Services
                 if (uploadResult.Error == null)
                 {
                     // Trả ra Object PictureURL đã điền sẵn URL và PublicId từ mây về
-                    // Lưu ý: Trường SpaceId lúc này chưa có (bằng Guid.Empty) vì chưa biết thuộc về Space nào
-                    spaceImages.Add(new PictureURL
+                    Images.Add(new PictureURL
                     {
                         ImageUrl = uploadResult.SecureUrl.AbsoluteUri,
                         PublicId = uploadResult.PublicId,
                         IsPrimary = false,
-                        SpaceId = spaceId
+                        SpaceId = spaceId,
+                        UserProfileId = userProfileId,
+                        ListingId = listingId
                     });
                 }
+            }
 
-                await _db.AddRangeAsync(spaceImages);
+            if (Images.Any())
+            {
+                await _db.AddRangeAsync(Images);
             }
             await _db.SaveChangesAsync();
             
-            var result = _mapper.Map<List<PictureURLVModel>>(spaceImages);
+            var result = _mapper.Map<List<PictureURLVModel>>(Images);
 
             return result;
         }

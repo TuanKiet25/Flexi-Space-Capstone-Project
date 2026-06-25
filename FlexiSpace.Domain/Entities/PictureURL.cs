@@ -13,7 +13,11 @@ namespace FlexiSpace.Domain.Entities
         public string PublicId { get; set; }
         public bool IsPrimary { get; set; }
         public long? SpaceId { get; set; }
+        public string UserProfileId { get; set; }
+        public long? ListingId { get; set; }
 
         public virtual Space Space { get; set; }
+        public virtual UserProfile UserProfile { get; set; }
+        public virtual Listing Listing { get; set; }
     }
 }
