@@ -4,9 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FlexiSpace.Domain.Entities
+namespace FlexiSpace.Domain.Enum
 {
-    internal class SubcriptionPlan
+    public enum TransactionEnum
     {
+        Pending,
+        Completed,
+        Failed,
+        Cancelled
     }
 }
