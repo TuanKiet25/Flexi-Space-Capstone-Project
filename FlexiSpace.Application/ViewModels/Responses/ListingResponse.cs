@@ -21,14 +21,14 @@ namespace FlexiSpace.Application.ViewModels.Responses
         required
         public string LessorName { get; set; }
         required
-        public string SpaceAddress
-        { get; set; }
+        public string SpaceAddress { get; set; }
+        public decimal Price { get; set; }
         public DateTime CreatedAt { get; set; } 
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } 
         public bool IsActive { get; set; }
         public string? CancelReason { get; set; }
-        public List<string>? ListingPictures { get; set; }
+        public List<PictureURLVModel>? ListingPictures { get; set; }
 
     }
 }

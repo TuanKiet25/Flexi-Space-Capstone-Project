@@ -25,7 +25,6 @@ namespace FlexiSpace.Domain.Entities
         public decimal Price { get; set; }
         public ListingType ListingType { get; set; }
         public ListingStatusEnum Status { get; set; }
-        public List<string> ListingPictures { get; set; }
         public virtual ShareSpaceDetail ShareSpaceDetail { get; set; }
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
