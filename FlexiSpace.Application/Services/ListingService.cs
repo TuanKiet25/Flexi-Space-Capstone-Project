@@ -159,7 +159,9 @@ namespace FlexiSpace.Application.Services
             {
                 var listing = await _unitOfWork.listingRepository.GetAsync(
                     x => x.Id == id,
-                    include: q => q.Include(l => l.Space).Include(l => l.Lessor));
+                    include: q => q.Include(l => l.Space)
+                                   .Include(l => l.Lessor)
+                                   .Include(l => l.PictureURLs));
                 if (listing == null)
                 {
                     return new ServiceResult<ListingResponse>
@@ -274,7 +276,8 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.ShareSpaceDetail)
                                         .ThenInclude(s => s.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
-                                        .ThenInclude(s => s.ShareSpaceCategories));
+                                        .ThenInclude(s => s.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
 
                 var mappedListings = _mapper.Map<List<ShareListingResponse>>(listings);
 
@@ -461,7 +464,8 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.ShareSpaceDetail)
                                     .ThenInclude(l => l.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
-                                    .ThenInclude(l => l.ShareSpaceCategories));
+                                    .ThenInclude(l => l.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
                                     
                 var result = _mapper.Map<ShareListingResponse>(listingResult);
 
@@ -495,7 +499,8 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.ShareSpaceDetail)
                                     .ThenInclude(l => l.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
-                                    .ThenInclude(l => l.ShareSpaceCategories));
+                                    .ThenInclude(l => l.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
 
                 if (existingListing == null)
                 {
@@ -578,7 +583,8 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.ShareSpaceDetail)
                                     .ThenInclude(l => l.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
-                                    .ThenInclude(l => l.ShareSpaceCategories));
+                                    .ThenInclude(l => l.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
 
                 var result = _mapper.Map<ShareListingResponse>(listingResult);
 
