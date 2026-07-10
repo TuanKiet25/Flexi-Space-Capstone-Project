@@ -1,4 +1,4 @@
-﻿
+
 using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
@@ -73,6 +73,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IRootEmailService, RootEmailService>();
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<ITransactionService, TransactionService>();
+            services.AddScoped<IWalletService, WalletService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
