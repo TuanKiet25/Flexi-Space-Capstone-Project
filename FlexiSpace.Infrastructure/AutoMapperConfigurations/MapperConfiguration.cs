@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
@@ -36,6 +36,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<SharedListingRequest, Listing>().ReverseMap();
             CreateMap<Listing, ShareListingResponse>().ReverseMap();
             
+            CreateMap<Wallet, WalletRespnse>().ReverseMap();
             CreateMap<User, UserResponse>().ReverseMap();
             CreateMap<ProfileRequest, UserProfile>().ReverseMap();
             CreateMap<UserProfile, ProfileResponse>().ReverseMap();
