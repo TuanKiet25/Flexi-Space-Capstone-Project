@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Domain.Entities
 {
-    internal class UserSubcription
+    internal class UserSubscription
     {
     }
 }

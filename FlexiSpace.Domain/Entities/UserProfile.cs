@@ -20,5 +20,6 @@ namespace FlexiSpace.Domain.Entities
         //public int ReputationScore { get; set; } = 100;
         //public int SuccessfulDeals { get; set; } = 0;
         public virtual User User { get; set; }
+        public virtual PictureURL Avatar { get; set; }
     }
 }

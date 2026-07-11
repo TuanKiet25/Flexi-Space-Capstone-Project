@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
@@ -14,7 +15,9 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
     {
         public MapperConfiguration()
         {
-            CreateMap<Listing, ListingResponse>().ReverseMap();
+            CreateMap<Listing, ListingResponse>()
+                .ForMember(dest => dest.ListingPictures, opt => opt.MapFrom(src => src.PictureURLs))
+                .ReverseMap();
             CreateMap<ListingRequest, Listing>().ReverseMap();
            
 
@@ -34,8 +37,11 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<ShareSpaceCategory, ShareSpaceCategoryResponse>().ReverseMap();
             CreateMap<ShareSpaceCategoryRequest, ShareSpaceCategory>().ReverseMap();
             CreateMap<SharedListingRequest, Listing>().ReverseMap();
-            CreateMap<Listing, ShareListingResponse>().ReverseMap();
+            CreateMap<Listing, ShareListingResponse>()
+                .ForMember(dest => dest.ListingPictures, opt => opt.MapFrom(src => src.PictureURLs))
+                .ReverseMap();
             
+            CreateMap<Wallet, WalletRespnse>().ReverseMap();
             CreateMap<User, UserResponse>().ReverseMap();
             CreateMap<ProfileRequest, UserProfile>().ReverseMap();
             CreateMap<UserProfile, ProfileResponse>().ReverseMap();

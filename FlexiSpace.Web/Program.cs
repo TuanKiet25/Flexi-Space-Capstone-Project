@@ -9,6 +9,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -67,6 +68,14 @@ builder.Services.AddScoped(sp =>
     var account = new Account(config.CloudName, config.ApiKey, config.ApiSecret);
     return new Cloudinary(account);
 });
+
+IConfiguration configuration = builder.Configuration;
+PayOSClient payOS = new PayOSClient(
+    configuration["PayOS:ClientId"] ?? throw new InvalidOperationException("PayOS ClientId is missing!"),
+    configuration["PayOS:ApiKey"] ?? throw new InvalidOperationException("PayOS ApiKey is missing!"),
+    configuration["PayOS:ChecksumKey"] ?? throw new InvalidOperationException("PayOS ChecksumKey is missing!")
+);
+builder.Services.AddSingleton(payOS);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

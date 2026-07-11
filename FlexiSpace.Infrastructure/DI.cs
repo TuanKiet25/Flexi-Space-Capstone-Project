@@ -1,4 +1,4 @@
-﻿
+
 using FlexiSpace.Application;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
@@ -47,6 +47,8 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IShareSpaceCategoryRepository, ShareSpaceCategoryRepository>();
             services.AddScoped<IAvailabilitiesTimeRepository, AvailabilitiesTimeRepository>();
             services.AddScoped<ISharedSpaceAmenitiesRepository, SharedSpaceAmenitiesRepository>();
+            services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -69,6 +71,9 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IPictureURL, PictureURLService>();
             services.AddScoped<IAmenityService, AmenityService>();
             services.AddScoped<IRootEmailService, RootEmailService>();
+            services.AddScoped<IWalletRepository, WalletRepository>();
+            services.AddScoped<ITransactionService, TransactionService>();
+            services.AddScoped<IWalletService, WalletService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

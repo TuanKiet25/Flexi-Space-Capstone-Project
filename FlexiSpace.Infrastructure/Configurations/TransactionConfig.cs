@@ -14,6 +14,10 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithMany()
                    .HasForeignKey(t => t.UserId)
                    .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(t => t.Wallet)
+                   .WithMany(w => w.Transactions)
+                   .HasForeignKey(t => t.WalletId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
