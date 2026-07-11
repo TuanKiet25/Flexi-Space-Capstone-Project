@@ -11,5 +11,6 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<ContractResponse>> GetContractByIdAsync(long id);
         Task<ServiceResult<ContractResponse>> UpdateContractAsync(long id, ContractRequest request);
         Task<ServiceResult<ContractResponse>> DeleteContractAsync(long id);
+        Task<ServiceResult<MessageResponse>> ShareContractAsync(long contractId);
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace FlexiSpace.Domain.Entities
+﻿using FlexiSpace.Domain.Enum;
+
+namespace FlexiSpace.Domain.Entities
 {
     public class Message
     {
@@ -8,6 +10,7 @@
         public string Content { get; set; }
         public DateTime CreateAt { get; set; } = DateTime.UtcNow;
         public bool IsRead { get; set; }
+        public MessageTypeEnum MessageType { get; set; }    
         public virtual Conversation Conversation { get; set; }
         public virtual User Sender { get; set; }
     }

@@ -14,6 +14,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Lessor { get; set; }
         public virtual User Lessee { get; set; }
         public DateTime LastMessage { get; set; }
+        public virtual ICollection<Contract> Contracts { get; set; }
         public virtual ICollection<Message> Messages { get; set; }
 
     }

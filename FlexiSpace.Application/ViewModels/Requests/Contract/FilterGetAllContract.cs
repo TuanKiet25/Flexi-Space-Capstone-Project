@@ -1,3 +1,4 @@
+using FlexiSpace.Domain.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,6 @@ namespace FlexiSpace.Application.ViewModels.Requests.Contract
         public string? LessorId { get; set; }
         public string? LesseeId { get; set; }
         public long? SpaceId { get; set; }
-        public int? Status { get; set; }
+        public ContractStatusEnum? Status { get; set; }
     }
 }

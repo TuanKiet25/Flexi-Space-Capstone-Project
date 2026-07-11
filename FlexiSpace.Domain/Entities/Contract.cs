@@ -16,23 +16,36 @@ namespace FlexiSpace.Domain.Entities
         public string LesseeId { get; set; }
         public long SpaceId { get; set; }
         public long PrimaryBookingRequestId { get; set; }
-        // so cmnd nguoi cho thue
+        public string ConversationId { get; set; }
+        public DateOnly Date { get; set; }
+        // thong tin nguoi cho thue
         public string LessorNumberCard { get; set; }
-        // so cmnd nguoi thue
+        public string LessorName { get; set; }
+        public DateOnly LessorCardIssuanceDate { get; set; }
+        public string LessorCardAddress { get; set; }
+
+        // thong tin nguoi nguoi thue
         public string LesseeNumberCard { get; set; }
+        public string LesseeName { get; set; }
+        public DateOnly LesseeCardIssuanceDate { get; set; }
+        public string LesseeCardAddress { get; set; }
         public string Description { get; set; }
         //dien tich
         public decimal Acreage { get; set; }
-        //thoi gian thue tinh theo don vi ngay, thang, gio
+        public DurationUnitEnum DurationUnit { get; set; }
         public int Duration { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         //tien dat coc
         public decimal DepositAmount { get; set; }
         public decimal Price { get; set; }
+        public string ContractSnapshot { get; set; }
         public ContractStatusEnum Status { get; set; }
-
+        public virtual ICollection<ContractVerification> ContractVerifications { get; set; }
         public virtual Space Space { get; set; }
+        public virtual Conversation Conversation { get; set; }
+        public virtual User Lessor { get; set; }
+        public virtual User Lessee { get; set; }    
         public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
     }
 }
