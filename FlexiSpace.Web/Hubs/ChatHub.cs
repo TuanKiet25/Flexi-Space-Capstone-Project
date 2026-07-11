@@ -10,21 +10,50 @@ namespace FlexiSpace.Web.Hubs
         {
             _messageService = messageService;
         }
-        public async Task SendMessageToUser(string receiverId, string conversationId, string message)
+
+        public async Task JoinConversation(string conversationId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, conversationId);
+        }
+
+        public async Task LeaveConversation(string conversationId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, conversationId);
+        }
+
+        public async Task SendMessageToGroup(string conversationId, string message)
         {
             var senderId = Context.UserIdentifier;
-            if(senderId == null)
+            if (string.IsNullOrEmpty(senderId))
             {
-                throw new UnauthorizedAccessException();
+                throw new UnauthorizedAccessException("Không thể xác thực người dùng.");
             }
-            await _messageService.SaveMessageAsync(conversationId, senderId, message);
-            await Clients.User(receiverId).SendAsync("ReceiveMessage", new
+
+            // Lưu xuống DB. Lưu ý: Nên điều chỉnh SaveMessageAsync để trả về MessageResponse
+            var savedMessage = await _messageService.SaveMessageAsync(conversationId, senderId, message);
+
+            // Gửi cho TOÀN BỘ những ai đang kết nối vào phòng chat này
+            // Đảm bảo event name "ReceiveNewMessage" khớp với Controller chia sẻ hợp đồng
+            await Clients.Group(conversationId).SendAsync("ReceiveNewMessage", savedMessage);
+        }
+        public async Task MarkConversationAsRead(string conversationId)
+        {
+            var currentUserId = Context.UserIdentifier;
+            if (string.IsNullOrEmpty(currentUserId)) return;
+
+            bool isUpdated = await _messageService.UpdateMessagesToReadAsync(conversationId, currentUserId);
+
+            // 2. Chỉ bắn SignalR nếu thực sự có tin nhắn vừa được đổi trạng thái
+            if (isUpdated)
             {
-                ConversationId = conversationId,
-                SenderId = senderId,
-                Content = message,
-                SentAt = DateTime.UtcNow
-            });
+                // Thông báo cho mọi người trong phòng biết là "Tài khoản currentUserId đã xem tin nhắn"
+                await Clients.Group(conversationId).SendAsync("ReceiveReadReceipt", new
+                {
+                    ConversationId = conversationId,
+                    ReaderId = currentUserId,
+                    ReadAt = DateTime.UtcNow
+                });
+            }
         }
     }
 }

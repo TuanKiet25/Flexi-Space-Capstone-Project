@@ -10,7 +10,8 @@ namespace FlexiSpace.Application.IServices
 {
     public interface IMessageService
     {
-        Task<ServiceResult<string>> SaveMessageAsync(string conversationId, string senderId, string content);
-        Task<ServiceResult<List<Message>>> GetMessagesAsync(string conversationId, DateTime? timeBefore, int limit);
+        Task<ServiceResult<MessageResponse>> SaveMessageAsync(string conversationId, string senderId, string content);
+        Task<ServiceResult<List<MessageResponse>>> GetMessagesAsync(string conversationId, DateTime? timeBefore, int limit);
+        Task<bool> UpdateMessagesToReadAsync(string conversationId, string currentUserId);
     }
 }

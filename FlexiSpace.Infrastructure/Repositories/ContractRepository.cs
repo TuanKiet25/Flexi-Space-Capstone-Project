@@ -1,5 +1,6 @@
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlexiSpace.Infrastructure.Repositories
 {
@@ -8,5 +9,6 @@ namespace FlexiSpace.Infrastructure.Repositories
         public ContractRepository(AppDbContext context) : base(context)
         {
         }
+
     }
 }

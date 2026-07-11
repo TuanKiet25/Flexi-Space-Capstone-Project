@@ -4,5 +4,6 @@ namespace FlexiSpace.Application.IRepositories
 {
     public interface IContractRepository : IGenericRepository<Contract>
     {
+
     }
 }

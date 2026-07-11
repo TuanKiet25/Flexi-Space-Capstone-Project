@@ -2,7 +2,7 @@
 {
     public enum ContractStatusEnum
     {
-        Pending,
+        Draft,
         Active,
         Expired,
         Cancelled

@@ -39,6 +39,8 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<User, UserResponse>().ReverseMap();
             CreateMap<ProfileRequest, UserProfile>().ReverseMap();
             CreateMap<UserProfile, ProfileResponse>().ReverseMap();
+
+            CreateMap<Message, MessageResponse>().ReverseMap();
         }
     }
 }

@@ -9,15 +9,15 @@ namespace FlexiSpace.Infrastructure.Configurations
         public void Configure(EntityTypeBuilder<Contract> builder)
         {
             // Relationships
-            // builder.HasOne(c => c.Lessor)
-            //        .WithMany()
-            //        .HasForeignKey(c => c.LessorId)
-            //        .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(c => c.Lessor)
+                   .WithMany()
+                   .HasForeignKey(c => c.LessorId)
+                   .OnDelete(DeleteBehavior.Restrict);
 
-            // builder.HasOne(c => c.Lessee)
-            //        .WithMany()
-            //        .HasForeignKey(c => c.LesseeId)
-            //        .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(c => c.Lessee)
+                   .WithMany()
+                   .HasForeignKey(c => c.LesseeId)
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(c => c.Space)
                    .WithMany(s => s.Contract)
@@ -28,6 +28,16 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithMany(p => p.Contracts)
                    .HasForeignKey(c => c.PrimaryBookingRequestId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(c => c.Conversation)
+                   .WithMany(conv => conv.Contracts)
+                   .HasForeignKey(c => c.ConversationId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(c => c.ContractVerifications)
+                   .WithOne(cv => cv.Contract)
+                   .HasForeignKey(cv => cv.ContractId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

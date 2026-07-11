@@ -1,7 +1,9 @@
-using FlexiSpace.Application.IServices;
+﻿using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Requests.Contract;
+using FlexiSpace.Web.Hubs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace FlexiSpace.Web.Controllers
 {
@@ -10,10 +12,11 @@ namespace FlexiSpace.Web.Controllers
     public class ContractController : MyBaseController
     {
         private readonly IContractService _contractService;
-
-        public ContractController(IContractService contractService)
+        private readonly IHubContext<ChatHub> _hubContext;
+        public ContractController(IContractService contractService, IHubContext<ChatHub> hubContext)
         {
             _contractService = contractService;
+            _hubContext = hubContext;
         }
 
         [HttpPost("Create")]
@@ -22,7 +25,23 @@ namespace FlexiSpace.Web.Controllers
             var result = await _contractService.CreateContractAsync(request);
             return HandleResult(result);
         }
+        [HttpPost("{id}/share")]
+        public async Task<IActionResult> ShareContract(long id)
+        {
+            var result = await _contractService.ShareContractAsync(id);
 
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            var messageData = result.Data;
+
+            await _hubContext.Clients.Group(messageData!.ConversationId!)
+                 .SendAsync("ReceiveNewMessage", messageData);
+
+            return Ok(result);
+        }
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllContracts([FromQuery] FilterGetAllContract filter)
         {
