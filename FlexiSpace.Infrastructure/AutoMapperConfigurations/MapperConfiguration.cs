@@ -49,7 +49,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<Message, MessageResponse>().ReverseMap();
 
             CreateMap<VerifyProfileRequest, UserProfile>().ReverseMap();
-
+            CreateMap<Conversation, ConversationResp>().ReverseMap();
 
         }
     }

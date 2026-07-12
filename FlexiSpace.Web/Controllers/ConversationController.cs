@@ -17,9 +17,22 @@ namespace FlexiSpace.Web.Controllers
         [HttpPost("Create")]
         public async Task<IActionResult> CreateConversation(string lessorId, string lesseeId)
         {
-            var result = await _conversationService.GetOrCreateConversationAsync(lessorId,lesseeId);
+            var result = await _conversationService.GetOrCreateConversationAsync(lessorId, lesseeId);
             return HandleResult(result);
         }
-        
+
+        [HttpGet("User/{userId}")]
+        public async Task<IActionResult> GetConversationsByUserId(string userId)
+        {
+            var result = await _conversationService.GetConversationsByUserIdAsync(userId);
+            return HandleResult(result);
+        }
+
+        [HttpGet("ByParticipants")]
+        public async Task<IActionResult> GetConversationByParticipants([FromQuery] string lessorId, [FromQuery] string lesseeId)
+        {
+            var result = await _conversationService.GetConversationByParticipantsAsync(lessorId, lesseeId);
+            return HandleResult(result);
+        }
     }
 }
