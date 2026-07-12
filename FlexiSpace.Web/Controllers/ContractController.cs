@@ -78,9 +78,9 @@ namespace FlexiSpace.Web.Controllers
         }
 
         [HttpPost("{contractId}/validate-otp")]
-        public async Task<IActionResult> ValidateContractOtp(long id, string inputOtp)
+        public async Task<IActionResult> ValidateContractOtp(long contractId, string inputOtp)
         {
-            var result = await _contractService.ContractValidateOtpAsync(id, inputOtp);
+            var result = await _contractService.ContractValidateOtpAsync(contractId, inputOtp);
 
             if (!result.IsSuccess)
             {
