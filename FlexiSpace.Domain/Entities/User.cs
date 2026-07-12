@@ -17,7 +17,6 @@ namespace FlexiSpace.Domain.Entities
 
         public string UserId { get; set; } = Ulid.NewUlid().ToString();
         public string PhoneNumber { get; set; }
-        public DateTime Dob { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
         public UserStatus UserStatus { get; set; } 

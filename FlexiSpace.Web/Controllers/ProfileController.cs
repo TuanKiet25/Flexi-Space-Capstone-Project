@@ -38,5 +38,12 @@ namespace FlexiSpace.Web.Controllers
             var result = await _profileService.GetProfileByUserIdAsync(userId);
             return HandleResult(result);
         }
+
+        [HttpPost("{userProfileId}/verify")]
+        public async Task<IActionResult> VerifyProfile(string userProfileId, [FromBody] VerifyProfileRequest request)
+        {
+            var result = await _profileService.VerifyProfileAsync(userProfileId, request);
+            return HandleResult(result);
+        }
     }
 }

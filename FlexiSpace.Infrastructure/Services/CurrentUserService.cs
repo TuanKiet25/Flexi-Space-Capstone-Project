@@ -20,6 +20,16 @@ namespace FlexiSpace.Infrastructure.Services
         }
 
         public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-
+        public string GetClientIpAddress()
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context == null) return "Unknown IP";
+            var forwardedHeader = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(forwardedHeader))
+            {
+                return forwardedHeader.Split(',').First().Trim();
+            }
+            return context.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
+        }
     }
 }

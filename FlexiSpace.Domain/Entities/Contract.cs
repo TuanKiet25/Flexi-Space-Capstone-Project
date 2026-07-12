@@ -41,11 +41,11 @@ namespace FlexiSpace.Domain.Entities
         public decimal Price { get; set; }
         public string ContractSnapshot { get; set; }
         public ContractStatusEnum Status { get; set; }
-        public virtual ICollection<ContractVerification> ContractVerifications { get; set; }
         public virtual Space Space { get; set; }
         public virtual Conversation Conversation { get; set; }
         public virtual User Lessor { get; set; }
         public virtual User Lessee { get; set; }    
         public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
+        public virtual ContractVerification ContractVerification { get; set; }
     }
 }

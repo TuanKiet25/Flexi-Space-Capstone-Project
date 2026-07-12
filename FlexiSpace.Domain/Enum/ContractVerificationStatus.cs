@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Domain.Enum
 {
-    public enum MessageTypeEnum
+    public enum ContractVerificationStatus
     {
-        Text ,
-        Image,
-        ContractProposal,
-        SystemAction
+        Spending,
+        verified,
+        canceled,
+        expired
     }
 }

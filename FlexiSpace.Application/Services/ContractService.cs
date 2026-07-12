@@ -5,8 +5,11 @@ using FlexiSpace.Application.ViewModels.Requests.Contract;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.VisualBasic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace FlexiSpace.Application.Services
 {
@@ -15,12 +18,15 @@ namespace FlexiSpace.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
-
-        public ContractService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUserService)
+        private readonly IDistributedCache _cache;
+        private readonly IEmailService _emailService;
+        public ContractService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUserService, IDistributedCache cache, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _currentUserService = currentUserService;
+            _cache = cache;
+            _emailService = emailService;
         }
 
         public async Task<ServiceResult<ContractResponse>> CreateContractAsync(ContractRequest request)
@@ -53,6 +59,11 @@ namespace FlexiSpace.Application.Services
                 contract.EndDate = CalculateEndDate(contract.StartDate, contract.DurationUnit, contract.Duration);
                 contract.CreatedAt = DateTime.Now;
                 contract.UpdatedAt = DateTime.Now;
+                contract.ContractVerification = new ContractVerification
+                {
+                    IsLessorAgreed = false,
+                    IsLesseeAgreed = false,
+                };
                 await _unitOfWork.contractRepository.AddAsync(contract);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
@@ -354,6 +365,162 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<bool>> SendContractOtpAsync(long contractId)
+        {
+            var currentUserId = _currentUserService.UserId;
+            var contract = await _unitOfWork.contractRepository.GetAsync(c => c.Id == contractId);
+            if (contract == null) return new ServiceResult<bool> { IsSuccess = false, Message = "Hợp đồng không tồn tại." };
+            if (contract.LessorId != currentUserId && contract.LesseeId != currentUserId)
+                return new ServiceResult<bool> { IsSuccess = false, Message = "Bạn không có quyền ký hợp đồng này." };
+            var userProfile = await _unitOfWork.profileRepository.GetAsync(x => x.UserId == currentUserId);
+            if (userProfile == null || !userProfile.IsVerified)
+                return new ServiceResult<bool> { IsSuccess = false, Message = "Vui lòng xác thực CCCD trước khi ký hợp đồng." };
+            var contractVerification = await _unitOfWork.contractVerificationRepository.GetAsync(v => v.ContractId == contractId, include : q => q.Include(v => v.Contract!));
+            bool alreadySigned = (currentUserId == contractVerification.Contract!.LessorId && contractVerification.IsLessorAgreed) ||
+                                 (currentUserId == contractVerification.Contract.LesseeId && contractVerification.IsLesseeAgreed);
+            if (alreadySigned)
+                return new ServiceResult<bool> { IsSuccess = false, Message = "Bạn đã ký hợp đồng này rồi." };
+            string otpCode = new Random().Next(100000, 999999).ToString();
+            // 2. Tạo Redis Key mang đầy đủ ngữ cảnh
+            string redisKey = $"OTP:SignContract:{contractId}:{currentUserId}";
+            // 3. Cấu hình thời gian sống (TTL) là 5 phút
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            };
+
+            // 4. Lưu vào Redis
+            await _cache.SetStringAsync(redisKey, otpCode, cacheOptions);
+            await _emailService.SendContractOtpEmailAsync((await _unitOfWork.userRepository.GetAsync(u => u.UserId == currentUserId)).Email, otpCode, contractId);
+
+            return new ServiceResult<bool> { IsSuccess = true,Data = true, Message = "Mã OTP đã được gửi đến email của bạn." };
+        }
+        public async Task<ServiceResult<MessageResponse>> ContractValidateOtpAsync(long contractId, string inputOtp)
+        {
+            Message? returnMessage = null;
+            var currentUserId = _currentUserService.UserId;
+            bool isFullySigned = false;
+            // 1. Tái tạo lại chính xác Key đã dùng khi lưu
+            string redisKey = $"OTP:SignContract:{contractId}:{currentUserId}";
+
+            // 2. Lấy mã OTP từ RAM về
+            string? savedOtp = await _cache.GetStringAsync(redisKey);
+
+            // 3. Kiểm tra tính hợp lệ của OTP
+            if (string.IsNullOrEmpty(savedOtp))
+            {
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Mã OTP không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại mã OTP." };
+            }
+            if (savedOtp != inputOtp)
+            {
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Mã OTP không hợp lệ." };
+            }
+
+            // Xóa OTP ngay lập tức để chống Replay Attack
+            await _cache.RemoveAsync(redisKey);
+
+            // 4. Lấy Dữ liệu User & Contract (Gộp query để tối ưu hiệu suất)
+            var currentUser = await _unitOfWork.userRepository.GetAsync(
+                u => u.UserId == currentUserId,
+                include: q => q.Include(u => u.Profile)
+            );
+
+            // Lấy Hợp đồng kèm luôn Verification trong 1 câu SQL duy nhất
+            var contract = await _unitOfWork.contractRepository.GetAsync(
+                c => c.Id == contractId,
+                include: q => q.Include(c => c.ContractVerification)
+            );
+            if (contract == null || contract.ContractVerification == null)
+            {
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hợp đồng không tồn tại hoặc dữ liệu bị lỗi." };
+            }
+            if (currentUser?.Profile == null)
+            {
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Vui lòng cập nhật hồ sơ CCCD trước khi ký hợp đồng." };
+            }
+
+            if (currentUserId == contract.LessorId)
+            {
+                contract.ContractVerification.IsLessorAgreed = true;
+                contract.ContractVerification.LessorSignedAt = DateTime.UtcNow;
+                contract.ContractVerification.LessorIpAddress = _currentUserService.GetClientIpAddress();
+                contract.ContractVerification.LessorSignatureData = "Verified via Email OTP";
+
+                contract.LessorNumberCard = currentUser.Profile.IdentityCardNumber;
+                contract.LessorCardAddress = currentUser.Profile.PermanentResidence;
+                contract.LessorName = currentUser.Profile.FullName;
+                contract.LessorCardIssuanceDate = currentUser.Profile.DateOfIssue;
+            }
+            else if (currentUserId == contract.LesseeId)
+            {
+                contract.ContractVerification.IsLesseeAgreed = true;
+                contract.ContractVerification.LesseeSignedAt = DateTime.UtcNow;
+                contract.ContractVerification.LesseeIpAddress = _currentUserService.GetClientIpAddress();
+                contract.ContractVerification.LesseeSignatureData = "Verified via Email OTP";
+
+                contract.LesseeNumberCard = currentUser.Profile.IdentityCardNumber;
+                contract.LesseeCardAddress = currentUser.Profile.PermanentResidence;
+                contract.LesseeName = currentUser.Profile.FullName;
+                contract.LesseeCardIssuanceDate = currentUser.Profile.DateOfIssue;
+            }
+            else
+            {
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Bạn không có quyền ký hợp đồng này." };
+            }
+            if (contract.ContractVerification.IsLessorAgreed && contract.ContractVerification.IsLesseeAgreed)
+            {
+                contract.Status = ContractStatusEnum.Active;
+                isFullySigned = true;
+            }
+            if (isFullySigned)
+            {
+                var otherUserId = currentUserId == contract.LessorId ? contract.LesseeId : contract.LessorId;
+                var otherUser = await _unitOfWork.userRepository.GetAsync(u => u.UserId == otherUserId, include: q => q.Include(u => u.Profile));
+
+                _ = _emailService.SendContractSuccessEmailAsync(
+                    currentUser.Email,
+                    currentUser.Profile.FullName, 
+                    contractId);      
+
+                if (otherUser != null)
+                {
+                    _ = _emailService.SendContractSuccessEmailAsync(
+                        otherUser.Email,
+                        otherUser.Profile.FullName,
+                        contractId);
+                }
+            }
+            else
+            {
+                // Mới 1 bên ký: Bắn tin nhắn tự động gọi bên kia
+                string senderName = currentUserId == contract.LessorId ? "Chủ mặt bằng" : "Người thuê";
+
+                var systemMessage = new Message
+                {
+                    ConversationId = contract.ConversationId,
+                    SenderId = currentUserId, 
+                    Content = $"{senderName} đã xác nhận hợp đồng. Vui lòng kiểm tra và xác nhận để hoàn tất thủ tục.",
+                    MessageType = MessageTypeEnum.SystemAction,
+                };
+
+                var conversation = await _unitOfWork.conversationRepository.GetAsync(x => x.Id == contract.ConversationId);
+                if (conversation != null)
+                {
+                    conversation.LastMessage = DateTime.UtcNow;
+                    await _unitOfWork.conversationRepository.UpdateAsync(conversation);
+                }
+                await _unitOfWork.messageRepository.AddAsync(systemMessage);
+                returnMessage = systemMessage;
+            }
+            await _unitOfWork.SaveChangesAsync();
+            return new ServiceResult<MessageResponse>
+            {
+                IsSuccess = true,
+                Data = _mapper.Map<MessageResponse>(returnMessage),
+                Message = "Đã xác thực hợp đồng thành công"
+            };
+        }
+      
 
         private async Task<(string? ErrorMessage, Space? Space, PrimaryBookingRequest? Booking, Conversation? conversation)> ValidateRequestAsync(ContractRequest request)
         {

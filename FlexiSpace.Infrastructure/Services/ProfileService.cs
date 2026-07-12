@@ -4,6 +4,7 @@ using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
+using System;
 using System.Threading.Tasks;
 
 namespace FlexiSpace.Infrastructure.Services
@@ -41,11 +42,9 @@ namespace FlexiSpace.Infrastructure.Services
                     var res = _mapper.Map<ProfileResponse>(entity);
                     return new ServiceResult<ProfileResponse> { IsSuccess = true, Data = res };
                 }
-                existing.FullName = request.FullName ?? existing.FullName;
                 existing.AvatarUrl = request.AvatarUrl ?? existing.AvatarUrl;
                 existing.Bio = request.Bio ?? existing.Bio;
                 existing.SocialLink = request.SocialLink ?? existing.SocialLink;
-                existing.Gender = request.Gender;
                 existing.UpdatedBy = _currentUserService.UserId ?? existing.UpdatedBy;
                 await _unitOfWork.profileRepository.UpdateAsync(existing);
                 await _unitOfWork.SaveChangesAsync();
@@ -58,6 +57,28 @@ namespace FlexiSpace.Infrastructure.Services
             }
         }
 
+
+        public async Task<ServiceResult<ProfileResponse>> VerifyProfileAsync(string userProfileId, VerifyProfileRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userProfileId)) return new ServiceResult<ProfileResponse> { IsSuccess = false, Message = "UserProfileId is required." };
+                var existing = await _unitOfWork.profileRepository.GetAsync(x => x.UserId == userProfileId && !x.IsDeleted);
+                if (existing == null) return new ServiceResult<ProfileResponse> { IsSuccess = false, IsNotFound = true, Message = "Profile not found." };
+                _mapper.Map(request, existing);    
+                existing.IsVerified = true;
+                existing.UpdatedBy = _currentUserService.UserId ?? existing.UpdatedBy;
+                existing.UpdatedAt = DateTime.UtcNow;
+                await _unitOfWork.SaveChangesAsync();
+
+                var mapped = _mapper.Map<ProfileResponse>(existing);
+                return new ServiceResult<ProfileResponse> { IsSuccess = true, Data = mapped };
+            }
+            catch (System.Exception ex)
+            {
+                return new ServiceResult<ProfileResponse> { IsSuccess = false, Message = ex.Message };
+            }
+        }
 
         public async Task<ServiceResult<ProfileResponse>> GetProfileByUserIdAsync(string userId)
         {

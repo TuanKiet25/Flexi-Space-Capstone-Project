@@ -40,6 +40,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IAmentityRepository, AmentityRepository>();
             services.AddScoped<IListingRepository, ListingRepository>();
             services.AddScoped<IContractRepository, ContractRepository>();
+            services.AddScoped<IContractVerificationRepository, ContractVerificationRepository>();
             services.AddScoped<IPrimaryBookingRequestRepository, PrimaryBookingRequestRepository>();
             services.AddScoped<IConversationRepository, ConversationRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
@@ -95,6 +96,12 @@ namespace FlexiSpace.Infrastructure
             });
             //đăng ký HttpContextAccessor
             services.AddHttpContextAccessor();
+            //đăng ký Redis
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration.GetConnectionString("RedisConnection");
+                options.InstanceName = "FlexiSpace_"; 
+            });
             return services;
         }
     }

@@ -11,6 +11,7 @@ namespace FlexiSpace.Application.IServices
     {
         Task SendOtpEmailAsync(string email, string otpCode);
         Task ResendOtpEmailAsync(string email, string otpCode);
-
+        Task SendContractOtpEmailAsync(string email, string otpCode, long contractId);
+        Task SendContractSuccessEmailAsync(string email, string userName, long contractId);
     }
 }

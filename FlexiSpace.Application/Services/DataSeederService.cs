@@ -41,7 +41,6 @@ namespace FlexiSpace.Application.Services
                     IsActive = true, 
                     Role = RoleEnum.ADMIN,
                     CreatedAt = DateTime.UtcNow,
-                    Dob = DateTime.UtcNow.AddYears(-22),
                     PhoneNumber = adminPhone ?? "0123456789"
                 };
 

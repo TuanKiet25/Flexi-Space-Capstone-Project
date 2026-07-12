@@ -34,9 +34,9 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .HasForeignKey(c => c.ConversationId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasMany(c => c.ContractVerifications)
+            builder.HasOne(c => c.ContractVerification)
                    .WithOne(cv => cv.Contract)
-                   .HasForeignKey(cv => cv.ContractId)
+                   .HasForeignKey<ContractVerification>(cv => cv.ContractId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

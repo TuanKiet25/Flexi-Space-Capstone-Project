@@ -9,10 +9,8 @@ namespace FlexiSpace.Application.ViewModels.Requests
 {
     public class ProfileRequest
     {
-        public string? FullName { get; set; }
         public string? AvatarUrl { get; set; }
         public string? Bio { get; set; }
         public string? SocialLink { get; set; }
-        public Gender Gender { get; set; }
     }
 }

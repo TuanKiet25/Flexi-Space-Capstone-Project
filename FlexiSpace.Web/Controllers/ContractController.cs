@@ -69,5 +69,35 @@ namespace FlexiSpace.Web.Controllers
             var result = await _contractService.DeleteContractAsync(id);
             return HandleResult(result);
         }
+
+        [HttpPost("{contractId}/send-otp")]
+        public async Task<IActionResult> SendContractOtp(long contractId)
+        {
+            var result = await _contractService.SendContractOtpAsync(contractId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{contractId}/validate-otp")]
+        public async Task<IActionResult> ValidateContractOtp(long id, string inputOtp)
+        {
+            var result = await _contractService.ContractValidateOtpAsync(id, inputOtp);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            if (result.Data != null)
+            {
+                var messageData = result.Data;
+                await _hubContext.Clients.Group(messageData!.ConversationId!.ToString())
+                     .SendAsync("ReceiveNewMessage", messageData);
+            }
+            return Ok(new
+            {
+                IsSuccess = true,
+                Message = result.Message
+            });
+        }
     }
 }

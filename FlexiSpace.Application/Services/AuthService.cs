@@ -81,15 +81,14 @@ namespace FlexiSpace.Application.Services
                 {
                     Email = request.Email,
                     Name = request.Name,
-                    Dob = request.Dob,
                     CreatedAt = DateTime.UtcNow,
                     PhoneNumber = request.PhoneNumber,
                     // Hash mật khẩu bằng BCrypt hoặc PBKDF2 bảo mật
                     Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
                     IsActive = false,
-                    Role = Domain.Enum.RoleEnum.USER // Hoặc gán Enum Role của hệ thống
+                    Role = Domain.Enum.RoleEnum.USER, // Hoặc gán Enum Role của hệ thống
+                    Profile = new UserProfile()
                 };
-                if(newAccount.Dob > DateTime.UtcNow) throw new Exception("Ngày sinh không thể ở tương lai");
                 
                 await _unitOfWork.userRepository.AddAsync(newAccount);
 
@@ -144,6 +143,7 @@ namespace FlexiSpace.Application.Services
                 if (account != null)
                 {
                     account.IsActive = true;
+                    await _unitOfWork.userOTPRepository.RemoveByIdAsync(checkValidOtp.Id);
                     await _unitOfWork.SaveChangesAsync();
                     return new ServiceResult<AuthResponse>
                     {

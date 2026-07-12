@@ -10,15 +10,17 @@ namespace FlexiSpace.Domain.Entities
     public class UserProfile : BaseEntity
     {
         public string UserId { get; set; }
+        public string CitizenIDNumber { get; set; }
+        public string IdentityCardNumber { get; set; }
         public string FullName { get; set; }
+        public Gender Gender { get; set; }
+        public DateOnly Dob { get; set; }
+        public string PermanentResidence { get; set; }
+        public DateOnly DateOfIssue { get; set; }
+        public bool IsVerified { get; set; } 
         public string AvatarUrl { get; set; }
         public string Bio { get; set; }
         public string SocialLink { get; set; }
-        public Gender Gender { get; set; }
-        // Chỉ số uy tín 
-        //public bool IsIdentityVerified { get; set; } = false;
-        //public int ReputationScore { get; set; } = 100;
-        //public int SuccessfulDeals { get; set; } = 0;
         public virtual User User { get; set; }
         public virtual PictureURL Avatar { get; set; }
     }
