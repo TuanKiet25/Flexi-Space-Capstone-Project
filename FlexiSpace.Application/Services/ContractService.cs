@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.VisualBasic;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 
 namespace FlexiSpace.Application.Services
 {
@@ -64,6 +65,9 @@ namespace FlexiSpace.Application.Services
                     IsLessorAgreed = false,
                     IsLesseeAgreed = false,
                 };
+
+                SyncContractSchedules(contract, request.ContractSchedules);
+
                 await _unitOfWork.contractRepository.AddAsync(contract);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
@@ -245,6 +249,57 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<string>> GetContractSnapshotByIdAsync(long id)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var contract = await _unitOfWork.contractRepository.GetAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (contract == null)
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy hợp đồng với Id đã cho."
+                    };
+                }
+
+                if (contract.LessorId != currentUserId && contract.LesseeId != currentUserId)
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        Message = "Lỗi bảo mật: Bạn không có quyền truy cập vào hợp đồng này!"
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(contract.ContractSnapshot))
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        Message = "Hợp đồng chưa được ký đầy đủ, không có bản sao hợp đồng."
+                    };
+                }
+
+                return new ServiceResult<string>
+                {
+                    IsSuccess = true,
+                    Data = contract.ContractSnapshot
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<string>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<ContractResponse>> UpdateContractAsync(long id, ContractRequest request)
         {
             try
@@ -253,7 +308,7 @@ namespace FlexiSpace.Application.Services
 
                 var existingContract = await _unitOfWork.contractRepository.GetAsync(
                     x => x.Id == id && !x.IsDeleted,
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest));
+                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.ContractSchedules));
 
                 if (existingContract == null)
                 {
@@ -292,6 +347,7 @@ namespace FlexiSpace.Application.Services
                 }
 
                 _mapper.Map(request, existingContract);
+                SyncContractSchedules(existingContract, request.ContractSchedules);
                 existingContract.EndDate = CalculateEndDate(existingContract.StartDate, existingContract.DurationUnit, existingContract.Duration);
                 existingContract.UpdatedAt = DateTime.UtcNow;
 
@@ -428,7 +484,7 @@ namespace FlexiSpace.Application.Services
             // Lấy Hợp đồng kèm luôn Verification trong 1 câu SQL duy nhất
             var contract = await _unitOfWork.contractRepository.GetAsync(
                 c => c.Id == contractId,
-                include: q => q.Include(c => c.ContractVerification)
+                include: q => q.Include(c => c.ContractVerification).Include(c => c.ContractSchedules)
             );
             if (contract == null || contract.ContractVerification == null)
             {
@@ -470,6 +526,7 @@ namespace FlexiSpace.Application.Services
             if (contract.ContractVerification.IsLessorAgreed && contract.ContractVerification.IsLesseeAgreed)
             {
                 contract.Status = ContractStatusEnum.Active;
+                contract.ContractSnapshot = BuildContractSnapshot(contract);
                 isFullySigned = true;
             }
             if (isFullySigned)
@@ -521,6 +578,90 @@ namespace FlexiSpace.Application.Services
             };
         }
       
+
+        private void SyncContractSchedules(Contract contract, List<ContractScheduleRequest>? scheduleRequests)
+        {
+            if (contract.ContractSchedules == null)
+            {
+                contract.ContractSchedules = new List<ContractSchedule>();
+            }
+            else
+            {
+                contract.ContractSchedules.Clear();
+            }
+
+            if (scheduleRequests == null || !scheduleRequests.Any())
+            {
+                return;
+            }
+
+            foreach (var scheduleRequest in scheduleRequests)
+            {
+                contract.ContractSchedules.Add(new ContractSchedule
+                {
+                    DayOfWeek = scheduleRequest.DayOfWeek,
+                    StartTime = scheduleRequest.StartTime,
+                    EndTime = scheduleRequest.EndTime,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                });
+            }
+        }
+
+        private string BuildContractSnapshot(Contract contract)
+        {
+            var snapshotPayload = new
+            {
+                ContractId = contract.Id,
+                LessorId = contract.LessorId,
+                LesseeId = contract.LesseeId,
+                SpaceId = contract.SpaceId,
+                PrimaryBookingRequestId = contract.PrimaryBookingRequestId,
+                ConversationId = contract.ConversationId,
+                Date = contract.Date,
+                LessorNumberCard = contract.LessorNumberCard,
+                LessorName = contract.LessorName,
+                LessorCardIssuanceDate = contract.LessorCardIssuanceDate,
+                LessorCardAddress = contract.LessorCardAddress,
+                LesseeNumberCard = contract.LesseeNumberCard,
+                LesseeName = contract.LesseeName,
+                LesseeCardIssuanceDate = contract.LesseeCardIssuanceDate,
+                LesseeCardAddress = contract.LesseeCardAddress,
+                Description = contract.Description,
+                Acreage = contract.Acreage,
+                DurationUnit = contract.DurationUnit,
+                Duration = contract.Duration,
+                StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                DepositAmount = contract.DepositAmount,
+                Price = contract.Price,
+                Status = contract.Status,
+                ContractVerification = new
+                {
+                    contract.ContractVerification?.IsLessorAgreed,
+                    contract.ContractVerification?.IsLesseeAgreed,
+                    contract.ContractVerification?.LessorSignedAt,
+                    contract.ContractVerification?.LesseeSignedAt,
+                    contract.ContractVerification?.LessorIpAddress,
+                    contract.ContractVerification?.LesseeIpAddress,
+                    contract.ContractVerification?.LessorSignatureData,
+                    contract.ContractVerification?.LesseeSignatureData
+                },
+                ContractSchedules = contract.ContractSchedules?.Select(s => new
+                {
+                    s.DayOfWeek,
+                    s.StartTime,
+                    s.EndTime
+                }).ToList(),
+                CreatedAt = contract.CreatedAt,
+                UpdatedAt = contract.UpdatedAt
+            };
+
+            return JsonSerializer.Serialize(snapshotPayload, new JsonSerializerOptions
+            {
+                WriteIndented = false
+            });
+        }
 
         private async Task<(string? ErrorMessage, Space? Space, PrimaryBookingRequest? Booking, Conversation? conversation)> ValidateRequestAsync(ContractRequest request)
         {

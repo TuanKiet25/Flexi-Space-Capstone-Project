@@ -47,5 +47,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual User Lessee { get; set; }    
         public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
         public virtual ContractVerification ContractVerification { get; set; }
+        public virtual ICollection<ContractSchedule> ContractSchedules { get; set; } = new List<ContractSchedule>();
     }
 }

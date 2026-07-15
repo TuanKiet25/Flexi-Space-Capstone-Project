@@ -25,8 +25,10 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<PrimaryBookingRequest, BookingResponse>();
             CreateMap<BookingRequest, PrimaryBookingRequest>();
 
-            CreateMap<Contract, ContractResponse>();
+            CreateMap<Contract, ContractResponse>()
+                .ForMember(dest => dest.ContractSchedules, opt => opt.MapFrom(src => src.ContractSchedules));
             CreateMap<ContractRequest, Contract>();
+            CreateMap<ContractSchedule, ContractScheduleRequest>().ReverseMap();
 
             CreateMap<Amentity, AmenityResponse>().ReverseMap();
             

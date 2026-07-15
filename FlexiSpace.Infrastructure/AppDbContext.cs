@@ -29,6 +29,7 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<SharedSpaceAmenities> SharedSpaceAmenities { get; set; }
         public virtual DbSet<ShareSpaceDetail> ShareSpaceDetails { get; set; }
         public virtual DbSet<ContractVerification> ContractVerifications { get; set; }
+        public virtual DbSet<ContractSchedule> ContractSchedules { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

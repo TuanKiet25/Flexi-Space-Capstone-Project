@@ -18,5 +18,6 @@ namespace FlexiSpace.Application.ViewModels.Requests
         public decimal Price { get; set; } 
         public decimal? DepositAmount { get; set; } 
         public string? Description { get; set; }
+        public List<ContractScheduleRequest>? ContractSchedules { get; set; }
     }
 }

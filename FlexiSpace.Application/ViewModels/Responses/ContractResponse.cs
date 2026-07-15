@@ -1,5 +1,7 @@
+using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Domain.Enum;
 using System;
+using System.Collections.Generic;
 
 namespace FlexiSpace.Application.ViewModels.Responses
 {
@@ -19,6 +21,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public DateTime EndDate { get; set; }
         public decimal DepositAmount { get; set; }
         public decimal Price { get; set; }
+        public List<ContractScheduleRequest>? ContractSchedules { get; set; }
         public ContractStatusEnum Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

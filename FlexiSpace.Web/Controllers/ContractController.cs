@@ -56,6 +56,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpGet("GetSnapshotById/{id}")]
+        public async Task<IActionResult> GetContractSnapshotById(long id)
+        {
+            var result = await _contractService.GetContractSnapshotByIdAsync(id);
+            return HandleResult(result);
+        }
+
         [HttpPut("Update/{id}")]
         public async Task<IActionResult> UpdateContract(long id, [FromBody] ContractRequest request)
         {
