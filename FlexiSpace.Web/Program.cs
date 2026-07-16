@@ -4,12 +4,13 @@ using FlexiSpace.Infrastructure;
 using FlexiSpace.Web;
 using FlexiSpace.Web.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using PayOS;
 using System.Text;
 using System.Text.Json.Serialization;
-using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -114,11 +115,17 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    app.UseSwaggerUI(c =>
+    {
+        // 2. (Tùy chọn) Thêm dòng này để khi mở web lên, nó trỏ thẳng vào Swagger luôn 
+        // thay vì phải gõ thêm /swagger ở URL
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "FlexiSpace API v1");
+        c.RoutePrefix = string.Empty;
+    });
+//}
 
 app.UseHttpsRedirection();
 app.UseRouting();
@@ -130,6 +137,20 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    await FlexiSpace.Web.Extensions.DataSeeder.SeedAdminAccountAsync(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    try
+    {
+  
+        var context = services.GetRequiredService<AppDbContext>();
+
+        await context.Database.MigrateAsync();
+
+        await FlexiSpace.Web.Extensions.DataSeeder.SeedAdminAccountAsync(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Đã xảy ra lỗi trong quá trình tự động khởi tạo Database.");
+    }
 }
 app.Run();
