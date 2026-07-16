@@ -13,5 +13,8 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest request);
         Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request);
         Task<ServiceResult<AuthResponse>> VerifyOtpAsync(VerifyOtpRequest request);
+        Task<ServiceResult<AuthResponse>> SendPasswordOtpAsync(ForgotPasswordRequest request);
+        Task<ServiceResult<AuthResponse>> ResetPasswordAsync(ResetPasswordRequest request);
+        Task<ServiceResult<AuthResponse>> ChangePasswordAsync(ChangePasswordRequest request);
     }
 }
