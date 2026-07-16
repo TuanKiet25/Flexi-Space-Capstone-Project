@@ -89,7 +89,6 @@ namespace FlexiSpace.Infrastructure
                                   {
                                       // Cho phép origin của frontend được truy cập
                                       policy.SetIsOriginAllowed(origin => true)
-                                            .AllowAnyOrigin()
                                             .AllowAnyHeader()
                                             .AllowAnyMethod()
                                             .AllowCredentials();
