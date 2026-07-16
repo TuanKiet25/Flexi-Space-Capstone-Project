@@ -13,6 +13,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<ContractResponse>> DeleteContractAsync(long id);
         Task<ServiceResult<MessageResponse>> ShareContractAsync(long contractId);
         Task<ServiceResult<string>> GetContractSnapshotByIdAsync(long id);
+        Task<ServiceResult<List<ContractCalendarEntryResponse>>> GetContractCalendarBySpaceAsync(long spaceId, DateTime from, DateTime to);
         Task<ServiceResult<bool>> SendContractOtpAsync(long contractId);
         Task<ServiceResult<MessageResponse>> ContractValidateOtpAsync(long contractId, string inputOtp);
     }

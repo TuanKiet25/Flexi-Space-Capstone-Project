@@ -300,6 +300,93 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<List<ContractCalendarEntryResponse>>> GetContractCalendarBySpaceAsync(long spaceId, DateTime from, DateTime to)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var space = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == spaceId && !x.IsDeleted);
+
+                if (space == null)
+                {
+                    return new ServiceResult<List<ContractCalendarEntryResponse>> { IsSuccess = false, IsNotFound = true, Message = "Không tìm thấy mặt bằng." };
+                }
+
+                // 1. Lấy tất cả hợp đồng đang Active của mặt bằng này
+                var contracts = await _unitOfWork.contractRepository.GetAllAsync(
+                    x => !x.IsDeleted && x.SpaceId == spaceId && x.Status == ContractStatusEnum.Active,
+                    include: q => q.Include(c => c.ContractSchedules).Include(c => c.PrimaryBookingRequest));
+
+                // 2. SỬA PHÂN QUYỀN: Kiểm tra xem user hiện tại là Chủ mặt bằng HAY là một trong những Người thuê
+                bool isOwner = space.OwnerId == currentUserId;
+                bool isLessee = contracts.Any(c => c.LesseeId == currentUserId);
+
+                if (!isOwner && !isLessee)
+                {
+                    return new ServiceResult<List<ContractCalendarEntryResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "Bạn không có quyền xem lịch của mặt bằng này. Chỉ chủ mặt bằng và những người đang thuê mới được phép."
+                    };
+                }
+
+                var entries = new List<ContractCalendarEntryResponse>();
+
+                foreach (var contract in contracts)
+                {
+                    var tenantName = !string.IsNullOrWhiteSpace(contract.LesseeName) ? contract.LesseeName : "Người thuê";
+                    var businessDescription = !string.IsNullOrWhiteSpace(contract.BusinessPurpose) ? contract.BusinessPurpose : "Thuê mặt bằng";
+
+                    var effectiveFrom = contract.StartDate.Date;
+                    var effectiveTo = contract.EndDate.Date;
+
+                    // Bỏ qua nếu hợp đồng nằm ngoài vùng query
+                    if (effectiveTo < from.Date || effectiveFrom > to.Date) continue;
+
+                    var startDate = from.Date > effectiveFrom ? from.Date : effectiveFrom;
+                    var endDate = to.Date < effectiveTo ? to.Date : effectiveTo;
+
+                    for (var day = startDate; day <= endDate; day = day.AddDays(1))
+                    {
+                        var weekday = day.DayOfWeek;
+
+                        // 3. SỬA LỖI LỌT CA: Dùng Where để lấy TẤT CẢ các ca trong một ngày
+                        var matchingSchedules = contract.ContractSchedules?.Where(s => s.DayOfWeek == weekday).ToList();
+
+                        if (matchingSchedules == null || !matchingSchedules.Any()) continue;
+
+                        foreach (var schedule in matchingSchedules)
+                        {
+                            var startDateTime = day.Add(schedule.StartTime);
+                            var endDateTime = day.Add(schedule.EndTime);
+
+                            entries.Add(new ContractCalendarEntryResponse
+                            {
+                                EffectiveDate = day,
+                                StartDateTime = startDateTime,
+                                EndDateTime = endDateTime,
+                                ContractId = contract.Id,
+                                TenantName = tenantName,
+                                BusinessDescription = businessDescription,
+                                DisplayLabel = $"{tenantName} - {businessDescription}"
+                            });
+                        }
+                    }
+                }
+
+                return new ServiceResult<List<ContractCalendarEntryResponse>>
+                {
+                    IsSuccess = true,
+                    // Order theo thời gian bắt đầu để Frontend dễ render
+                    Data = entries.OrderBy(e => e.StartDateTime).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ContractCalendarEntryResponse>> { IsSuccess = false, Message = ex.Message };
+            }
+        }
+
         public async Task<ServiceResult<ContractResponse>> UpdateContractAsync(long id, ContractRequest request)
         {
             try
@@ -628,6 +715,7 @@ namespace FlexiSpace.Application.Services
                 LesseeCardIssuanceDate = contract.LesseeCardIssuanceDate,
                 LesseeCardAddress = contract.LesseeCardAddress,
                 Description = contract.Description,
+                BusinessPurpose = contract.BusinessPurpose,
                 Acreage = contract.Acreage,
                 DurationUnit = contract.DurationUnit,
                 Duration = contract.Duration,

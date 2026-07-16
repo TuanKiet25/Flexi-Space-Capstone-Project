@@ -34,7 +34,7 @@ namespace FlexiSpace.Web.Hubs
 
             // Gửi cho TOÀN BỘ những ai đang kết nối vào phòng chat này
             // Đảm bảo event name "ReceiveNewMessage" khớp với Controller chia sẻ hợp đồng
-            await Clients.Group(conversationId).SendAsync("ReceiveNewMessage", savedMessage);
+            await Clients.Group(conversationId).SendAsync("ReceiveNewMessage", savedMessage.Data);
         }
         public async Task MarkConversationAsRead(string conversationId)
         {

@@ -30,6 +30,7 @@ namespace FlexiSpace.Domain.Entities
         public DateOnly LesseeCardIssuanceDate { get; set; }
         public string LesseeCardAddress { get; set; }
         public string Description { get; set; }
+        public string? BusinessPurpose { get; set; }
         //dien tich
         public decimal Acreage { get; set; }
         public DurationUnitEnum DurationUnit { get; set; }

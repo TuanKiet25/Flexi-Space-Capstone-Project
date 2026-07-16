@@ -15,6 +15,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string? LessorNumberCard { get; set; }
         public string? LesseeNumberCard { get; set; }
         public string? Description { get; set; }
+        public string? BusinessPurpose { get; set; }
         public decimal Acreage { get; set; }
         public int Duration { get; set; }
         public DateTime StartDate { get; set; }

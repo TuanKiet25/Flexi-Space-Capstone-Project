@@ -91,7 +91,8 @@ namespace FlexiSpace.Infrastructure
                                       policy.SetIsOriginAllowed(origin => true)
                                             .AllowAnyOrigin()
                                             .AllowAnyHeader()
-                                            .AllowAnyMethod();
+                                            .AllowAnyMethod()
+                                            .AllowCredentials();
                                   });
             });
             //đăng ký HttpContextAccessor

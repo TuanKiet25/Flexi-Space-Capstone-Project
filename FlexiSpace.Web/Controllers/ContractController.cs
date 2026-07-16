@@ -63,6 +63,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpGet("calendar/space/{spaceId}")]
+        public async Task<IActionResult> GetSpaceCalendar(long spaceId, [FromQuery] DateTime from, [FromQuery] DateTime to)
+        {
+            var result = await _contractService.GetContractCalendarBySpaceAsync(spaceId, from, to);
+            return HandleResult(result);
+        }
+
         [HttpPut("Update/{id}")]
         public async Task<IActionResult> UpdateContract(long id, [FromBody] ContractRequest request)
         {
