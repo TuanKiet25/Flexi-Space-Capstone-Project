@@ -32,5 +32,26 @@ namespace FlexiSpace.Web.Controllers
             var result = await _authService.VerifyOtpAsync(request);
             return HandleResult(result);
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var result = await _authService.SendPasswordOtpAsync(request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var result = await _authService.ResetPasswordAsync(request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var result = await _authService.ChangePasswordAsync(request);
+            return HandleResult(result);
+        }
     } 
 }

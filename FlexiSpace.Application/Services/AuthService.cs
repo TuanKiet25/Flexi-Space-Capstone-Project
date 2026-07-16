@@ -3,6 +3,7 @@ using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
+using Microsoft.Extensions.Caching.Distributed;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,12 +19,14 @@ namespace FlexiSpace.Application.Services
         private readonly IEmailService _emailService;
         private readonly IJwtProvider _jwtProvider;
         private readonly ITurnstileService _turnstileService;
-        public AuthService(IUnitOfWork unitOfWork, IEmailService emailService, IJwtProvider jwtProvider, ITurnstileService turnstileService)
+        private readonly IDistributedCache _cache;
+        public AuthService(IUnitOfWork unitOfWork, IEmailService emailService, IJwtProvider jwtProvider, ITurnstileService turnstileService, IDistributedCache cache)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
             _jwtProvider = jwtProvider;
             _turnstileService = turnstileService;
+            _cache = cache;
         }
         public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest request)
         {
@@ -91,21 +94,19 @@ namespace FlexiSpace.Application.Services
                 };
                 
                 await _unitOfWork.userRepository.AddAsync(newAccount);
+                await _unitOfWork.SaveChangesAsync();
 
                 // 4. Sinh mã OTP ngẫu nhiên (6 chữ số) và thiết lập hết hạn sau 5 phút
                 string otpCode = new Random().Next(100000, 999999).ToString();
-                DateTime expiryTime = DateTime.UtcNow.AddMinutes(5);
-
-                // Lưu mã OTP vào DB 
-                var userOtp = new UserOTP
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                string redisKey = $"OTP:Register:{normalizedEmail}";
+                var cacheOptions = new DistributedCacheEntryOptions
                 {
-                    User = newAccount,
-                    Email = request.Email,
-                    OtpCode = otpCode,
-                    ExpiryTime = expiryTime
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
                 };
-                await _unitOfWork.userOTPRepository.AddAsync(userOtp);
-                await _unitOfWork.SaveChangesAsync();
+
+                // Lưu mã OTP vào Redis
+                await _cache.SetStringAsync(redisKey, otpCode, cacheOptions);
                 // 5. Gửi mail chứa mã OTP cho người dùng
                 await _emailService.ResendOtpEmailAsync(request.Email, otpCode);
                 return new ServiceResult<AuthResponse>
@@ -128,9 +129,12 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                // 1. Kiểm tra mã OTP trong DB xem có khớp và còn hạn không
-                var checkValidOtp = await _unitOfWork.userOTPRepository.GetAsync(u => u.Email == request.Email && u.OtpCode == request.OtpCode);
-                if (checkValidOtp == null)
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                string redisKey = $"OTP:Register:{normalizedEmail}";
+                string? savedOtp = await _cache.GetStringAsync(redisKey);
+
+                // 1. Kiểm tra mã OTP trong Redis xem có khớp và còn hạn không
+                if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
                 {
                     return new ServiceResult<AuthResponse>
                     {
@@ -138,12 +142,15 @@ namespace FlexiSpace.Application.Services
                         Message = "Mã OTP không chính xác hoặc đã hết hạn.",
                     };
                 }
-                // 2. Cập nhật trạng thái tài khoản thành Đã xác thực
-                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email == request.Email);
+
+                // 2. Xóa OTP khỏi Redis ngay sau khi xác thực để tránh replay attack
+                await _cache.RemoveAsync(redisKey);
+
+                // 3. Cập nhật trạng thái tài khoản thành Đã xác thực
+                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
                 if (account != null)
                 {
                     account.IsActive = true;
-                    await _unitOfWork.userOTPRepository.RemoveByIdAsync(checkValidOtp.Id);
                     await _unitOfWork.SaveChangesAsync();
                     return new ServiceResult<AuthResponse>
                     {
@@ -165,6 +172,139 @@ namespace FlexiSpace.Application.Services
                 {
                     IsSuccess = false,
                     Message = $"Xác thực OTP thất bại: {ex.Message}",
+                };
+            }
+        }
+
+        public async Task<ServiceResult<AuthResponse>> SendPasswordOtpAsync(ForgotPasswordRequest request)
+        {
+            try
+            {
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (account == null)
+                {
+                    return new ServiceResult<AuthResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Email không tồn tại trong hệ thống."
+                    };
+                }
+
+                string otpCode = new Random().Next(100000, 999999).ToString();
+                string redisKey = $"OTP:Password:{normalizedEmail}";
+                var cacheOptions = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                };
+
+                await _cache.SetStringAsync(redisKey, otpCode, cacheOptions);
+                await _emailService.ResendOtpEmailAsync(request.Email, otpCode);
+
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Mã OTP đã được gửi đến email để thiết lập lại mật khẩu."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = false,
+                    Message = $"Gửi OTP thất bại: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<ServiceResult<AuthResponse>> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            try
+            {
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                string redisKey = $"OTP:Password:{normalizedEmail}";
+                string? savedOtp = await _cache.GetStringAsync(redisKey);
+
+                if (string.IsNullOrEmpty(savedOtp) || savedOtp != request.OtpCode)
+                {
+                    return new ServiceResult<AuthResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Mã OTP không chính xác hoặc đã hết hạn."
+                    };
+                }
+
+                await _cache.RemoveAsync(redisKey);
+
+                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (account == null)
+                {
+                    return new ServiceResult<AuthResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Tài khoản không tồn tại."
+                    };
+                }
+
+                account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Đặt lại mật khẩu thành công."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = false,
+                    Message = $"Đặt lại mật khẩu thất bại: {ex.Message}"
+                };
+            }
+        }
+
+        public async Task<ServiceResult<AuthResponse>> ChangePasswordAsync(ChangePasswordRequest request)
+        {
+            try
+            {
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (account == null)
+                {
+                    return new ServiceResult<AuthResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Tài khoản không tồn tại."
+                    };
+                }
+
+                bool isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.Password);
+                if (!isCurrentPasswordValid)
+                {
+                    return new ServiceResult<AuthResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Mật khẩu hiện tại không chính xác."
+                    };
+                }
+
+                account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Đổi mật khẩu thành công."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<AuthResponse>
+                {
+                    IsSuccess = false,
+                    Message = $"Đổi mật khẩu thất bại: {ex.Message}"
                 };
             }
         }
