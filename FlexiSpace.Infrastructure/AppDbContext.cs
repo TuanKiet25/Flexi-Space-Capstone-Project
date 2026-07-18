@@ -21,6 +21,7 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<OperatingHour> OperatingHours { get; set; }
         public virtual DbSet<PictureURL> PictureURLs { get; set; }
         public virtual DbSet<Review> Reviews { get; set; }
+        public virtual DbSet<ListingReport> ListingReports { get; set; }
         public virtual DbSet<SpaceAllowedCategory> SpaceAllowedCategories { get; set; }
         public virtual DbSet<Transaction> Transactions { get; set; }
         public virtual DbSet<Message> Messages { get; set; }

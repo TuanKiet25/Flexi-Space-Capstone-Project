@@ -25,6 +25,10 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(p => p.User)
                    .HasForeignKey<UserProfile>(p => p.UserId)
                    .OnDelete(DeleteBehavior.Cascade);
+            builder.HasMany(u => u.SubmittedReports)
+                   .WithOne(r => r.Reporter)
+                   .HasForeignKey(r => r.ReporterId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

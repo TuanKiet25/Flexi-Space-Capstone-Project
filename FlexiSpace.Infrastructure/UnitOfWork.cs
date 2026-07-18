@@ -29,6 +29,7 @@ namespace FlexiSpace.Infrastructure
         public IProfileRepository profileRepository { get; }
         public ITransactionRepository transactionRepository { get; }
         public IWalletRepository walletRepository { get; }
+        public IListingReportRepository listingReportRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -53,6 +54,7 @@ namespace FlexiSpace.Infrastructure
             profileRepository = new ProfileRepository(_dbContext);
             transactionRepository = new TransactionRepository(_dbContext);
             walletRepository = new WalletRepository(_dbContext);
+            listingReportRepository = new ListingReportRepository(_dbContext);
         }
 
 

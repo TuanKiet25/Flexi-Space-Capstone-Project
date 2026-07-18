@@ -11,7 +11,9 @@ namespace FlexiSpace.Application.ViewModels.Responses
     {
         public string? Id { get; set; } 
         public string? LessorId { get; set; }
+        public string? LessorUserName { get; set; }
         public string? LesseeId { get; set; }
+        public string? LesseeUserName { get; set; }
         public DateTime LastMessage { get; set; }
 
     }

@@ -55,6 +55,34 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpPost("Reports")]
+        public async Task<IActionResult> CreateListingReport([FromBody] CreateListingReportRequest request)
+        {
+            var result = await _listingService.CreateListingReportAsync(request);
+            return HandleResult(result);
+        }
+
+        [HttpGet("Reports/{listingId}")]
+        public async Task<IActionResult> GetListingReports(long listingId)
+        {
+            var result = await _listingService.GetListingReportsAsync(listingId);
+            return HandleResult(result);
+        }
+
+        [HttpGet("Reports/Admin")]
+        public async Task<IActionResult> GetReportedListings()
+        {
+            var result = await _listingService.GetReportedListingsAsync();
+            return HandleResult(result);
+        }
+
+        [HttpGet("Reports/Admin/Detail/{listingId}")]
+        public async Task<IActionResult> GetListingReportDetail(long listingId)
+        {
+            var result = await _listingService.GetListingReportDetailAsync(listingId);
+            return HandleResult(result);
+        }
+
         [HttpDelete("SoftDelete/{id}")]
         public async Task<IActionResult> SoftDeleteListing(long id)
         {
