@@ -129,8 +129,8 @@ namespace FlexiSpace.Application.Services
                 var newListing = _mapper.Map<Listing>(listing);
                 newListing.CreatorId = _currentUserService.UserId;
                 newListing.CreatedAt = DateTime.Now;
-                newListing.IsActive = false;
-                newListing.Status = Domain.Enum.ListingStatusEnum.Pending;
+                newListing.IsActive = true;
+                newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.EntireSpace;
                 await _unitOfWork.listingRepository.AddAsync(newListing);
                 await _unitOfWork.SaveChangesAsync();
@@ -316,7 +316,7 @@ namespace FlexiSpace.Application.Services
                     listing.IsActive = true;
                     listing.CancelReason = null;
                 }
-                else if (request.Status == Domain.Enum.ListingStatusEnum.Canceled)
+                else if (request.Status == Domain.Enum.ListingStatusEnum.Ban)
                 {
                     if (string.IsNullOrWhiteSpace(request.CancelReason))
                     {
@@ -326,16 +326,23 @@ namespace FlexiSpace.Application.Services
                             Message = "Vui lòng cung cấp lý do hủy."
                         };
                     }
-                    listing.Status = Domain.Enum.ListingStatusEnum.Canceled;
+                    listing.Status = Domain.Enum.ListingStatusEnum.Ban;
                     listing.IsActive = false;
                     listing.CancelReason = request.CancelReason;
+
+                    var reports = await _unitOfWork.listingReportRepository.GetAllAsync(x => x.ListingId == listing.Id);
+                    foreach (var report in reports)
+                    {
+                        report.IsBanned = true;
+                        await _unitOfWork.listingReportRepository.UpdateAsync(report);
+                    }
                 }
                 else
                 {
                     return new ServiceResult<ListingResponse>
                     {
                         IsSuccess = false,
-                        Message = "Trạng thái không hợp lệ. Chỉ chấp nhận Accepted hoặc Canceled."
+                        Message = "Trạng thái không hợp lệ."
                     };
                 }
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
@@ -354,6 +361,211 @@ namespace FlexiSpace.Application.Services
                     Message = ex.Message
                 };
             }
+        }
+
+        public async Task<ServiceResult<ListingReportResponse>> CreateListingReportAsync(CreateListingReportRequest request)
+        {
+            try
+            {
+                if (request.ListingId <= 0)
+                {
+                    return new ServiceResult<ListingReportResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Id bài đăng không hợp lệ."
+                    };
+                }
+
+                if (request.Reasons == null || !request.Reasons.Any())
+                {
+                    return new ServiceResult<ListingReportResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Vui lòng chọn ít nhất một lý do báo cáo."
+                    };
+                }
+
+                var reporterId = _currentUserService.UserId;
+                if (string.IsNullOrWhiteSpace(reporterId))
+                {
+                    return new ServiceResult<ListingReportResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Bạn cần đăng nhập để gửi báo cáo."
+                    };
+                }
+
+                var listing = await _unitOfWork.listingRepository.GetAsync(x => x.Id == request.ListingId && !x.IsDeleted);
+                if (listing == null)
+                {
+                    return new ServiceResult<ListingReportResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Không tìm thấy bài đăng để báo cáo."
+                    };
+                }
+
+                var existingReport = await _unitOfWork.listingReportRepository.GetAsync(x => x.ListingId == request.ListingId && x.ReporterId == reporterId);
+                if (existingReport != null)
+                {
+                    return new ServiceResult<ListingReportResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Bạn đã gửi báo cáo cho bài đăng này rồi."
+                    };
+                }
+
+                var newReport = new ListingReport
+                {
+                    ListingId = request.ListingId,
+                    ReporterId = reporterId,
+                    ReasonType = string.Join(",", request.Reasons.Select(x => x.ToString())),
+                    AdditionalDetails = request.AdditionalDetails ?? string.Empty,
+                    IsBanned = false
+                };
+
+                await _unitOfWork.listingReportRepository.AddAsync(newReport);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<ListingReportResponse>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<ListingReportResponse>(newReport),
+                    Message = "Gửi báo cáo thành công."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ListingReportResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<List<ListingReportResponse>>> GetListingReportsAsync(long listingId)
+        {
+            try
+            {
+                var listing = await _unitOfWork.listingRepository.GetAsync(x => x.Id == listingId && !x.IsDeleted);
+                if (listing == null)
+                {
+                    return new ServiceResult<List<ListingReportResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "Không tìm thấy bài đăng."
+                    };
+                }
+
+                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(
+                    x => x.ListingId == listingId,
+                    include: q => q.Include(x => x.Reporter));
+
+                reports = reports.OrderByDescending(x => x.CreatedAt).ToList();
+
+                return new ServiceResult<List<ListingReportResponse>>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<List<ListingReportResponse>>(reports)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ListingReportResponse>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<List<ReportedListingSummaryResponse>>> GetReportedListingsAsync()
+        {
+            try
+            {
+                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(
+                    filter: null,
+                    include: q => q.Include(x => x.Listing));
+
+                var summaries = reports
+                    .GroupBy(x => x.ListingId)
+                    .Select(g => new ReportedListingSummaryResponse
+                    {
+                        ListingId = g.Key,
+                        ReportCount = g.Count(),
+                        IsBanned = g.Any(x => x.IsBanned),
+                        ListingStatus = g.First().Listing.Status.ToString(),
+                        ListingDescription = g.First().Listing.Description
+                    })
+                    .OrderByDescending(x => x.ReportCount)
+                    .ToList();
+
+                return new ServiceResult<List<ReportedListingSummaryResponse>>
+                {
+                    IsSuccess = true,
+                    Data = summaries
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ReportedListingSummaryResponse>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<ListingReportDetailResponse>> GetListingReportDetailAsync(long listingId)
+        {
+            try
+            {
+                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(x => x.ListingId == listingId);
+
+                var reasonBreakdown = reports
+                    .SelectMany(x => ParseReasons(x.ReasonType))
+                    .GroupBy(x => x.ToString())
+                    .Select(g => new ReportReasonCountResponse
+                    {
+                        Reason = g.Key ?? "Other",
+                        Count = g.Count()
+                    })
+                    .OrderByDescending(x => x.Count)
+                    .ToList();
+
+                return new ServiceResult<ListingReportDetailResponse>
+                {
+                    IsSuccess = true,
+                    Data = new ListingReportDetailResponse
+                    {
+                        ListingId = listingId,
+                        TotalReportCount = reports.Count,
+                        ReasonBreakdown = reasonBreakdown
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ListingReportDetailResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        private static List<ReportReasonEnum> ParseReasons(string reasons)
+        {
+            if (string.IsNullOrWhiteSpace(reasons))
+            {
+                return new List<ReportReasonEnum>();
+            }
+
+            return reasons
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(x => Enum.TryParse<ReportReasonEnum>(x, out var reason) ? reason : ReportReasonEnum.Other)
+                .ToList();
         }
 
         public async Task<ServiceResult<ListingResponse>> SoftDeleteListingAsync(long id)
@@ -435,8 +647,8 @@ namespace FlexiSpace.Application.Services
                 var newListing = _mapper.Map<Listing>(sharedListingRequest);
                 newListing.CreatorId = _currentUserService.UserId;
                 newListing.CreatedAt = DateTime.Now;
-                newListing.IsActive = false;
-                newListing.Status = Domain.Enum.ListingStatusEnum.Pending;
+                newListing.IsActive = true;
+                newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.SharedSpace;
                 newListing.ShareSpaceDetail = new ShareSpaceDetail
                 {

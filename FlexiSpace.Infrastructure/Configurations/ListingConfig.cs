@@ -26,6 +26,10 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(p => p.Listing)
                      .HasForeignKey("ListingId")
                    .OnDelete(DeleteBehavior.Cascade);
+            builder.HasMany(l => l.Reports)
+                     .WithOne(r => r.Listing)
+                     .HasForeignKey("ListingId")
+                     .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

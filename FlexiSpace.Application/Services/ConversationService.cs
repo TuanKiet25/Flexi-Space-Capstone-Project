@@ -2,6 +2,7 @@
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,7 +59,9 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var conversations = await _unitOfWork.conversationRepository.GetAllAsync(c => c.LessorId == userId || c.LesseeId == userId);
+                var conversations = await _unitOfWork.conversationRepository.GetAllAsync(
+                    c => c.LessorId == userId || c.LesseeId == userId,
+                    include: q => q.Include(c => c.Lessor).Include(c => c.Lessee));
 
                 return new ServiceResult<List<ConversationResp>>
                 {
@@ -81,9 +84,10 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var conversation = await _unitOfWork.conversationRepository.GetAsync(c =>
-                    (c.LessorId == lessorId && c.LesseeId == lesseeId) ||
-                    (c.LessorId == lesseeId && c.LesseeId == lessorId));
+                var conversation = await _unitOfWork.conversationRepository.GetAsync(
+                    c => (c.LessorId == lessorId && c.LesseeId == lesseeId) ||
+                         (c.LessorId == lesseeId && c.LesseeId == lessorId),
+                    include: q => q.Include(c => c.Lessor).Include(c => c.Lessee));
 
                 if (conversation == null)
                 {

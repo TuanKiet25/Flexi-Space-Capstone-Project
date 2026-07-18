@@ -50,6 +50,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<ISharedSpaceAmenitiesRepository, SharedSpaceAmenitiesRepository>();
             services.AddScoped<ITransactionRepository, TransactionRepository>();
             services.AddScoped<IWalletRepository, WalletRepository>();
+            services.AddScoped<IListingReportRepository, ListingReportRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services

@@ -13,16 +13,20 @@ namespace FlexiSpace.Domain.Entities
         public User() 
         {
             Notification = new HashSet<Notification>();
+            SubmittedReports = new HashSet<ListingReport>();
         }
 
         public string UserId { get; set; } = Ulid.NewUlid().ToString();
         public string PhoneNumber { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
+        public string UserName { get; set; }
         public UserStatus UserStatus { get; set; } 
         public RoleEnum Role { get; set; }
+        public virtual Wallet Wallet { get; set; }
         public virtual UserProfile Profile { get; set; }
         public virtual ICollection <UserOTP> UserOTPs { get; set; }
         public virtual ICollection<Notification> Notification { get; set; }
+        public virtual ICollection<ListingReport> SubmittedReports { get; set; }
     }
 }

@@ -83,6 +83,7 @@ namespace FlexiSpace.Application.Services
                 var newAccount = new User
                 {
                     Email = request.Email,
+                    UserName = string.IsNullOrWhiteSpace(request.UserName) ? request.Name : request.UserName,
                     Name = request.Name,
                     CreatedAt = DateTime.UtcNow,
                     PhoneNumber = request.PhoneNumber,

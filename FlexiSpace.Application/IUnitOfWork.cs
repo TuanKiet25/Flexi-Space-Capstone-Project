@@ -23,6 +23,7 @@ namespace FlexiSpace.Application
         IProfileRepository profileRepository { get; }
         ITransactionRepository transactionRepository { get; }
         IWalletRepository walletRepository { get; }
+        IListingReportRepository listingReportRepository { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
