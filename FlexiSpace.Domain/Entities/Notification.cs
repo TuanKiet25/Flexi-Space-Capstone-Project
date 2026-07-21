@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FlexiSpace.Domain.Enum;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,8 @@ namespace FlexiSpace.Domain.Entities
         public string Title { get; set; }
         public string Content { get; set; }
         public bool IsRead { get; set; }
-
+        public NotificationTypeEnum Type { get; set; }
+        public string ReferenceId { get; set; }
         public virtual User User { get; set; }
     }
 }
