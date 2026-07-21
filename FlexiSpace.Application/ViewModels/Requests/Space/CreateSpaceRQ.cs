@@ -22,7 +22,8 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
         public decimal Area { get; set; }
         //public bool IsDeleted { get; set; } = false;
         public bool IsActive { get; set; } = true;
-
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
         public List<AmenityVModel>? Amenities { get; set; }
         public List<OperatingHourVmodel>? OperatingHours { get; set; }
         public List<SpaceAllowedCategoryVModel>? SpaceAllowedCategories { get; set; }

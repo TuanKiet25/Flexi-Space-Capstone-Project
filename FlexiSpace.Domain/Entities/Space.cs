@@ -24,7 +24,8 @@ namespace FlexiSpace.Domain.Entities
         public string City { get; set; }
         public decimal Area { get; set; }
         public string SpacePictures { get; set; }
-
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
         public virtual User Owner { get; set; }
         public virtual ICollection<Contract> Contract { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
