@@ -77,6 +77,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<ITransactionService, TransactionService>();
             services.AddScoped<IWalletService, WalletService>();
+            services.AddScoped<INotificationService, NotificationService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

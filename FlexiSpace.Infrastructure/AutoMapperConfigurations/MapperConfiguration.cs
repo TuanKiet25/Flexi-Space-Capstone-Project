@@ -50,6 +50,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<UserProfile, ProfileResponse>().ReverseMap();
 
             CreateMap<Message, MessageResponse>().ReverseMap();
+            CreateMap<Notification, NotificationResponse>();
             CreateMap<ListingReport, ListingReportResponse>()
                 .ForMember(dest => dest.ReporterName, opt => opt.MapFrom(src => src.Reporter != null ? (src.Reporter.UserName ?? src.Reporter.Profile.FullName) : string.Empty))
                 .ForMember(dest => dest.Reasons, opt => opt.MapFrom(src => ParseReasons(src.ReasonType)))

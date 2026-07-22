@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // Add services to the container.
 builder.Services.AddSignalR();
+builder.Services.AddScoped<FlexiSpace.Application.IServices.INotificationRealtimeSender, NotificationRealtimeSender>();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -102,7 +103,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var path = context.HttpContext.Request.Path;
 
                 // Đọc token từ query string nếu request gửi tới /chatHub
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+                if (!string.IsNullOrEmpty(accessToken)
+                    && (path.StartsWithSegments("/chatHub")
+                        || path.StartsWithSegments("/notificationHub")))
                 {
                     context.Token = accessToken;
                 }
@@ -133,6 +136,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<ChatHub>("/chatHub");
+app.MapHub<NotificationHub>("/notificationHub");
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
