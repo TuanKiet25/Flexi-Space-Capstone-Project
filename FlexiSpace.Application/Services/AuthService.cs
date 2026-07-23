@@ -83,8 +83,7 @@ namespace FlexiSpace.Application.Services
                 var newAccount = new User
                 {
                     Email = request.Email,
-                    UserName = string.IsNullOrWhiteSpace(request.UserName) ? request.Name : request.UserName,
-                    Name = request.Name,
+                    UserName = request.UserName,
                     CreatedAt = DateTime.UtcNow,
                     PhoneNumber = request.PhoneNumber,
                     // Hash mật khẩu bằng BCrypt hoặc PBKDF2 bảo mật

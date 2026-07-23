@@ -51,8 +51,16 @@ namespace FlexiSpace.Infrastructure.Services
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
                 var response = await client.PostAsync("https://api.resend.com/emails", jsonContent);
 
-                response.EnsureSuccessStatusCode();
+            //response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                // Đọc thẳng nội dung lỗi mà API Email trả về
+                var errorDetail = await response.Content.ReadAsStringAsync();
+
+                // Quăng lỗi ra ngoài kèm theo chi tiết để dễ dàng debug
+                throw new Exception($"Email API Error: StatusCode: {response.StatusCode}, Detail: {errorDetail}");
             }
+        }
         }
     }
 

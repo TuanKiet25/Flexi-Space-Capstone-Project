@@ -29,6 +29,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(r => r.Reporter)
                    .HasForeignKey(r => r.ReporterId)
                    .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }
