@@ -84,6 +84,7 @@ namespace FlexiSpace.Application.Services
                 {
                     Email = request.Email,
                     UserName = request.UserName,
+                    Name = request.Name,
                     CreatedAt = DateTime.UtcNow,
                     PhoneNumber = request.PhoneNumber,
                     // Hash mật khẩu bằng BCrypt hoặc PBKDF2 bảo mật

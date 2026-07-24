@@ -125,7 +125,7 @@ namespace FlexiSpace.Application.Tests
         public async Task RegisterAsync_EmailAlreadyExists_ReturnsFailedResult()
         {
             // 1. ARRANGE
-            var request = new RegisterRequest("existing@email.com", "Password123!", "0123456789", "username", "valid-token");
+            var request = new RegisterRequest("existing@email.com", "Password123!", "0123456789", "username", "name", "valid-token");
             _mockTurnstileService
                 .Setup(s => s.VerifyTokenAsync(request.TurnstileToken))
                 .ReturnsAsync(true);
@@ -145,7 +145,7 @@ namespace FlexiSpace.Application.Tests
         public async Task RegisterAsync_ValidRequest_ReturnsSuccessResult()
         {
             // 1. ARRANGE
-            var request = new RegisterRequest("newuser@email.com", "Password123!", "0123456789", "username", "valid-token");
+            var request = new RegisterRequest("newuser@email.com", "Password123!", "0123456789", "username", "name", "valid-token");
             _mockTurnstileService
                 .Setup(s => s.VerifyTokenAsync(request.TurnstileToken))
                 .ReturnsAsync(true);
