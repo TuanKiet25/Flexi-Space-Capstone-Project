@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Application.ViewModels.Requests
 {
-    public record RegisterRequest(string Email, string Password, string UserName,string PhoneNumber, string TurnstileToken);
+    public record RegisterRequest(string Email, string Password, string UserName, string Name, string PhoneNumber, string TurnstileToken);
 }
