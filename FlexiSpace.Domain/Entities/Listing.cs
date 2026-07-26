@@ -14,6 +14,7 @@ namespace FlexiSpace.Domain.Entities
             PrimaryBookingRequests = new HashSet<PrimaryBookingRequest>();
             PictureURLs = new HashSet<PictureURL>();
             Reports = new HashSet<ListingReport>();
+            FavoriteListings = new HashSet<FavoriteListing>();
         }
 
         public long Id { get; set; }
@@ -32,5 +33,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequests { get; set; }
         public virtual ICollection<PictureURL> PictureURLs { get; set; }
         public virtual ICollection<ListingReport> Reports { get; set; }
+        public virtual ICollection<FavoriteListing> FavoriteListings { get; set; }
     }
 }
