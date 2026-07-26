@@ -20,6 +20,9 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
                 .ForMember(dest => dest.ListingPictures, opt => opt.MapFrom(src => src.PictureURLs))
                 .ReverseMap();
             CreateMap<ListingRequest, Listing>().ReverseMap();
+            CreateMap<FavoriteList, FavoriteListResponse>()
+                .ForMember(dest => dest.Listings,
+                    opt => opt.MapFrom(src => src.FavoriteListings.Select(x => x.Listing)));
            
 
 
@@ -61,7 +64,8 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
                 .ForMember(dest => dest.LessorUserName, opt => opt.MapFrom(src => src.Lessor.UserName))
                 .ForMember(dest => dest.LesseeUserName, opt => opt.MapFrom(src => src.Lessee.UserName))
                 .ReverseMap();
-
+            CreateMap<FavoriteList, FavoriteListIdsResponse>().ForMember(dest => dest.ListingIds,
+               opt => opt.MapFrom(src => src.FavoriteListings.Select(x => x.ListingId).ToList()));
         }
         private static List<ReportReasonEnum> ParseReasons(string reasons)
         {
