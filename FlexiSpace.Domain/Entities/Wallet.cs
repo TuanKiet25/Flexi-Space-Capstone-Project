@@ -11,6 +11,7 @@ namespace FlexiSpace.Domain.Entities
         public Wallet()
         {
             Transactions = new HashSet<Transaction>();
+            TransactionHistories = new HashSet<TransactionHistory>();
         }
 
         public long Id { get; set; }
@@ -18,5 +19,6 @@ namespace FlexiSpace.Domain.Entities
         public decimal Balance { get; set; }
         public virtual User User { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
+        public virtual ICollection<TransactionHistory> TransactionHistories { get; set; }
     }
 }

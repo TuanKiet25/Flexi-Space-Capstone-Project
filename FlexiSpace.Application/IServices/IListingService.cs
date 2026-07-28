@@ -12,7 +12,7 @@ namespace FlexiSpace.Application.IServices
 {
     public interface IListingService
     {
-        Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing);
+        Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount);
         Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null);
         Task<ServiceResult<ListingResponse>> GetListingByIdAsync(long id);
         Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing);
@@ -23,7 +23,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<List<ListingReportResponse>>> GetListingReportsAsync(long listingId);
         Task<ServiceResult<List<ReportedListingSummaryResponse>>> GetReportedListingsAsync();
         Task<ServiceResult<ListingReportDetailResponse>> GetListingReportDetailAsync(long listingId);
-        Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest);
+        Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount);
         Task<ServiceResult<ShareListingResponse>> UpdateShareListingAsync(long id, SharedListingRequest sharedListingRequest);
     }
 }
