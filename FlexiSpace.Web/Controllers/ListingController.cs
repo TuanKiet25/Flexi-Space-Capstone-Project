@@ -16,9 +16,9 @@ namespace FlexiSpace.Web.Controllers
             _listingService = listingService;
         }
         [HttpPost("Create")]
-        public async Task<IActionResult> CreateListing(ListingRequest listingRequest)
+        public async Task<IActionResult> CreateListing(ListingRequest listingRequest, decimal amount)
         {
-            var result = await _listingService.CreateListingAsync(listingRequest);
+            var result = await _listingService.CreateListingAsync(listingRequest, amount);
             return HandleResult(result);
         }
         [HttpGet("GetAll")]
@@ -90,9 +90,9 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
         [HttpPost("CreateShareListing")]
-        public async Task<IActionResult> CreateShareListing(SharedListingRequest sharedListingRequest)
+        public async Task<IActionResult> CreateShareListing(SharedListingRequest sharedListingRequest, decimal amount)
         {
-            var result = await _listingService.CreateShareListingAsync(sharedListingRequest);
+            var result = await _listingService.CreateShareListingAsync(sharedListingRequest, amount);
             return HandleResult(result);
         }
 

@@ -24,6 +24,7 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<ListingReport> ListingReports { get; set; }
         public virtual DbSet<SpaceAllowedCategory> SpaceAllowedCategories { get; set; }
         public virtual DbSet<Transaction> Transactions { get; set; }
+        public virtual DbSet<TransactionHistory> TransactionHistories { get; set; }
         public virtual DbSet<Message> Messages { get; set; }
         public virtual DbSet<Conversation> Conversations { get; set; }
         public virtual DbSet<AvailabilitiesTime> AvailabilitiesTimes { get; set; }

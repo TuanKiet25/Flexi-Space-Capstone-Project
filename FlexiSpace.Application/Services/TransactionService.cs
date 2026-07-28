@@ -154,7 +154,20 @@ namespace FlexiSpace.Application.Services
                     transaction.WalletId = wallet.Id;
                 }
 
+                var transactionHistory = new TransactionHistory
+                {
+                    WalletId = transaction.WalletId,
+                    WalletAmount = (wallet == null || wallet.Balance == 0) ? 0 : wallet.Balance,
+                    TransactionAmount = transaction.Amount,
+                    Status = TransactionEnum.Completed,
+                    Description = $"Top up wallet: {transaction.Amount}",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsDeleted = false
+                };
+
                 await _unitOfWork.transactionRepository.UpdateAsync(transaction);
+                await _unitOfWork.transactionHistoryRepository.AddAsync(transactionHistory);
                 await _unitOfWork.SaveChangesAsync();
                 return true;
             }
