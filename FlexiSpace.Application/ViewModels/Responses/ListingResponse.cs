@@ -13,6 +13,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public long SpaceId { get; set; }
         required
         public string CreatorId { get; set; }
+        public string? Name { get; set; }
         public DateOnly? AllowedStartTime { get; set; }
         public DateOnly? AllowedEndTime { get; set; }
         public string? Description { get; set; }

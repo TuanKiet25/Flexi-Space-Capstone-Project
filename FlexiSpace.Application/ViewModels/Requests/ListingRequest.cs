@@ -12,6 +12,7 @@ namespace FlexiSpace.Application.ViewModels.Requests
         public long SpaceId { get; set; }
         public DateOnly? AllowedStartTime { get; set; }
         public DateOnly? AllowedEndTime { get; set; }
+        public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal Price { get; set; }
     }
