@@ -30,7 +30,9 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<BookingRequest, PrimaryBookingRequest>();
 
             CreateMap<Contract, ContractResponse>()
-                .ForMember(dest => dest.ContractSchedules, opt => opt.MapFrom(src => src.ContractSchedules));
+                .ForMember(dest => dest.ContractSchedules, opt => opt.MapFrom(src => src.ContractSchedules))
+                .ForMember(dto => dto.LessorNickName, opt => opt.MapFrom(entity => entity.Lessor.Name))
+                .ForMember(dto => dto.LesseeNickName, opt => opt.MapFrom(entity => entity.Lessee.Name));
             CreateMap<ContractRequest, Contract>();
             CreateMap<ContractSchedule, ContractScheduleRequest>().ReverseMap();
 

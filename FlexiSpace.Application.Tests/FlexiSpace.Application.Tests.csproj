@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlexiSpace.Application\FlexiSpace.Application.csproj" />
+    <ProjectReference Include="..\FlexiSpace.Application\FlexiSpace.Application.csproj" SetTargetFramework="TargetFramework=net8.0" />
   </ItemGroup>
 
   <ItemGroup>

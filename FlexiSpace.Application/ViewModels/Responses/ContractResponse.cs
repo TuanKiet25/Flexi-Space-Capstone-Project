@@ -10,6 +10,8 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public long Id { get; set; }
         public string? LessorId { get; set; }
         public string? LesseeId { get; set; }
+        public string? LessorNickName { get; set; }
+        public string? LesseeNickName { get; set; }
         public long SpaceId { get; set; }
         public long PrimaryBookingRequestId { get; set; }
         public string? LessorNumberCard { get; set; }
@@ -18,6 +20,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string? BusinessPurpose { get; set; }
         public decimal Acreage { get; set; }
         public int Duration { get; set; }
+        public DurationUnitEnum DurationUnit { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public decimal DepositAmount { get; set; }
