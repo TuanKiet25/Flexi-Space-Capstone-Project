@@ -37,20 +37,20 @@ namespace FlexiSpace.Application.Services
             {
                 var currentUserId = _currentUserService.UserId;
                 var validation = await ValidateRequestAsync(request);
-                if (validation.Space!.OwnerId != currentUserId)
-                {
-                    return new ServiceResult<ContractResponse>
-                    {
-                        IsSuccess = false,
-                        Message = "Lỗi bảo mật: Chỉ chủ sở hữu mặt bằng mới có quyền tạo hợp đồng!"
-                    };
-                }
                 if (validation.ErrorMessage != null)
                 {
                     return new ServiceResult<ContractResponse>
                     {
                         IsSuccess = false,
                         Message = validation.ErrorMessage
+                    };
+                }
+                if (validation.Space!.OwnerId != currentUserId)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Lỗi bảo mật: Chỉ chủ sở hữu mặt bằng mới có quyền tạo hợp đồng!"
                     };
                 }
     
@@ -60,6 +60,8 @@ namespace FlexiSpace.Application.Services
                 contract.EndDate = CalculateEndDate(contract.StartDate, contract.DurationUnit, contract.Duration);
                 contract.CreatedAt = DateTime.Now;
                 contract.UpdatedAt = DateTime.Now;
+                contract.Lessor = validation.Space.Owner;
+                contract.Lessee = validation.Booking.Lessee;
                 contract.ContractVerification = new ContractVerification
                 {
                     IsLessorAgreed = false,
@@ -188,7 +190,7 @@ namespace FlexiSpace.Application.Services
                          (string.IsNullOrWhiteSpace(lesseeId) || x.LesseeId == lesseeId) &&
                          (spaceId == null || x.SpaceId == spaceId) &&
                          (status == null || x.Status == status),
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest));
+                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.Lessee).Include(c => c.Lessor));
 
                 return new ServiceResult<List<ContractResponse>>
                 {
@@ -212,7 +214,7 @@ namespace FlexiSpace.Application.Services
                 var currentUserId = _currentUserService.UserId;
                 var contract = await _unitOfWork.contractRepository.GetAsync(
                     x => x.Id == id && !x.IsDeleted,
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest));
+                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.Lessee).Include(c => c.Lessor));
 
                 if (contract == null)
                 {
@@ -395,7 +397,7 @@ namespace FlexiSpace.Application.Services
 
                 var existingContract = await _unitOfWork.contractRepository.GetAsync(
                     x => x.Id == id && !x.IsDeleted,
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.ContractSchedules));
+                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.ContractSchedules).Include(c => c.Lessee).Include(c => c.Lessor));
 
                 if (existingContract == null)
                 {
@@ -435,6 +437,8 @@ namespace FlexiSpace.Application.Services
 
                 _mapper.Map(request, existingContract);
                 SyncContractSchedules(existingContract, request.ContractSchedules);
+                existingContract.Lessor = validation.Space.Owner;
+                existingContract.Lessee = validation.Booking!.Lessee;
                 existingContract.EndDate = CalculateEndDate(existingContract.StartDate, existingContract.DurationUnit, existingContract.Duration);
                 existingContract.UpdatedAt = DateTime.UtcNow;
 
@@ -463,14 +467,6 @@ namespace FlexiSpace.Application.Services
             {
                 var currentUserId = _currentUserService.UserId;
                 var existingContract = await _unitOfWork.contractRepository.GetAsync(x => x.Id == id && !x.IsDeleted);
-                if(existingContract.Status != ContractStatusEnum.Draft)
-                {
-                    return new ServiceResult<ContractResponse>
-                    {
-                        IsSuccess = false,
-                        Message = "Chỉ có thể xóa hợp đồng ở trạng thái Nháp (Draft)."
-                    };
-                }
                 if (existingContract == null)
                 {
                     return new ServiceResult<ContractResponse>
@@ -478,6 +474,14 @@ namespace FlexiSpace.Application.Services
                         IsSuccess = false,
                         IsNotFound = true,
                         Message = "Không tìm thấy hợp đồng với Id đã cho."
+                    };
+                }
+                if(existingContract.Status != ContractStatusEnum.Draft)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chỉ có thể xóa hợp đồng ở trạng thái Nháp (Draft)."
                     };
                 }
                 if (existingContract.LessorId != currentUserId)
@@ -773,7 +777,9 @@ namespace FlexiSpace.Application.Services
                 return ("Diện tích phải lớn hơn 0.", null, null, null);
             }
             // 1. Validate Không gian (Space)
-            var space = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == request.SpaceId && !x.IsDeleted);
+            var space = await _unitOfWork.spaceRepository.GetAsync(
+                x => x.Id == request.SpaceId && !x.IsDeleted,
+                include: q => q.Include(x => x.Owner));
             if (space == null)
             {
                 return ("Không tìm thấy không gian với Id đã cho.", null, null, null);
@@ -785,7 +791,9 @@ namespace FlexiSpace.Application.Services
             }
 
             // 2. Validate Yêu cầu đặt chỗ (BookingRequest)
-            var primaryBookingRequest = await _unitOfWork.primaryBookingRequestRepository.GetAsync(x => x.Id == request.PrimaryBookingRequestId && !x.IsDeleted);
+            var primaryBookingRequest = await _unitOfWork.primaryBookingRequestRepository.GetAsync(
+                x => x.Id == request.PrimaryBookingRequestId && !x.IsDeleted,
+                include: q => q.Include(x => x.Lessee));
             if (primaryBookingRequest == null)
             {
                 return ("Không tìm thấy yêu cầu đặt chỗ với Id đã cho.", null, null, null);
