@@ -50,6 +50,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
                 .ReverseMap();
             
             CreateMap<Wallet, WalletRespnse>().ReverseMap();
+            CreateMap<TransactionHistory, TransactionHistoryResponse>().ReverseMap();
             CreateMap<User, UserResponse>().ReverseMap();
             CreateMap<ProfileRequest, UserProfile>().ReverseMap();
             CreateMap<UserProfile, ProfileResponse>().ReverseMap();

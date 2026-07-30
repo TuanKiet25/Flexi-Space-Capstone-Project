@@ -22,6 +22,7 @@ namespace FlexiSpace.Application
         ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
         IProfileRepository profileRepository { get; }
         ITransactionRepository transactionRepository { get; }
+        ITransactionHistoryRepository transactionHistoryRepository { get; }
         IWalletRepository walletRepository { get; }
         IListingReportRepository listingReportRepository { get; }
         INotificationRepository notificationRepository { get; }

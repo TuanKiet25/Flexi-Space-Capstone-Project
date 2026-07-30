@@ -17,11 +17,13 @@ namespace FlexiSpace.Application.Services
     public class ListingService : IListingService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IWalletService _walletService;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
-        public ListingService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUserService)
+        public ListingService(IUnitOfWork unitOfWork, IWalletService walletService, IMapper mapper, ICurrentUserService currentUserService)
         {
             _unitOfWork = unitOfWork;
+            _walletService = walletService;
             _mapper = mapper;
             _currentUserService = currentUserService;
         }
@@ -113,10 +115,19 @@ namespace FlexiSpace.Application.Services
 
             return null;
         }
-        public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing)
+        public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount)
         {
             try
             {
+                var wallet = await _walletService.SpendWalletBalance(amount);
+                if(wallet.IsSuccess == false)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = wallet.Message
+                    };
+                }
                 var checkValidation = await ValidationMessageAsync(listing);
                 if (checkValidation != null)
                 {
@@ -599,11 +610,20 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
-        public async Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest)
+        public async Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount)
         {
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                var wallet = await _walletService.SpendWalletBalance(amount);
+                if (wallet.IsSuccess == false)
+                {
+                    return new ServiceResult<ShareListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = wallet.Message
+                    };
+                }
                 var checkValidation = await ValidationMessageAsync(sharedListingRequest);
                 if (checkValidation != null)
                 {

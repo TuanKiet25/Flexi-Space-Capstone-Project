@@ -50,6 +50,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IAvailabilitiesTimeRepository, AvailabilitiesTimeRepository>();
             services.AddScoped<ISharedSpaceAmenitiesRepository, SharedSpaceAmenitiesRepository>();
             services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<ITransactionHistoryRepository, TransactionHistoryRepository>();
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<IListingReportRepository, ListingReportRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -78,6 +79,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IRootEmailService, RootEmailService>();
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<ITransactionService, TransactionService>();
+            services.AddScoped<ITransactionHistoryService, TransactionHistoryService>();
             services.AddScoped<IWalletService, WalletService>();
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IFavoriteListService, FavoriteListService>();

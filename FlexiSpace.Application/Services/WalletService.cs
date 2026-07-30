@@ -187,7 +187,20 @@ namespace FlexiSpace.Application.Services
                 wallet.UpdatedAt = DateTime.UtcNow;
                 wallet.UpdatedBy = userId;
 
+                var transactionHistory = new TransactionHistory
+                {
+                    WalletId = wallet.Id,
+                    TransactionAmount = amountToSubtract,
+                    WalletAmount = wallet.Balance,
+                    Status = Domain.Enum.TransactionEnum.Completed,
+                    Description = "Wallet spend transaction",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsDeleted = false
+                };
+
                 await _unitOfWork.walletRepository.UpdateAsync(wallet);
+                await _unitOfWork.transactionHistoryRepository.AddAsync(transactionHistory);
                 await _unitOfWork.SaveChangesAsync();
 
                 var mapped = _mapper.Map<WalletRespnse>(wallet);
@@ -248,7 +261,20 @@ namespace FlexiSpace.Application.Services
                 wallet.UpdatedAt = DateTime.UtcNow;
                 wallet.UpdatedBy = _currentUserService.UserId ?? "System";
 
+                var transactionHistory = new TransactionHistory
+                {
+                    WalletId = wallet.Id,
+                    TransactionAmount = uBalance,
+                    WalletAmount = wallet.Balance,
+                    Status = Domain.Enum.TransactionEnum.Completed,
+                    Description = "Wallet update transaction",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsDeleted = false
+                };
+
                 await _unitOfWork.walletRepository.UpdateAsync(wallet);
+                await _unitOfWork.transactionHistoryRepository.AddAsync(transactionHistory);
                 await _unitOfWork.SaveChangesAsync();
 
                 var mapped = _mapper.Map<WalletRespnse>(wallet);

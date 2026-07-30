@@ -28,6 +28,7 @@ namespace FlexiSpace.Infrastructure
         public ISharedSpaceAmenitiesRepository sharedSpaceAmenitiesRepository { get; }
         public IProfileRepository profileRepository { get; }
         public ITransactionRepository transactionRepository { get; }
+        public ITransactionHistoryRepository transactionHistoryRepository { get; }
         public IWalletRepository walletRepository { get; }
         public IListingReportRepository listingReportRepository { get; } 
         public INotificationRepository notificationRepository { get; }
@@ -55,6 +56,7 @@ namespace FlexiSpace.Infrastructure
             sharedSpaceAmenitiesRepository = new SharedSpaceAmenitiesRepository(_dbContext);
             profileRepository = new ProfileRepository(_dbContext);
             transactionRepository = new TransactionRepository(_dbContext);
+            transactionHistoryRepository = new TransactionHistoryRepository(_dbContext);
             walletRepository = new WalletRepository(_dbContext);
             listingReportRepository = new ListingReportRepository(_dbContext);
             notificationRepository = new NotificationRepository(_dbContext);
