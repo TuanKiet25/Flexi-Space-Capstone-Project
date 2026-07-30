@@ -10,6 +10,7 @@ using FlexiSpace.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace FlexiSpace.Infrastructure
 {
@@ -86,6 +87,12 @@ namespace FlexiSpace.Infrastructure
             services.Configure<MailOptions>(configuration.GetSection("MailSettings"));
             services.Configure<TurnstileOptions>(configuration.GetSection("Turnstile"));
             services.Configure<ResentEmailOptions>(configuration.GetSection("EmailSettings"));
+            services.Configure<FalAiOptions>(configuration.GetSection("FalAiSettings"));
+            services.AddHttpClient<IFalAiService, FalAiService>((serviceProvider, client) =>
+            {
+                var falSettings = serviceProvider.GetRequiredService<IOptions<FalAiOptions>>().Value;
+                client.BaseAddress = new Uri(falSettings.BaseUrl);
+            });
             // Đăng ký CORS
             services.AddCors(options =>
             {

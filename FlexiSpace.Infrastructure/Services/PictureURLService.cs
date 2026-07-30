@@ -30,7 +30,27 @@ namespace FlexiSpace.Infrastructure.Services
             _unitOfWork = unitOfWork;
         }
 
+        public async Task<string> UploadImageFromUrlAsync(string sourceUrl, string folderName = "flexispace_ai_decor")
+        {
+            if (string.IsNullOrEmpty(sourceUrl))
+                throw new ArgumentException("Source URL cannot be null or empty");
 
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(sourceUrl),
+                Folder = folderName,
+                Transformation = new Transformation().Quality("auto").FetchFormat("auto")
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+            if (uploadResult.Error != null)
+            {
+                throw new Exception($"Lỗi khi tải ảnh lên Cloudinary: {uploadResult.Error.Message}");
+            }
+
+            return uploadResult.SecureUrl.AbsoluteUri;
+        }
         public async Task<bool> DeleteImageFromCloudAsync(string publicId)
         {
             if (string.IsNullOrEmpty(publicId)) return false;
