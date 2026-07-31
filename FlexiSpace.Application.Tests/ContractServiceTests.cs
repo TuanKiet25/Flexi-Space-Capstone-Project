@@ -313,6 +313,66 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetContractCalendarBySpaceAsync_CurrentUserIsLessee_ReturnsSharedCalendarEntries()
+        {
+            // 1. ARRANGE
+            var from = new DateTime(2026, 8, 3);
+            var to = new DateTime(2026, 8, 3);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new List<Contract>
+                {
+                    new()
+                    {
+                        Id = 7,
+                        SpaceId = 10,
+                        LessorId = "lessor-1",
+                        LesseeId = "lessee-1",
+                        Status = ContractStatusEnum.Active,
+                        StartDate = from,
+                        EndDate = to,
+                        LesseeName = "Tenant One",
+                        BusinessPurpose = "Office",
+                        ContractSchedules = new List<ContractSchedule>
+                        {
+                            new() { DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(9), EndTime = TimeSpan.FromHours(11) }
+                        }
+                    },
+                    new()
+                    {
+                        Id = 8,
+                        SpaceId = 10,
+                        LessorId = "lessor-1",
+                        LesseeId = "lessee-2",
+                        Status = ContractStatusEnum.Active,
+                        StartDate = from,
+                        EndDate = to,
+                        LesseeName = "Tenant Two",
+                        BusinessPurpose = "Retail",
+                        ContractSchedules = new List<ContractSchedule>
+                        {
+                            new() { DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(13), EndTime = TimeSpan.FromHours(15) }
+                        }
+                    }
+                });
+
+            // 2. ACT
+            var result = await _sut.GetContractCalendarBySpaceAsync(10, from, to);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().HaveCount(2);
+            result.Data!.Select(e => e.ContractId).Should().Contain(new[] { 7L, 8L });
+            result.Data.Select(e => e.DisplayLabel).Should().Contain(new[] { "Tenant One - Office", "Tenant Two - Retail" });
+        }
+
+        [Fact]
         public async Task DeleteContractAsync_ContractNotFound_ReturnsNotFoundResult()
         {
             // 1. ARRANGE

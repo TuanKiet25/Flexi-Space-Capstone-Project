@@ -19,6 +19,7 @@ namespace FlexiSpace.Application.Tests
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IWalletRepository> _mockWalletRepository;
+        private readonly Mock<ITransactionHistoryRepository> _mockTransactionHistoryRepository;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ICurrentUserService> _mockCurrentUserService;
         private readonly WalletService _sut;
@@ -27,10 +28,12 @@ namespace FlexiSpace.Application.Tests
         {
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockWalletRepository = new Mock<IWalletRepository>();
+            _mockTransactionHistoryRepository = new Mock<ITransactionHistoryRepository>();
             _mockMapper = new Mock<IMapper>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
 
             _mockUnitOfWork.SetupGet(u => u.walletRepository).Returns(_mockWalletRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.transactionHistoryRepository).Returns(_mockTransactionHistoryRepository.Object);
 
             _sut = new WalletService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCurrentUserService.Object);
         }
@@ -127,6 +130,9 @@ namespace FlexiSpace.Application.Tests
             _mockWalletRepository
                 .Setup(r => r.UpdateAsync(wallet))
                 .Returns(Task.CompletedTask);
+            _mockTransactionHistoryRepository
+                .Setup(r => r.AddAsync(It.IsAny<TransactionHistory>()))
+                .Returns(Task.CompletedTask);
             _mockUnitOfWork
                 .Setup(u => u.SaveChangesAsync())
                 .ReturnsAsync(1);
@@ -143,6 +149,12 @@ namespace FlexiSpace.Application.Tests
             wallet.Balance.Should().Be(70);
             wallet.UpdatedBy.Should().Be("user-1");
             _mockWalletRepository.Verify(r => r.UpdateAsync(wallet), Times.Once);
+            _mockTransactionHistoryRepository.Verify(r => r.AddAsync(It.Is<TransactionHistory>(h =>
+                h.WalletId == wallet.Id &&
+                h.TransactionAmount == 30 &&
+                h.WalletAmount == 70 &&
+                h.CreatedBy == "user-1" &&
+                h.Description == "Wallet spend transaction")), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
         }
 
@@ -161,6 +173,9 @@ namespace FlexiSpace.Application.Tests
             _mockWalletRepository
                 .Setup(r => r.UpdateAsync(wallet))
                 .Returns(Task.CompletedTask);
+            _mockTransactionHistoryRepository
+                .Setup(r => r.AddAsync(It.IsAny<TransactionHistory>()))
+                .Returns(Task.CompletedTask);
             _mockUnitOfWork
                 .Setup(u => u.SaveChangesAsync())
                 .ReturnsAsync(1);
@@ -176,6 +191,12 @@ namespace FlexiSpace.Application.Tests
             result.Data.Should().Be(response);
             wallet.Balance.Should().Be(0);
             wallet.UpdatedBy.Should().Be("admin-1");
+            _mockTransactionHistoryRepository.Verify(r => r.AddAsync(It.Is<TransactionHistory>(h =>
+                h.WalletId == wallet.Id &&
+                h.TransactionAmount == -100 &&
+                h.WalletAmount == 0 &&
+                h.CreatedBy == "user-1" &&
+                h.Description == "Wallet update transaction")), Times.Once);
         }
 
         [Fact]

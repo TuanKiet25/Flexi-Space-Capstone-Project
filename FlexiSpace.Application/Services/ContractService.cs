@@ -190,7 +190,12 @@ namespace FlexiSpace.Application.Services
                          (string.IsNullOrWhiteSpace(lesseeId) || x.LesseeId == lesseeId) &&
                          (spaceId == null || x.SpaceId == spaceId) &&
                          (status == null || x.Status == status),
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.Lessee).Include(c => c.Lessor));
+                    include: q => q
+                        .Include(c => c.Space)
+                        .Include(c => c.PrimaryBookingRequest)
+                        .Include(c => c.Lessee)
+                        .Include(c => c.Lessor)
+                        .Include(c => c.ContractSchedules));
 
                 return new ServiceResult<List<ContractResponse>>
                 {
@@ -214,7 +219,12 @@ namespace FlexiSpace.Application.Services
                 var currentUserId = _currentUserService.UserId;
                 var contract = await _unitOfWork.contractRepository.GetAsync(
                     x => x.Id == id && !x.IsDeleted,
-                    include: q => q.Include(c => c.Space).Include(c => c.PrimaryBookingRequest).Include(c => c.Lessee).Include(c => c.Lessor));
+                    include: q => q
+                        .Include(c => c.Space)
+                        .Include(c => c.PrimaryBookingRequest)
+                        .Include(c => c.Lessee)
+                        .Include(c => c.Lessor)
+                        .Include(c => c.ContractSchedules));
 
                 if (contract == null)
                 {
@@ -307,6 +317,15 @@ namespace FlexiSpace.Application.Services
             try
             {
                 var currentUserId = _currentUserService.UserId;
+                if (from.Date > to.Date)
+                {
+                    return new ServiceResult<List<ContractCalendarEntryResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "Ngày bắt đầu không được lớn hơn ngày kết thúc."
+                    };
+                }
+
                 var space = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == spaceId && !x.IsDeleted);
 
                 if (space == null)
@@ -353,9 +372,11 @@ namespace FlexiSpace.Application.Services
                         var weekday = day.DayOfWeek;
 
                         // 3. SỬA LỖI LỌT CA: Dùng Where để lấy TẤT CẢ các ca trong một ngày
-                        var matchingSchedules = contract.ContractSchedules?.Where(s => s.DayOfWeek == weekday).ToList();
+                        var matchingSchedules = (contract.ContractSchedules ?? Enumerable.Empty<ContractSchedule>())
+                            .Where(s => s.DayOfWeek == weekday)
+                            .ToList();
 
-                        if (matchingSchedules == null || !matchingSchedules.Any()) continue;
+                        if (!matchingSchedules.Any()) continue;
 
                         foreach (var schedule in matchingSchedules)
                         {
