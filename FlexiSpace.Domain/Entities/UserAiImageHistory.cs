@@ -6,7 +6,13 @@ using System.Threading.Tasks;
 
 namespace FlexiSpace.Domain.Entities
 {
-    internal class UserAiImageHistory
+    public class UserAiImageHistory
     {
+        public long Id { get; set; }
+
+        public string UserId { get; set; } = null!; 
+        public string Prompt { get; set; } = null!;
+        public string ResultImageUrl { get; set; } = null!;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

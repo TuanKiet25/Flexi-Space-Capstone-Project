@@ -41,8 +41,12 @@ namespace FlexiSpace.Infrastructure.Services
                 var response = await _httpClient.PostAsync("https://fal.run/fal-ai/flux-pro/v1/fill", jsonContent);
 
                 if (!response.IsSuccessStatusCode)
-                    throw new Exception("Lỗi khi gọi Fal.ai API");
-
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new HttpRequestException(
+                        $"Fal.ai trả về lỗi {(int)response.StatusCode} " +
+                        $"({response.StatusCode})" + error);
+                }
                 var responseString = await response.Content.ReadAsStringAsync();
                 using var doc = System.Text.Json.JsonDocument.Parse(responseString);
 

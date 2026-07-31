@@ -24,6 +24,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<ISpaceRepository> _mockSpaceRepository;
         private readonly Mock<IAmentityRepository> _mockAmenityRepository;
         private readonly Mock<IListingReportRepository> _mockListingReportRepository;
+        private readonly Mock<IWalletService> _mockWalletService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ICurrentUserService> _mockCurrentUserService;
         private readonly ListingService _sut;
@@ -35,6 +36,7 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository = new Mock<ISpaceRepository>();
             _mockAmenityRepository = new Mock<IAmentityRepository>();
             _mockListingReportRepository = new Mock<IListingReportRepository>();
+            _mockWalletService = new Mock<IWalletService>();
             _mockMapper = new Mock<IMapper>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
 
@@ -43,7 +45,26 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.SetupGet(u => u.amenityRepository).Returns(_mockAmenityRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingReportRepository).Returns(_mockListingReportRepository.Object);
 
-            _sut = new ListingService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCurrentUserService.Object);
+            _sut = new ListingService(_mockUnitOfWork.Object, _mockWalletService.Object, _mockMapper.Object, _mockCurrentUserService.Object);
+        }
+
+        [Fact]
+        public async Task CreateListingAsync_WalletSpendFails_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            _mockWalletService
+                .Setup(s => s.SpendWalletBalance(50))
+                .ReturnsAsync(new ServiceResult<WalletRespnse> { IsSuccess = false, Message = "Balance not enough" });
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Balance not enough");
+            _mockSpaceRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()), Times.Never);
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
         }
 
         [Fact]
@@ -51,12 +72,13 @@ namespace FlexiSpace.Application.Tests
         {
             // 1. ARRANGE
             var request = CreateListingRequest();
+            SetupWalletSpendSuccess();
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
                 .ReturnsAsync((Space)null!);
 
             // 2. ACT
-            var result = await _sut.CreateListingAsync(request);
+            var result = await _sut.CreateListingAsync(request, 50);
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
@@ -78,6 +100,7 @@ namespace FlexiSpace.Application.Tests
                 LessorName = "Lessor",
                 SpaceAddress = "Address"
             };
+            SetupWalletSpendSuccess();
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
@@ -101,7 +124,7 @@ namespace FlexiSpace.Application.Tests
                 .Returns(response);
 
             // 2. ACT
-            var result = await _sut.CreateListingAsync(request);
+            var result = await _sut.CreateListingAsync(request, 50);
 
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();
@@ -256,5 +279,16 @@ namespace FlexiSpace.Application.Tests
                 AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(10))
             };
+
+        private void SetupWalletSpendSuccess()
+        {
+            _mockWalletService
+                .Setup(s => s.SpendWalletBalance(It.IsAny<decimal>()))
+                .ReturnsAsync(new ServiceResult<WalletRespnse>
+                {
+                    IsSuccess = true,
+                    Data = new WalletRespnse { Id = 1, Balance = 100 }
+                });
+        }
     }
 }
