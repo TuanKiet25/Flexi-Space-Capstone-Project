@@ -20,5 +20,19 @@ namespace FlexiSpace.Web.Controllers
             var result = await _userAiImageHistoryService.GetCurrentUserHistoryAsync();
             return HandleResult(result);
         }
+
+        [HttpGet("{historyId:long}")]
+        public async Task<IActionResult> GetByHistoryId(long historyId)
+        {
+            var result = await _userAiImageHistoryService.GetByHistoryIdAsync(historyId);
+            return HandleResult(result);
+        }
+
+        [HttpDelete("{historyId:long}")]
+        public async Task<IActionResult> HardDelete(long historyId)
+        {
+            var result = await _userAiImageHistoryService.HardDeleteAsync(historyId);
+            return HandleResult(result);
+        }
     }
 }
