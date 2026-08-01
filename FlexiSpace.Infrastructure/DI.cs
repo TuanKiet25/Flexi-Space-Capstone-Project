@@ -86,6 +86,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IFavoriteListService, FavoriteListService>();
             services.AddScoped<IFalAiService, FalAiService>();
             services.AddScoped<IAIToolService, AIToolService>();
+            services.AddScoped<IUserAiImageHistoryService, UserAiImageHistoryService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
