@@ -38,7 +38,7 @@ namespace FlexiSpace.Infrastructure.Services
 
                 var jsonContent = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("https://fal.run/fal-ai/flux-pro/v1/fill", jsonContent);
+                var response = await _httpClient.PostAsync("https://fal.run/fal-ai/nano-banana-2/fill", jsonContent);
 
                 if (!response.IsSuccessStatusCode)
                 {
