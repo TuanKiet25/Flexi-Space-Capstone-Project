@@ -30,7 +30,7 @@ namespace FlexiSpace.Infrastructure.Services
                 var payload = new
                 {
                     prompt = prompt,
-                    image_url = base64Image,
+                    image_urls = new[] { base64Image },
                     mask_url = base64Mask,
                     output_format = "jpeg",
                     num_inference_steps = 25
