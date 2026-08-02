@@ -29,7 +29,7 @@ namespace FlexiSpace.Infrastructure.Services
             {
                 var payload = new
                 {
-                    prompt = prompt,
+                    prompt = EnhanceInpaintingPrompt(prompt),
                     image_urls = new[] { base64Image },
                     mask_url = base64Mask,
                     output_format = "jpeg",
@@ -52,6 +52,16 @@ namespace FlexiSpace.Infrastructure.Services
 
                 return doc.RootElement.GetProperty("images")[0].GetProperty("url").GetString();
             }
+        }
+        private string EnhanceInpaintingPrompt(string userPrompt)
+        {
+            // Nếu người dùng nhập các prompt đơn giản, ngắn gọn
+            // Backend sẽ tự động bao bọc thêm các từ khóa định vị không gian, tỷ lệ, và chi tiết vật thể
+
+            string basePrompt = userPrompt.Trim();
+
+            // Bạn có thể dùng một đoạn template thông minh gắn kèm vào:
+            return $"A realistic photo of {basePrompt}. CRITICAL INSTRUCTIONS: Strictly place the object ONLY inside the exact boundaries of the highlighted red mask area. Match the correct perspective, ground contact shadow, and ambient lighting of the surrounding  scene. Do NOT modify, distort background elements outside the red masked area. Seamless integration.";
         }
     }
 }
