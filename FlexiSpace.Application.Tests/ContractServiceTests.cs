@@ -85,6 +85,7 @@ namespace FlexiSpace.Application.Tests
         {
             // 1. ARRANGE
             var request = CreateContractRequest();
+            request.StartDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
             var contract = new Contract
             {
                 Id = 7,
@@ -100,6 +101,7 @@ namespace FlexiSpace.Application.Tests
             };
             var response = new ContractResponse { Id = 7 };
             SetupValidContractRequestValidation(request);
+            SetupParticipantProfiles();
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
             _mockMapper.Setup(m => m.Map<Contract>(request)).Returns(contract);
             _mockContractRepository.Setup(r => r.AddAsync(contract)).Returns(Task.CompletedTask);
@@ -111,6 +113,14 @@ namespace FlexiSpace.Application.Tests
                 Id = 7,
                 LessorId = contract.LessorId,
                 LesseeId = contract.LesseeId,
+                LessorNumberCard = contract.LessorNumberCard,
+                LessorName = contract.LessorName,
+                LessorCardIssuanceDate = contract.LessorCardIssuanceDate,
+                LessorCardAddress = contract.LessorCardAddress,
+                LesseeNumberCard = contract.LesseeNumberCard,
+                LesseeName = contract.LesseeName,
+                LesseeCardIssuanceDate = contract.LesseeCardIssuanceDate,
+                LesseeCardAddress = contract.LesseeCardAddress,
                 LessorNickName = contract.Lessor?.Name,
                 LesseeNickName = contract.Lessee?.Name
             });
@@ -121,14 +131,17 @@ namespace FlexiSpace.Application.Tests
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();
             result.Data.Should().NotBeNull();
-            result.Data!.LessorNickName.Should().Be("Lessor Name");
-            result.Data.LesseeNickName.Should().Be("Lessee Name");
+            result.Data!.LessorNumberCard.Should().Be("111");
+            result.Data.LesseeNumberCard.Should().Be("222");
             contract.LessorId.Should().Be("lessor-1");
             contract.LesseeId.Should().Be("lessee-1");
-            contract.Lessor.Should().NotBeNull();
-            contract.Lessor.Name.Should().Be("Lessor Name");
-            contract.Lessee.Should().NotBeNull();
-            contract.Lessee.Name.Should().Be("Lessee Name");
+            contract.LessorNumberCard.Should().Be("111");
+            contract.LesseeNumberCard.Should().Be("222");
+            result.Data!.LessorName.Should().Be("Lessor Full Name");
+            result.Data.LesseeName.Should().Be("Lessee Full Name");
+            result.Data.LessorCardAddress.Should().Be("Lessor Address");
+            result.Data.LesseeCardAddress.Should().Be("Lessee Address");
+            contract.StartDate.Kind.Should().Be(DateTimeKind.Unspecified);
             contract.EndDate.Should().Be(request.StartDate.AddMonths(1));
             contract.ContractVerification.Should().NotBeNull();
             contract.ContractSchedules.Should().HaveCount(1);
@@ -390,24 +403,256 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
-        public async Task SendContractOtpAsync_ProfileNotVerified_ReturnsFailedResult()
+        public async Task SendContractOtpAsync_DoesNotCheckProfileVerification()
         {
             // 1. ARRANGE
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
             _mockContractRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
-                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1" });
-            _mockProfileRepository
-                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<UserProfile, bool>>>()))
-                .ReturnsAsync(new UserProfile { UserId = "lessor-1", IsVerified = false });
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Draft });
 
             // 2. ACT
             var result = await _sut.SendContractOtpAsync(7);
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("phien ky");
+            _mockProfileRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<UserProfile, bool>>>()), Times.Never);
+            _mockEmailService.Verify(e => e.SendContractOtpEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<long>()), Times.Never);
+            return;
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Contain("xác thực CCCD");
             _mockEmailService.Verify(e => e.SendContractOtpEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<long>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task StartContractSigningAsync_ValidDraft_LocksPreSignSnapshotAndHash()
+        {
+            // 1. ARRANGE
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Draft,
+                Description = "Contract",
+                BusinessPurpose = "Office",
+                ContractVerification = new ContractVerification(),
+                ContractSchedules = new List<ContractSchedule>
+                {
+                    new() { DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(9), EndTime = TimeSpan.FromHours(11) }
+                }
+            };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+            _mockMapper.Setup(m => m.Map<ContractResponse>(contract)).Returns(() => new ContractResponse
+            {
+                Id = contract.Id,
+                Status = contract.Status,
+                PreSignHash = contract.PreSignHash
+            });
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest
+            {
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1"
+            });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            contract.Status.Should().Be(ContractStatusEnum.Signing);
+            contract.PreSignSnapshot.Should().NotBeNullOrWhiteSpace();
+            contract.PreSignSnapshot.Should().NotContain("ContractVerification");
+            contract.PreSignSnapshot.Should().NotContain("CreatedAt");
+            contract.PreSignSnapshot.Should().NotContain("UpdatedAt");
+            contract.PreSignHash.Should().HaveLength(64);
+            _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CancelContractSigningAsync_SigningContract_ReturnsDraftAndClearsSigningData()
+        {
+            // 1. ARRANGE
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Signing,
+                PreSignSnapshot = "{}",
+                PreSignHash = new string('a', 64),
+                ContractVerification = new ContractVerification
+                {
+                    IsLessorAgreed = true,
+                    LessorSignedAt = DateTime.UtcNow,
+                    LessorIpAddress = "127.0.0.1",
+                    LessorSignatureData = "Verified via Email OTP"
+                }
+            };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+            _mockMapper.Setup(m => m.Map<ContractResponse>(contract)).Returns(() => new ContractResponse { Id = contract.Id, Status = contract.Status });
+
+            // 2. ACT
+            var result = await _sut.CancelContractSigningAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            contract.Status.Should().Be(ContractStatusEnum.Draft);
+            contract.PreSignSnapshot.Should().BeNull();
+            contract.PreSignHash.Should().BeNull();
+            contract.ContractVerification.IsLessorAgreed.Should().BeFalse();
+            contract.ContractVerification.LessorSignedAt.Should().BeNull();
+            _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CancelContractAsync_DraftContract_ReturnsCancelledAndPreventsSigning()
+        {
+            // 1. ARRANGE
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Draft,
+                ContractVerification = new ContractVerification()
+            };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+            _mockMapper.Setup(m => m.Map<ContractResponse>(contract)).Returns(() => new ContractResponse { Id = contract.Id, Status = contract.Status });
+
+            // 2. ACT
+            var result = await _sut.CancelContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            contract.Status.Should().Be(ContractStatusEnum.Cancelled);
+            _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task VerifyContractIntegrityAsync_CurrentPostSignHashMatchesStoredHash_ReturnsSafeReport()
+        {
+            // 1. ARRANGE
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Active,
+                Description = "Contract",
+                BusinessPurpose = "Office",
+                ContractVerification = new ContractVerification { IsLessorAgreed = true, IsLesseeAgreed = true },
+                ContractSchedules = new List<ContractSchedule>()
+            };
+            contract.PostSignHash = ComputePostSignHashForTest(contract);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+
+            // 2. ACT
+            var result = await _sut.VerifyContractIntegrityAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().NotBeNull();
+            result.Data!.IsTampered.Should().BeFalse();
+            result.Data.OldPostSignHash.Should().Be(contract.PostSignHash);
+            result.Data.NewPostSignHash.Should().Be(contract.PostSignHash);
+            result.Data.IsMatched.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task VerifyContractIntegrityAsync_CurrentPostSignHashDoesNotMatchStoredHash_ReturnsTamperedReport()
+        {
+            // 1. ARRANGE
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Active,
+                PostSignHash = new string('2', 64),
+                ContractVerification = new ContractVerification { IsLessorAgreed = true, IsLesseeAgreed = true },
+                ContractSchedules = new List<ContractSchedule>()
+            };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+
+            // 2. ACT
+            var result = await _sut.VerifyContractIntegrityAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().NotBeNull();
+            result.Data!.IsTampered.Should().BeTrue();
+            result.Data.OldPostSignHash.Should().Be(contract.PostSignHash);
+            result.Data.NewPostSignHash.Should().NotBe(contract.PostSignHash);
+            result.Data.IsMatched.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ContractValidateOtpAsync_PreSignHashMismatch_ReturnsDraftAndClearsSigningSession()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            await _cache.SetStringAsync("OTP:SignContract:7:lessor-1", "123456");
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Signing,
+                PreSignSnapshot = "{}",
+                PreSignHash = new string('0', 64),
+                ContractVerification = new ContractVerification(),
+                ContractSchedules = new List<ContractSchedule>()
+            };
+            _mockUserRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<User, bool>>>(),
+                    It.IsAny<Func<IQueryable<User>, IIncludableQueryable<User, object>>>()))
+                .ReturnsAsync(new User { UserId = "lessor-1", Profile = new UserProfile { UserId = "lessor-1" } });
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+
+            // 2. ACT
+            var result = await _sut.ContractValidateOtpAsync(7, "123456");
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            contract.Status.Should().Be(ContractStatusEnum.Draft);
+            contract.PreSignSnapshot.Should().BeNull();
+            contract.PreSignHash.Should().BeNull();
+            _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
         }
 
         [Fact]
@@ -451,6 +696,42 @@ namespace FlexiSpace.Application.Tests
             _mockConversationRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Conversation, bool>>>()))
                 .ReturnsAsync(new Conversation { Id = request.ConversationId, LessorId = "lessor-1", LesseeId = "lessee-1" });
+        }
+
+        private void SetupParticipantProfiles()
+        {
+            var lessorProfile = new UserProfile
+            {
+                UserId = "lessor-1",
+                IsVerified = true,
+                IdentityCardNumber = "111",
+                FullName = "Lessor Full Name",
+                PermanentResidence = "Lessor Address",
+                DateOfIssue = new DateOnly(2020, 1, 1)
+            };
+            var lesseeProfile = new UserProfile
+            {
+                UserId = "lessee-1",
+                IsVerified = true,
+                IdentityCardNumber = "222",
+                FullName = "Lessee Full Name",
+                PermanentResidence = "Lessee Address",
+                DateOfIssue = new DateOnly(2021, 1, 1)
+            };
+
+            _mockProfileRepository
+                .SetupSequence(r => r.GetAsync(
+                    It.IsAny<Expression<Func<UserProfile, bool>>>()))
+                .ReturnsAsync(lessorProfile)
+                .ReturnsAsync(lesseeProfile);
+        }
+
+        private string ComputePostSignHashForTest(Contract contract)
+        {
+            var buildSnapshotMethod = typeof(ContractService).GetMethod("BuildPostSignSnapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var computeHashMethod = typeof(ContractService).GetMethod("ComputeSha256Hash", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var snapshot = (string)buildSnapshotMethod!.Invoke(_sut, new object[] { contract })!;
+            return (string)computeHashMethod!.Invoke(null, new object[] { snapshot })!;
         }
 
         private static ContractRequest CreateContractRequest() =>

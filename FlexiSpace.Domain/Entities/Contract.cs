@@ -41,6 +41,10 @@ namespace FlexiSpace.Domain.Entities
         public decimal DepositAmount { get; set; }
         public decimal Price { get; set; }
         public string ContractSnapshot { get; set; }
+        public string PreSignSnapshot { get; set; }
+        public string PreSignHash { get; set; }
+        public string PostSignSnapshot { get; set; }
+        public string PostSignHash { get; set; }
         public ContractStatusEnum Status { get; set; }
         public virtual Space Space { get; set; }
         public virtual Conversation Conversation { get; set; }

@@ -43,6 +43,26 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(cs => cs.Contract)
                    .HasForeignKey(cs => cs.ContractId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Property(c => c.ContractSnapshot)
+                   .HasColumnType("text")
+                   .IsRequired(false);
+
+            builder.Property(c => c.PreSignSnapshot)
+                   .HasColumnType("text")
+                   .IsRequired(false);
+
+            builder.Property(c => c.PreSignHash)
+                   .HasMaxLength(64)
+                   .IsRequired(false);
+
+            builder.Property(c => c.PostSignSnapshot)
+                   .HasColumnType("text")
+                   .IsRequired(false);
+
+            builder.Property(c => c.PostSignHash)
+                   .HasMaxLength(64)
+                   .IsRequired(false);
         }
     }
 }

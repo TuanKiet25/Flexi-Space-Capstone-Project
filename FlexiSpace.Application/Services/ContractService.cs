@@ -9,7 +9,10 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.VisualBasic;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace FlexiSpace.Application.Services
@@ -57,11 +60,22 @@ namespace FlexiSpace.Application.Services
                 var contract = _mapper.Map<Contract>(request);
                 contract.LessorId = validation.Space!.OwnerId;
                 contract.LesseeId = validation.Booking!.LesseeId;
+                contract.StartDate = NormalizeTimestampWithoutTimeZone(contract.StartDate);
                 contract.EndDate = CalculateEndDate(contract.StartDate, contract.DurationUnit, contract.Duration);
                 contract.CreatedAt = DateTime.Now;
                 contract.UpdatedAt = DateTime.Now;
+                contract.ContractSnapshot = string.Empty;
                 contract.Lessor = validation.Space.Owner;
                 contract.Lessee = validation.Booking.Lessee;
+                var profileValidation = await PopulateContractParticipantProfilesAsync(contract);
+                if (profileValidation != null)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = profileValidation
+                    };
+                }
                 contract.ContractVerification = new ContractVerification
                 {
                     IsLessorAgreed = false,
@@ -100,6 +114,37 @@ namespace FlexiSpace.Application.Services
                 DurationUnitEnum.Years => startDate.AddYears(duration),
                 _ => startDate 
             };
+        }
+
+        private static DateTime NormalizeTimestampWithoutTimeZone(DateTime value)
+        {
+            return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+        }
+
+        private async Task<string?> PopulateContractParticipantProfilesAsync(Contract contract)
+        {
+            var lessorProfile = await _unitOfWork.profileRepository.GetAsync(p => p.UserId == contract.LessorId);
+            var lesseeProfile = await _unitOfWork.profileRepository.GetAsync(p => p.UserId == contract.LesseeId);
+
+            if (lessorProfile == null || lesseeProfile == null)
+            {
+                return "Nguoi tham gia can cap nhat ho so CCCD truoc khi tao hop dong.";
+            }
+            if (!lessorProfile.IsVerified || !lesseeProfile.IsVerified)
+            {
+                return "Ca hai nguoi tham gia can xac thuc CCCD truoc khi tao hop dong.";
+            }
+
+            contract.LessorNumberCard = lessorProfile.IdentityCardNumber;
+            contract.LessorCardAddress = lessorProfile.PermanentResidence;
+            contract.LessorName = lessorProfile.FullName;
+            contract.LessorCardIssuanceDate = lessorProfile.DateOfIssue;
+            contract.LesseeNumberCard = lesseeProfile.IdentityCardNumber;
+            contract.LesseeCardAddress = lesseeProfile.PermanentResidence;
+            contract.LesseeName = lesseeProfile.FullName;
+            contract.LesseeCardIssuanceDate = lesseeProfile.DateOfIssue;
+
+            return null;
         }
 
         public async Task<ServiceResult<MessageResponse>> ShareContractAsync(long contractId)
@@ -172,6 +217,232 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
+        public async Task<ServiceResult<ContractResponse>> StartContractSigningAsync(long contractId, StartContractSigningRequest request)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var contract = await _unitOfWork.contractRepository.GetAsync(
+                    x => x.Id == contractId && !x.IsDeleted,
+                    include: q => q.Include(c => c.ContractVerification)
+                                   .Include(c => c.ContractSchedules)
+                                   .Include(c => c.Lessor)
+                                   .Include(c => c.Lessee));
+
+                if (contract == null)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Khong tim thay hop dong."
+                    };
+                }
+
+                if (contract.LessorId != currentUserId)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi nguoi cho thue moi co quyen bat dau phien ky hop dong."
+                    };
+                }
+
+                if (contract.LessorId != request.LessorId || contract.LesseeId != request.LesseeId)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Hai nguoi tham gia khong khop voi hop dong."
+                    };
+                }
+
+                if (contract.Status != ContractStatusEnum.Draft)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi co the bat dau ky khi hop dong dang o trang thai Draft."
+                    };
+                }
+
+                contract.ContractVerification ??= new ContractVerification();
+                contract.ContractVerification.IsLessorAgreed = false;
+                contract.ContractVerification.IsLesseeAgreed = false;
+                contract.ContractVerification.LessorSignedAt = null;
+                contract.ContractVerification.LesseeSignedAt = null;
+                contract.ContractVerification.LessorIpAddress = null;
+                contract.ContractVerification.LesseeIpAddress = null;
+                contract.ContractVerification.LessorSignatureData = null;
+                contract.ContractVerification.LesseeSignatureData = null;
+
+                contract.Status = ContractStatusEnum.Signing;
+                contract.UpdatedAt = DateTime.UtcNow;
+                contract.PreSignSnapshot = BuildPreSignSnapshot(contract);
+                contract.PreSignHash = ComputeSha256Hash(contract.PreSignSnapshot);
+                contract.PostSignSnapshot = null;
+                contract.PostSignHash = null;
+
+                await _unitOfWork.contractRepository.UpdateAsync(contract);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Da bat dau phien ky va khoa ban hop dong bang SHA-256.",
+                    Data = _mapper.Map<ContractResponse>(contract)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<ContractResponse>> CancelContractSigningAsync(long contractId)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var contract = await _unitOfWork.contractRepository.GetAsync(
+                    x => x.Id == contractId && !x.IsDeleted,
+                    include: q => q.Include(c => c.ContractVerification));
+
+                if (contract == null)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Khong tim thay hop dong."
+                    };
+                }
+
+                if (contract.LessorId != currentUserId)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi nguoi cho thue moi co quyen huy phien ky hop dong."
+                    };
+                }
+
+                if (contract.Status == ContractStatusEnum.Cancelled)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Hop dong da bi huy nen khong the huy phien ky."
+                    };
+                }
+
+                if (contract.Status != ContractStatusEnum.Signing)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi co the huy phien ky khi hop dong dang o trang thai Signing."
+                    };
+                }
+
+                ResetSigningSession(contract);
+                contract.Status = ContractStatusEnum.Draft;
+                contract.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.contractRepository.UpdateAsync(contract);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Da huy phien ky. Hop dong da quay ve Draft de chinh sua.",
+                    Data = _mapper.Map<ContractResponse>(contract)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<ContractResponse>> CancelContractAsync(long contractId)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var contract = await _unitOfWork.contractRepository.GetAsync(
+                    x => x.Id == contractId && !x.IsDeleted,
+                    include: q => q.Include(c => c.ContractVerification));
+
+                if (contract == null)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Khong tim thay hop dong."
+                    };
+                }
+
+                if (contract.LessorId != currentUserId)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi nguoi cho thue moi co quyen huy hop dong."
+                    };
+                }
+
+                if (contract.Status == ContractStatusEnum.Active)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Hop dong da Active nen khong the huy bang chuc nang nay."
+                    };
+                }
+
+                if (contract.Status == ContractStatusEnum.Cancelled)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Hop dong da o trang thai Cancelled."
+                    };
+                }
+
+                ResetSigningSession(contract);
+                contract.Status = ContractStatusEnum.Cancelled;
+                contract.UpdatedAt = DateTime.UtcNow;
+
+                await _unitOfWork.contractRepository.UpdateAsync(contract);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = true,
+                    Message = "Da huy hop dong. Hop dong se khong the ky duoc nua.",
+                    Data = _mapper.Map<ContractResponse>(contract)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ContractResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<List<ContractResponse>>> GetAllContractsAsync(FilterGetAllContract filter)
         {
             try
@@ -312,6 +583,86 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<ContractIntegrityVerificationResponse>> VerifyContractIntegrityAsync(long id)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                var contract = await _unitOfWork.contractRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted,
+                    include: q => q.Include(c => c.ContractVerification)
+                                   .Include(c => c.ContractSchedules));
+
+                if (contract == null)
+                {
+                    return new ServiceResult<ContractIntegrityVerificationResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Khong tim thay hop dong."
+                    };
+                }
+
+                if (contract.LessorId != currentUserId && contract.LesseeId != currentUserId)
+                {
+                    return new ServiceResult<ContractIntegrityVerificationResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Ban khong co quyen xac thuc tinh toan ven cua hop dong nay."
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(contract.PostSignHash))
+                {
+                    return new ServiceResult<ContractIntegrityVerificationResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Hop dong chua co PostSignHash de xac thuc toan ven."
+                    };
+                }
+
+                // 1. Lấy chuỗi Snapshot mới và cũ ra các biến độc lập để có thể so sánh text
+                var newPostSignSnapshot = BuildPostSignSnapshot(contract);
+                var oldPostSignSnapshot = contract.PostSignSnapshot ?? "";
+
+                var newPostSignHash = ComputeSha256Hash(newPostSignSnapshot);
+                var storedPostSignSnapshotHash = !string.IsNullOrWhiteSpace(oldPostSignSnapshot)
+                    ? ComputeSha256Hash(oldPostSignSnapshot)
+                    : null;
+
+                var isStoredSnapshotMatched = !string.IsNullOrWhiteSpace(storedPostSignSnapshotHash)
+                    && string.Equals(storedPostSignSnapshotHash, contract.PostSignHash, StringComparison.OrdinalIgnoreCase);
+                var isMatched = string.Equals(newPostSignHash, contract.PostSignHash, StringComparison.OrdinalIgnoreCase);
+                var isTampered = !isMatched;
+                var report = new ContractIntegrityVerificationResponse
+                {
+                    ContractId = contract.Id,
+                    OldPostSignHash = contract.PostSignHash,
+                    NewPostSignHash = newPostSignHash,
+                    StoredPostSignSnapshotHash = storedPostSignSnapshotHash,
+                    IsStoredSnapshotMatched = isStoredSnapshotMatched,
+                    IsMatched = isMatched,
+                    IsTampered = isTampered,
+                    VerifiedAt = DateTime.UtcNow
+                };
+
+                return new ServiceResult<ContractIntegrityVerificationResponse>
+                {
+                    IsSuccess = true,
+                    Message = report.Verdict,
+                    Data = report
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ContractIntegrityVerificationResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<List<ContractCalendarEntryResponse>>> GetContractCalendarBySpaceAsync(long spaceId, DateTime from, DateTime to)
         {
             try
@@ -438,6 +789,15 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
+                if (existingContract.Status != ContractStatusEnum.Draft)
+                {
+                    return new ServiceResult<ContractResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chi co the cap nhat hop dong o trang thai Draft."
+                    };
+                }
+
                 var validation = await ValidateRequestAsync(request);
                 if (validation.ErrorMessage != null)
                 {
@@ -540,9 +900,8 @@ namespace FlexiSpace.Application.Services
             if (contract == null) return new ServiceResult<bool> { IsSuccess = false, Message = "Hợp đồng không tồn tại." };
             if (contract.LessorId != currentUserId && contract.LesseeId != currentUserId)
                 return new ServiceResult<bool> { IsSuccess = false, Message = "Bạn không có quyền ký hợp đồng này." };
-            var userProfile = await _unitOfWork.profileRepository.GetAsync(x => x.UserId == currentUserId);
-            if (userProfile == null || !userProfile.IsVerified)
-                return new ServiceResult<bool> { IsSuccess = false, Message = "Vui lòng xác thực CCCD trước khi ký hợp đồng." };
+            if (contract.Status != ContractStatusEnum.Signing)
+                return new ServiceResult<bool> { IsSuccess = false, Message = "Hop dong chua duoc chuyen sang phien ky." };
             var contractVerification = await _unitOfWork.contractVerificationRepository.GetAsync(v => v.ContractId == contractId, include : q => q.Include(v => v.Contract!));
             bool alreadySigned = (currentUserId == contractVerification.Contract!.LessorId && contractVerification.IsLessorAgreed) ||
                                  (currentUserId == contractVerification.Contract.LesseeId && contractVerification.IsLesseeAgreed);
@@ -602,10 +961,23 @@ namespace FlexiSpace.Application.Services
             {
                 return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hợp đồng không tồn tại hoặc dữ liệu bị lỗi." };
             }
-            if (currentUser?.Profile == null)
+            if (contract.Status != ContractStatusEnum.Signing)
             {
-                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Vui lòng cập nhật hồ sơ CCCD trước khi ký hợp đồng." };
+                await ResetContractToDraftAfterSigningFailureAsync(contract);
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hop dong chua duoc chuyen sang phien ky." };
             }
+            if (string.IsNullOrWhiteSpace(contract.PreSignSnapshot) || string.IsNullOrWhiteSpace(contract.PreSignHash))
+            {
+                await ResetContractToDraftAfterSigningFailureAsync(contract);
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Phien ky chua co ban hash goc. Vui long bat dau lai phien ky." };
+            }
+            var currentPreSignHash = ComputeSha256Hash(BuildPreSignSnapshot(contract));
+            if (!string.Equals(currentPreSignHash, contract.PreSignHash, StringComparison.OrdinalIgnoreCase))
+            {
+                await ResetContractToDraftAfterSigningFailureAsync(contract);
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hop dong da co su thay doi so voi ban goc. Phien ky hien tai da bi huy." };
+            }
+
 
             if (currentUserId == contract.LessorId)
             {
@@ -638,7 +1010,9 @@ namespace FlexiSpace.Application.Services
             if (contract.ContractVerification.IsLessorAgreed && contract.ContractVerification.IsLesseeAgreed)
             {
                 contract.Status = ContractStatusEnum.Active;
-                contract.ContractSnapshot = BuildContractSnapshot(contract);
+                contract.PostSignSnapshot = BuildPostSignSnapshot(contract);
+                contract.PostSignHash = ComputeSha256Hash(contract.PostSignSnapshot);
+                contract.ContractSnapshot = contract.PostSignSnapshot;
                 isFullySigned = true;
             }
             if (isFullySigned)
@@ -720,6 +1094,81 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        private static void ResetSigningSession(Contract contract)
+        {
+            contract.PreSignSnapshot = null;
+            contract.PreSignHash = null;
+            contract.PostSignSnapshot = null;
+            contract.PostSignHash = null;
+
+            if (contract.ContractVerification == null)
+            {
+                return;
+            }
+
+            contract.ContractVerification.IsLessorAgreed = false;
+            contract.ContractVerification.IsLesseeAgreed = false;
+            contract.ContractVerification.LessorSignedAt = null;
+            contract.ContractVerification.LesseeSignedAt = null;
+            contract.ContractVerification.LessorIpAddress = null;
+            contract.ContractVerification.LesseeIpAddress = null;
+            contract.ContractVerification.LessorSignatureData = null;
+            contract.ContractVerification.LesseeSignatureData = null;
+        }
+
+        private async Task ResetContractToDraftAfterSigningFailureAsync(Contract contract)
+        {
+            ResetSigningSession(contract);
+            contract.Status = ContractStatusEnum.Draft;
+            contract.UpdatedAt = DateTime.UtcNow;
+            await _unitOfWork.contractRepository.UpdateAsync(contract);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        private string BuildPreSignSnapshot(Contract contract)
+        {
+            var snapshotPayload = new
+            {
+                ContractId = contract.Id,
+                LessorId = contract.LessorId,
+                LesseeId = contract.LesseeId,
+                SpaceId = contract.SpaceId,
+                PrimaryBookingRequestId = contract.PrimaryBookingRequestId,
+                ConversationId = contract.ConversationId,
+                Date = contract.Date,
+                LessorNumberCard = contract.LessorNumberCard,
+                LessorName = contract.LessorName,
+                LessorCardIssuanceDate = contract.LessorCardIssuanceDate,
+                LessorCardAddress = contract.LessorCardAddress,
+                LesseeNumberCard = contract.LesseeNumberCard,
+                LesseeName = contract.LesseeName,
+                LesseeCardIssuanceDate = contract.LesseeCardIssuanceDate,
+                LesseeCardAddress = contract.LesseeCardAddress,
+                Description = contract.Description,
+                BusinessPurpose = contract.BusinessPurpose,
+                Acreage = contract.Acreage,
+                DurationUnit = contract.DurationUnit,
+                Duration = contract.Duration,
+                StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                DepositAmount = contract.DepositAmount,
+                Price = contract.Price,
+                Status = contract.Status,
+                ContractSchedules = BuildScheduleSnapshot(contract)
+            };
+
+            return JsonSerializer.Serialize(snapshotPayload, new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+        }
+
+        private string BuildPostSignSnapshot(Contract contract)
+        {
+            return BuildContractSnapshot(contract);
+        }
+
         private string BuildContractSnapshot(Contract contract)
         {
             var snapshotPayload = new
@@ -753,27 +1202,48 @@ namespace FlexiSpace.Application.Services
                 {
                     contract.ContractVerification?.IsLessorAgreed,
                     contract.ContractVerification?.IsLesseeAgreed,
-                    contract.ContractVerification?.LessorSignedAt,
-                    contract.ContractVerification?.LesseeSignedAt,
+                    LessorSignedAt = FormatSnapshotDateTime(contract.ContractVerification?.LessorSignedAt),
+                    LesseeSignedAt = FormatSnapshotDateTime(contract.ContractVerification?.LesseeSignedAt),
                     contract.ContractVerification?.LessorIpAddress,
                     contract.ContractVerification?.LesseeIpAddress,
                     contract.ContractVerification?.LessorSignatureData,
                     contract.ContractVerification?.LesseeSignatureData
                 },
-                ContractSchedules = contract.ContractSchedules?.Select(s => new
-                {
-                    s.DayOfWeek,
-                    s.StartTime,
-                    s.EndTime
-                }).ToList(),
-                CreatedAt = contract.CreatedAt,
-                UpdatedAt = contract.UpdatedAt
+                ContractSchedules = BuildScheduleSnapshot(contract)
             };
 
             return JsonSerializer.Serialize(snapshotPayload, new JsonSerializerOptions
             {
-                WriteIndented = false
+                WriteIndented = false,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
+        }
+
+        private static string ComputeSha256Hash(string value)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
+        }
+
+        private static string? FormatSnapshotDateTime(DateTime? value)
+        {
+            return value?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.ffffffZ");
+        }
+
+        private static List<object>? BuildScheduleSnapshot(Contract contract)
+        {
+            return contract.ContractSchedules?
+                .OrderBy(s => s.DayOfWeek)
+                .ThenBy(s => s.StartTime)
+                .ThenBy(s => s.EndTime)
+                .Select(s => new
+                {
+                    s.DayOfWeek,
+                    s.StartTime,
+                    s.EndTime
+                })
+                .Cast<object>()
+                .ToList();
         }
 
         private async Task<(string? ErrorMessage, Space? Space, PrimaryBookingRequest? Booking, Conversation? conversation)> ValidateRequestAsync(ContractRequest request)

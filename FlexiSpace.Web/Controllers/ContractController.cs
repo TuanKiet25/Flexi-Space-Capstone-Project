@@ -42,6 +42,27 @@ namespace FlexiSpace.Web.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("{contractId}/start-signing")]
+        public async Task<IActionResult> StartContractSigning(long contractId, [FromBody] StartContractSigningRequest request)
+        {
+            var result = await _contractService.StartContractSigningAsync(contractId, request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{contractId}/cancel-signing")]
+        public async Task<IActionResult> CancelContractSigning(long contractId)
+        {
+            var result = await _contractService.CancelContractSigningAsync(contractId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{contractId}/cancel")]
+        public async Task<IActionResult> CancelContract(long contractId)
+        {
+            var result = await _contractService.CancelContractAsync(contractId);
+            return HandleResult(result);
+        }
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllContracts([FromQuery] FilterGetAllContract filter)
         {
@@ -60,6 +81,13 @@ namespace FlexiSpace.Web.Controllers
         public async Task<IActionResult> GetContractSnapshotById(long id)
         {
             var result = await _contractService.GetContractSnapshotByIdAsync(id);
+            return HandleResult(result);
+        }
+
+        [HttpGet("{id}/verify-integrity")]
+        public async Task<IActionResult> VerifyContractIntegrity(long id)
+        {
+            var result = await _contractService.VerifyContractIntegrityAsync(id);
             return HandleResult(result);
         }
 
