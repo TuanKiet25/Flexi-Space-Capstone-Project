@@ -10,6 +10,7 @@ using FlexiSpace.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace FlexiSpace.Infrastructure
 {
@@ -55,6 +56,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
             services.AddScoped<IReviewRepository, ReviewRepository>();
+            services.AddScoped<IUserAiImageHistoryRepository, UserAiImageHistoryRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -84,12 +86,21 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IFavoriteListService, FavoriteListService>();
             services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<IFalAiService, FalAiService>();
+            services.AddScoped<IAIToolService, AIToolService>();
+            services.AddScoped<IUserAiImageHistoryService, UserAiImageHistoryService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
             services.Configure<MailOptions>(configuration.GetSection("MailSettings"));
             services.Configure<TurnstileOptions>(configuration.GetSection("Turnstile"));
             services.Configure<ResentEmailOptions>(configuration.GetSection("EmailSettings"));
+            services.Configure<FalAiOptions>(configuration.GetSection("FalAiSettings"));
+            services.AddHttpClient<IFalAiService, FalAiService>((serviceProvider, client) =>
+            {
+                var falSettings = serviceProvider.GetRequiredService<IOptions<FalAiOptions>>().Value;
+                client.BaseAddress = new Uri(falSettings.BaseUrl);
+            });
             // Đăng ký CORS
             services.AddCors(options =>
             {

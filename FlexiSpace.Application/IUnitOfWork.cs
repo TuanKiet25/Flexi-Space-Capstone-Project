@@ -27,6 +27,7 @@ namespace FlexiSpace.Application
         IListingReportRepository listingReportRepository { get; }
         INotificationRepository notificationRepository { get; }
         IFavoriteListRepository favoriteListRepository { get; }
+        IUserAiImageHistoryRepository userAiImageHistoryRepository { get; }
         IReviewRepository reviewRepository { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

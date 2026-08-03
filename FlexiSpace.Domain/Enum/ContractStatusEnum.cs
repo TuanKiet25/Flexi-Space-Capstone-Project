@@ -2,9 +2,10 @@
 {
     public enum ContractStatusEnum
     {
-        Draft,
-        Active,
-        Expired,
-        Cancelled
+        Draft = 0,
+        Active = 1,
+        Expired = 2,
+        Cancelled = 3,
+        Signing = 4
     }
 }

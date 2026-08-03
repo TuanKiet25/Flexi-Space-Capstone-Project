@@ -34,6 +34,7 @@ namespace FlexiSpace.Infrastructure
         public INotificationRepository notificationRepository { get; }
         public IFavoriteListRepository favoriteListRepository { get; }
         public IReviewRepository reviewRepository { get; }
+        public IUserAiImageHistoryRepository userAiImageHistoryRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -63,6 +64,7 @@ namespace FlexiSpace.Infrastructure
             notificationRepository = new NotificationRepository(_dbContext);
             favoriteListRepository = new FavoriteListRepository(_dbContext);
             reviewRepository = new ReviewRepository(_dbContext);
+            userAiImageHistoryRepository = new UserAiImageHistoryRepository(_dbContext);
         }
 
 
