@@ -67,6 +67,12 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
                 .ReverseMap();
             CreateMap<FavoriteList, FavoriteListIdsResponse>().ForMember(dest => dest.ListingIds,
                opt => opt.MapFrom(src => src.FavoriteListings.Select(x => x.ListingId).ToList()));
+
+            CreateMap<Review, ReviewResponse>()
+                .ForMember(dest => dest.ReviewerName, opt => opt.MapFrom(src => src.Reviewer != null ? (src.Reviewer.Profile != null ? src.Reviewer.Profile.FullName : src.Reviewer.UserName) : string.Empty))
+                .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? (src.TargetUser.Profile != null ? src.TargetUser.Profile.FullName : src.TargetUser.UserName) : null))
+                .ForMember(dest => dest.SpaceId, opt => opt.MapFrom(src => src.PrimaryBookingRequest != null ? src.PrimaryBookingRequest.SpaceId : (long?)null))
+                .ForMember(dest => dest.SpaceAddress, opt => opt.MapFrom(src => src.PrimaryBookingRequest != null && src.PrimaryBookingRequest.Space != null ? src.PrimaryBookingRequest.Space.Address : null));
         }
         private static List<ReportReasonEnum> ParseReasons(string reasons)
         {

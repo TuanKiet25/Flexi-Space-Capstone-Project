@@ -33,6 +33,7 @@ namespace FlexiSpace.Infrastructure
         public IListingReportRepository listingReportRepository { get; } 
         public INotificationRepository notificationRepository { get; }
         public IFavoriteListRepository favoriteListRepository { get; }
+        public IReviewRepository reviewRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -61,6 +62,7 @@ namespace FlexiSpace.Infrastructure
             listingReportRepository = new ListingReportRepository(_dbContext);
             notificationRepository = new NotificationRepository(_dbContext);
             favoriteListRepository = new FavoriteListRepository(_dbContext);
+            reviewRepository = new ReviewRepository(_dbContext);
         }
 
 
