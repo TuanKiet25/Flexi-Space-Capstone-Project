@@ -5,11 +5,11 @@ using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace FlexiSpace.Application.Services
@@ -20,13 +20,79 @@ namespace FlexiSpace.Application.Services
         private readonly IWalletService _walletService;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
-        public ListingService(IUnitOfWork unitOfWork, IWalletService walletService, IMapper mapper, ICurrentUserService currentUserService)
+        private readonly IDistributedCache _cache;
+        private static readonly DistributedCacheEntryOptions CacheOptions = new()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+        };
+
+        public ListingService(IUnitOfWork unitOfWork, IWalletService walletService, IMapper mapper, ICurrentUserService currentUserService, IDistributedCache cache)
+
         {
             _unitOfWork = unitOfWork;
             _walletService = walletService;
             _mapper = mapper;
             _currentUserService = currentUserService;
+            _cache = cache;
         }
+
+        private static string GetListingCacheKey(ListingStatusEnum? status, ListingType? listingType)
+        {
+            string strStatus = status?.ToString() ?? "All";
+            string strType = listingType?.ToString() ?? "All";
+            return $"Cache:Listings:Status_{strStatus}:Type_{strType}";
+        }
+
+        private async Task<T?> GetCacheAsync<T>(string cacheKey)
+        {
+            var cachedData = await _cache.GetStringAsync(cacheKey);
+            return string.IsNullOrEmpty(cachedData)
+                ? default
+                : JsonSerializer.Deserialize<T>(cachedData);
+        }
+
+        private Task SetCacheAsync<T>(string cacheKey, T data)
+        {
+            return _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(data), CacheOptions);
+        }
+
+        private async Task InvalidateListingCacheAsync(long? listingId = null)
+        {
+            var keysToInvalidate = new List<string>();
+
+            var allStatuses = Enum.GetValues<ListingStatusEnum>().Cast<ListingStatusEnum?>().ToList();
+            allStatuses.Add(null); 
+
+            var allTypes = Enum.GetValues<ListingType>().Cast<ListingType?>().ToList();
+            allTypes.Add(null); 
+            foreach (var status in allStatuses)
+            {
+                foreach (var type in allTypes)
+                {
+                    keysToInvalidate.Add(GetListingCacheKey(status, type));
+                }
+            }
+            keysToInvalidate.Add("Cache:ListingReports:ReportedListings");
+
+            if (listingId.HasValue)
+            {
+                keysToInvalidate.Add($"Cache:Listing:Id_{listingId.Value}");
+                keysToInvalidate.Add($"Cache:ListingReports:Listing_{listingId.Value}");
+                keysToInvalidate.Add($"Cache:ListingReports:Detail_{listingId.Value}");
+            }
+
+            foreach (var key in keysToInvalidate.Distinct())
+            {
+                try
+                {
+                    await _cache.RemoveAsync(key);
+                }
+                catch
+                {
+                }
+            }
+        }
+
         private async Task<string?> ValidationMessageAsync(ListingRequest listing)
         {
             var isExistedSpace = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == listing.SpaceId);
@@ -147,6 +213,9 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.SaveChangesAsync();
                 var listingResult = await _unitOfWork.listingRepository.GetAsync(x => x.Id == newListing.Id, include: q => q.Include(l => l.Space).Include(l => l.Lessor));
                 var result = _mapper.Map<ListingResponse>(listingResult);
+
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(newListing.Id));
+
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -168,6 +237,17 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                string cacheKey = $"Cache:Listing:Id_{id}";
+                var cachedListing = await GetCacheAsync<ListingResponse>(cacheKey);
+                if (cachedListing != null)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = true,
+                        Data = cachedListing
+                    };
+                }
+
                 var listing = await _unitOfWork.listingRepository.GetAsync(
                     x => x.Id == id,
                     include: q => q.Include(l => l.Space)
@@ -182,6 +262,7 @@ namespace FlexiSpace.Application.Services
                     };
                 }
                 var result = _mapper.Map<ListingResponse>(listing);
+                await SetCacheAsync(cacheKey, result);
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -225,6 +306,9 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.listingRepository.UpdateAsync(existingListing);
                 await _unitOfWork.SaveChangesAsync();
                 var result = _mapper.Map<ListingResponse>(existingListing);
+
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
+
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -256,6 +340,7 @@ namespace FlexiSpace.Application.Services
                 }
                 await _unitOfWork.listingRepository.RemoveByIdAsync(id);
                 await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -276,6 +361,16 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                string cacheKey = GetListingCacheKey(status, listingType);
+                var cachedListings = await GetCacheAsync<List<ShareListingResponse>>(cacheKey);
+                if (cachedListings != null)
+                {
+                    return new ServiceResult<List<ShareListingResponse>>
+                    {
+                        IsSuccess = true,
+                        Data = cachedListings
+                    };
+                }
                 var listings = await _unitOfWork.listingRepository.GetAllAsync(
                     l => !l.IsDeleted
                         && (status == null || l.Status == status)
@@ -291,7 +386,7 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.PictureURLs));
 
                 var mappedListings = _mapper.Map<List<ShareListingResponse>>(listings);
-
+                await SetCacheAsync(cacheKey, mappedListings);
                 return new ServiceResult<List<ShareListingResponse>>
                 {
                     IsSuccess = true,
@@ -358,6 +453,7 @@ namespace FlexiSpace.Application.Services
                 }
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
                 await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -437,6 +533,7 @@ namespace FlexiSpace.Application.Services
 
                 await _unitOfWork.listingReportRepository.AddAsync(newReport);
                 await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(request.ListingId));
 
                 return new ServiceResult<ListingReportResponse>
                 {
@@ -459,6 +556,17 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                string cacheKey = $"Cache:ListingReports:Listing_{listingId}";
+                var cachedReports = await GetCacheAsync<List<ListingReportResponse>>(cacheKey);
+                if (cachedReports != null)
+                {
+                    return new ServiceResult<List<ListingReportResponse>>
+                    {
+                        IsSuccess = true,
+                        Data = cachedReports
+                    };
+                }
+
                 var listing = await _unitOfWork.listingRepository.GetAsync(x => x.Id == listingId && !x.IsDeleted);
                 if (listing == null)
                 {
@@ -474,11 +582,13 @@ namespace FlexiSpace.Application.Services
                     include: q => q.Include(x => x.Reporter));
 
                 reports = reports.OrderByDescending(x => x.CreatedAt).ToList();
+                var mappedReports = _mapper.Map<List<ListingReportResponse>>(reports);
+                await SetCacheAsync(cacheKey, mappedReports);
 
                 return new ServiceResult<List<ListingReportResponse>>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<List<ListingReportResponse>>(reports)
+                    Data = mappedReports
                 };
             }
             catch (Exception ex)
@@ -495,6 +605,17 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                const string cacheKey = "Cache:ListingReports:ReportedListings";
+                var cachedSummaries = await GetCacheAsync<List<ReportedListingSummaryResponse>>(cacheKey);
+                if (cachedSummaries != null)
+                {
+                    return new ServiceResult<List<ReportedListingSummaryResponse>>
+                    {
+                        IsSuccess = true,
+                        Data = cachedSummaries
+                    };
+                }
+
                 var reports = await _unitOfWork.listingReportRepository.GetAllAsync(
                     filter: null,
                     include: q => q.Include(x => x.Listing));
@@ -511,6 +632,7 @@ namespace FlexiSpace.Application.Services
                     })
                     .OrderByDescending(x => x.ReportCount)
                     .ToList();
+                await SetCacheAsync(cacheKey, summaries);
 
                 return new ServiceResult<List<ReportedListingSummaryResponse>>
                 {
@@ -532,6 +654,17 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                string cacheKey = $"Cache:ListingReports:Detail_{listingId}";
+                var cachedDetail = await GetCacheAsync<ListingReportDetailResponse>(cacheKey);
+                if (cachedDetail != null)
+                {
+                    return new ServiceResult<ListingReportDetailResponse>
+                    {
+                        IsSuccess = true,
+                        Data = cachedDetail
+                    };
+                }
+
                 var reports = await _unitOfWork.listingReportRepository.GetAllAsync(x => x.ListingId == listingId);
 
                 var reasonBreakdown = reports
@@ -544,16 +677,18 @@ namespace FlexiSpace.Application.Services
                     })
                     .OrderByDescending(x => x.Count)
                     .ToList();
+                var detail = new ListingReportDetailResponse
+                {
+                    ListingId = listingId,
+                    TotalReportCount = reports.Count,
+                    ReasonBreakdown = reasonBreakdown
+                };
+                await SetCacheAsync(cacheKey, detail);
 
                 return new ServiceResult<ListingReportDetailResponse>
                 {
                     IsSuccess = true,
-                    Data = new ListingReportDetailResponse
-                    {
-                        ListingId = listingId,
-                        TotalReportCount = reports.Count,
-                        ReasonBreakdown = reasonBreakdown
-                    }
+                    Data = detail
                 };
             }
             catch (Exception ex)
@@ -595,6 +730,7 @@ namespace FlexiSpace.Application.Services
                 listing.IsDeleted = true;
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
                 await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
                 return new ServiceResult<ListingResponse>
                 {
                     IsSuccess = true,
@@ -698,8 +834,9 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.ShareSpaceDetail)
                                     .ThenInclude(l => l.ShareSpaceCategories)
                                     .Include(l => l.PictureURLs));
-                                    
+
                 var result = _mapper.Map<ShareListingResponse>(listingResult);
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(newListing.Id));
 
                 return new ServiceResult<ShareListingResponse>
                 {
@@ -819,6 +956,7 @@ namespace FlexiSpace.Application.Services
                                     .Include(l => l.PictureURLs));
 
                 var result = _mapper.Map<ShareListingResponse>(listingResult);
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
 
                 return new ServiceResult<ShareListingResponse>
                 {

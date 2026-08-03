@@ -8,6 +8,7 @@ using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.Extensions.Caching.Distributed;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<IWalletService> _mockWalletService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ICurrentUserService> _mockCurrentUserService;
+        private readonly Mock<IDistributedCache> _mockCache;
         private readonly ListingService _sut;
 
         public ListingServiceTests()
@@ -39,13 +41,24 @@ namespace FlexiSpace.Application.Tests
             _mockWalletService = new Mock<IWalletService>();
             _mockMapper = new Mock<IMapper>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
+            _mockCache = new Mock<IDistributedCache>();
 
             _mockUnitOfWork.SetupGet(u => u.listingRepository).Returns(_mockListingRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.amenityRepository).Returns(_mockAmenityRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingReportRepository).Returns(_mockListingReportRepository.Object);
 
-            _sut = new ListingService(_mockUnitOfWork.Object, _mockWalletService.Object, _mockMapper.Object, _mockCurrentUserService.Object);
+            _mockCache
+                .Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((byte[]?)null);
+            _mockCache
+                .Setup(c => c.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            _mockCache
+                .Setup(c => c.RemoveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            _sut = new ListingService(_mockUnitOfWork.Object, _mockWalletService.Object, _mockMapper.Object, _mockCurrentUserService.Object, _mockCache.Object);
         }
 
         [Fact]
