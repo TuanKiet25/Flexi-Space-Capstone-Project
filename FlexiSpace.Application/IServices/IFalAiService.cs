@@ -8,6 +8,6 @@ namespace FlexiSpace.Application.IServices
 {
     public interface IFalAiService
     {
-        Task<string?> GenerateInpaintingAsync(string base64Image, string prompt);
+        Task<string?> GenerateInpaintingAsync(string base64ImageWithRedMask, string userPrompt, string? base64ObjectImage = null);
     }
 }

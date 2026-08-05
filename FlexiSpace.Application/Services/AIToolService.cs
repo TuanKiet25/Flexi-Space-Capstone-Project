@@ -57,7 +57,9 @@ namespace FlexiSpace.Application.Services
 
                 var falTemporaryUrl = await _falAiService.GenerateInpaintingAsync(
                     request.Base64Image,
-                    request.Prompt
+                    request.Prompt,
+                    request.Base64Obj
+
                 );
 
                 if (string.IsNullOrEmpty(falTemporaryUrl))
