@@ -48,7 +48,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(p => p.Review)
-                   .WithOne()
+                   .WithOne(r => r.PrimaryBookingRequest)
                    .HasForeignKey<Review>(r => r.BookingRequestId)
                    .OnDelete(DeleteBehavior.Restrict);
         }

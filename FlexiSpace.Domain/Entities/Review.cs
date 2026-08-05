@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,11 +8,6 @@ namespace FlexiSpace.Domain.Entities
 {
     public class Review : BaseEntity
     {
-        public Review() 
-        { 
-            PrimaryBookingRequest = new HashSet<PrimaryBookingRequest>();
-        }
-
         public long Id { get; set; }
         public long SubBookingRequestId { get; set; }
         public long BookingRequestId { get; set; }
@@ -23,7 +18,7 @@ namespace FlexiSpace.Domain.Entities
 
         public virtual User Reviewer { get; set; }
         public virtual User TargetUser { get; set; }
-        public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
+        public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
 
     }
 }
