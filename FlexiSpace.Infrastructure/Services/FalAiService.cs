@@ -33,19 +33,27 @@ namespace FlexiSpace.Infrastructure.Services
             if (!string.IsNullOrEmpty(base64ObjectImage))
             {
                 imageUrls.Add(base64ObjectImage);
+
+                // 1. Wrapped Prompt (Tiếng Việt) - Chia gạch đầu dòng rõ ràng để AI (lõi LLM) dễ đọc
                 wrappedPrompt = $"Tôi đã cung cấp 2 bức ảnh.\n" +
-                                $"- Ảnh 1: Không gian gốc có chứa một mảng màu đỏ.\n" +
+                                $"- Ảnh 1: Không gian gốc có chứa một mảng màu đỏ đánh dấu vị trí.\n" +
                                 $"- Ảnh 2: Hình ảnh vật thể tôi muốn dùng làm mẫu.\n" +
-                                $"CHỈ THỊ CỐT LÕI: Dựa vào từ khóa '{userPrompt}', hãy tách vật thể ra khỏi Ảnh 2. " +
-                                $"Coi mảng màu đỏ trong Ảnh 1 là một HỘP GIỚI HẠN (Bounding Box). Bạn BẮT BUỘC PHẢI THU NHỎ (scale down) vật thể vừa tách ra sao cho nó NẰM LỌT THỎM và VỪA VẶN 100% bên trong hình dáng của mảng đỏ đó. KHÔNG ĐƯỢC VẼ TRÀN RA NGOÀI.";
+                                $"CHỈ THỊ CỐT LÕI (Bắt buộc tuân thủ):\n" +
+                                $"1. Tách vật thể ({userPrompt}) ra khỏi Ảnh 2.\n" +
+                                $"2. VỊ TRÍ TUYỆT ĐỐI: Xóa mảng màu đỏ ở Ảnh 1 và ĐẶT CHÍNH XÁC vật thể vừa tách vào ĐÚNG VỊ TRÍ đó. TUYỆT ĐỐI KHÔNG đặt vật thể ở bất kỳ khu vực nào khác trong không gian.\n" +
+                                $"3. TỶ LỆ (SCALE): Coi hình dáng vùng đỏ là HỘP GIỚI HẠN (Bounding Box). BẮT BUỘC thay đổi kích thước vật thể sao cho nó NẰM LỌT THỎM và VỪA VẶN 100% bên trong tọa độ của mảng đỏ. KHÔNG ĐƯỢC VẼ TRÀN ra ngoài viền đỏ.\n" +
+                                $"4. Giữ nguyên 100% cảnh vật xung quanh, chỉ thay thế đúng mảng màu đỏ.";
+
+                // 2. System Prompt (Tiếng Anh) - Nhấn mạnh tọa độ (Coordinates) và vị trí (Location)
                 systemPrompt = @"You are a strict architectural photo compositing AI. You receive 2 images.
-                                Image 1: The background with a solid red mask shape.
+                                Image 1: The background with a specific solid red mask shape indicating the exact target location.
                                 Image 2: The reference object.
                                 MANDATORY RULES:
-                                1. TARGET: Extract the main object from Image 2.
-                                2. STRICT BOUNDING BOX: The solid red shape in Image 1 is your absolute bounding box. You MUST DOWNSCALE and RESIZE the extracted object so its dimensions fit COMPLETELY INSIDE the red area. ZERO OVERFLOW is allowed beyond the red borders.
-                                3. PERSPECTIVE: Maintain the object's original proportions while shrinking it. Anchor its base to the floor angle of Image 1 and add realistic contact shadows.
-                                4. BACKGROUND PRESERVATION: Erase the red mask completely but DO NOT alter any other pixels in Image 1.";
+                                1. EXTRACTION: Extract the main object from Image 2.
+                                2. EXACT POSITIONING: You MUST place the extracted object EXACTLY at the coordinates of the solid red shape in Image 1. DO NOT move or place the object anywhere else in the room/environment.
+                                3. STRICT BOUNDING BOX: The red shape dictates the exact size. DOWNSCALE or RESIZE the extracted object so it fits COMPLETELY INSIDE the original red area's boundaries. ZERO OVERFLOW allowed.
+                                4. PERSPECTIVE: Anchor the object naturally within that specific red location, matching the floor angle and adding contact shadows.
+                                5. BACKGROUND PRESERVATION: Erase the red mask completely. DO NOT alter, hallucinate, or touch any other pixels in Image 1. The background must remain 100% unchanged.";
             }
             else
             {
