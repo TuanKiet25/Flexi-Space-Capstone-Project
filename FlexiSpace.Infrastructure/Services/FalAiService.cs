@@ -31,7 +31,12 @@ namespace FlexiSpace.Infrastructure.Services
                 {
                     prompt = EnhanceInpaintingPrompt(prompt),
                     image_urls = new[] { base64Image },
-                    system_prompt = "You are a highly precise image editor. Your ONLY task is to replace the artificially colored solid red mask shape with the requested object. CRITICAL: DO NOT modify, distort, or enhance any untouched background elements. Keep the original environment exactly as it is.",
+                    system_prompt = @"You are an expert interior designer and architectural photo editor. Your absolute priority is strict spatial awareness and boundary control.
+                                        CRITICAL RULES:
+                                            1. TARGET: Find the solid red shape in the image and replace it with the requested object.
+                                            2. AUTO-SCALING (MANDATORY): Analyze the size and proportion of the red shape. You MUST dynamically resize, simplify, or adjust the requested object so it fits STRICTLY INSIDE the red boundaries. Do not generate oversized setups.
+                                            3. PERSPECTIVE: Read the depth of the room (floor, walls) and align the object's 3D perspective accordingly. Ensure realistic ground contact and shadows.
+                                            4. PRESERVATION: DO NOT touch, modify, or hallucinate any pixels outside the red shape. Keep the original background intact.",
                     output_format = "jpeg",
                     num_inference_steps = 25
                 };
@@ -56,7 +61,8 @@ namespace FlexiSpace.Infrastructure.Services
         private string EnhanceInpaintingPrompt(string userPrompt)
         {
             string basePrompt = userPrompt.Trim();
-            return $"Thay thế mảng màu đỏ (solid red shape) trong ảnh thành: {basePrompt}.";
+            return $"Tạo ra đối tượng sau: '{userPrompt}'.\n" +
+                   $"CHỈ THỊ BẮT BUỘC: Hãy thiết kế '{userPrompt}' này sao cho kích thước của nó VỪA KHÍT 100% bên trong mảng màu đỏ. Nếu mảng màu đỏ nhỏ, hãy tạo ra một phiên bản '{userPrompt}' nhỏ gọn, tối giản (ví dụ: chỉ 1 màn hình). Tuyệt đối không vẽ tràn ra ngoài ranh giới màu đỏ.";
         }
     }
 }
