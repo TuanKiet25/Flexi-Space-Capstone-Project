@@ -24,14 +24,14 @@ namespace FlexiSpace.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Key", _settings.ApiKey);
         }
-        public async Task<string?> GenerateInpaintingAsync(string base64Image, string base64Mask, string prompt)
+        public async Task<string?> GenerateInpaintingAsync(string base64Image, string prompt)
         {
             {
                 var payload = new
                 {
                     prompt = EnhanceInpaintingPrompt(prompt),
                     image_urls = new[] { base64Image },
-                    mask_url = base64Mask,
+                    system_prompt = "You are a highly precise image editor. Your ONLY task is to replace the artificially colored solid red mask shape with the requested object. CRITICAL: DO NOT modify, distort, or enhance any untouched background elements. Keep the original environment exactly as it is.",
                     output_format = "jpeg",
                     num_inference_steps = 25
                 };
@@ -55,13 +55,8 @@ namespace FlexiSpace.Infrastructure.Services
         }
         private string EnhanceInpaintingPrompt(string userPrompt)
         {
-            // Nếu người dùng nhập các prompt đơn giản, ngắn gọn
-            // Backend sẽ tự động bao bọc thêm các từ khóa định vị không gian, tỷ lệ, và chi tiết vật thể
-
             string basePrompt = userPrompt.Trim();
-
-            // Bạn có thể dùng một đoạn template thông minh gắn kèm vào:
-            return $"A realistic photo of {basePrompt}. CRITICAL INSTRUCTIONS: Strictly place the object ONLY inside the exact boundaries of the highlighted red mask area. Match the correct perspective, ground contact shadow, and ambient lighting of the surrounding  scene. Do NOT modify, distort background elements outside the red masked area. Seamless integration.";
+            return $"Thay thế mảng màu đỏ (solid red shape) trong ảnh thành: {basePrompt}.";
         }
     }
 }
