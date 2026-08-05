@@ -36,17 +36,16 @@ namespace FlexiSpace.Infrastructure.Services
                 wrappedPrompt = $"Tôi đã cung cấp 2 bức ảnh.\n" +
                                 $"- Ảnh 1: Không gian gốc có chứa một mảng màu đỏ.\n" +
                                 $"- Ảnh 2: Hình ảnh vật thể tôi muốn dùng làm mẫu.\n" +
-                                $"YÊU CẦU: Hãy trích xuất vật thể trong Ảnh 2, kết hợp với yêu cầu '{userPrompt}' (nếu có), " +
-                                $"sau đó ghép vật thể đó vào VỪA KHÍT 100% bên trong mảng màu đỏ ở Ảnh 1. Căn chỉnh góc nhìn và ánh sáng sao cho ăn nhập với không gian Ảnh 1.";
-
-                systemPrompt = @"You are an expert architectural photo editor and compositing AI. You will receive two images.
-                                    Image 1: The background environment containing a solid red mask shape.
-                                    Image 2: The reference object.
-                                    CRITICAL RULES:
-                                    1. EXTRACTION: Identify the main object in Image 2.
-                                    2. COMPOSITING: Insert that object into Image 1, strictly replacing the solid red shape.
-                                    3. AUTO-SCALING: The inserted object MUST be dynamically resized, skewed, and adjusted to fit strictly inside the red boundaries of Image 1.
-                                    4. PRESERVATION: DO NOT alter any background elements in Image 1 outside the red shape. Add realistic ground shadows to match Image 1's lighting.";
+                                $"CHỈ THỊ CỐT LÕI: Dựa vào từ khóa '{userPrompt}', hãy tách vật thể ra khỏi Ảnh 2. " +
+                                $"Coi mảng màu đỏ trong Ảnh 1 là một HỘP GIỚI HẠN (Bounding Box). Bạn BẮT BUỘC PHẢI THU NHỎ (scale down) vật thể vừa tách ra sao cho nó NẰM LỌT THỎM và VỪA VẶN 100% bên trong hình dáng của mảng đỏ đó. KHÔNG ĐƯỢC VẼ TRÀN RA NGOÀI.";
+                systemPrompt = @"You are a strict architectural photo compositing AI. You receive 2 images.
+                                Image 1: The background with a solid red mask shape.
+                                Image 2: The reference object.
+                                MANDATORY RULES:
+                                1. TARGET: Extract the main object from Image 2.
+                                2. STRICT BOUNDING BOX: The solid red shape in Image 1 is your absolute bounding box. You MUST DOWNSCALE and RESIZE the extracted object so its dimensions fit COMPLETELY INSIDE the red area. ZERO OVERFLOW is allowed beyond the red borders.
+                                3. PERSPECTIVE: Maintain the object's original proportions while shrinking it. Anchor its base to the floor angle of Image 1 and add realistic contact shadows.
+                                4. BACKGROUND PRESERVATION: Erase the red mask completely but DO NOT alter any other pixels in Image 1.";
             }
             else
             {
