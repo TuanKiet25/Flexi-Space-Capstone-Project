@@ -209,6 +209,7 @@ namespace FlexiSpace.Application.Services
                 newListing.IsActive = true;
                 newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.EntireSpace;
+                newListing.priorityLevel = amount;
                 await _unitOfWork.listingRepository.AddAsync(newListing);
                 await _unitOfWork.SaveChangesAsync();
                 var listingResult = await _unitOfWork.listingRepository.GetAsync(x => x.Id == newListing.Id, include: q => q.Include(l => l.Space).Include(l => l.Lessor));
@@ -371,10 +372,11 @@ namespace FlexiSpace.Application.Services
                         Data = cachedListings
                     };
                 }
-                var listings = await _unitOfWork.listingRepository.GetAllAsync(
+                var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
                     l => !l.IsDeleted
                         && (status == null || l.Status == status)
                         && (listingType == null || l.ListingType == listingType),
+                    orderBy: l => l.OrderByDescending(x => x.priorityLevel).ThenByDescending(x => x.CreatedAt),
                     include: q => q.Include(l => l.Space)
                                     .Include(l => l.Lessor)
                                     .Include(l => l.ShareSpaceDetail)
@@ -616,7 +618,7 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
-                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(
+                var reports = await _unitOfWork.listingReportRepository.GetAllWithSortAsync(
                     filter: null,
                     include: q => q.Include(x => x.Listing));
 
@@ -806,6 +808,7 @@ namespace FlexiSpace.Application.Services
                 newListing.IsActive = true;
                 newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.SharedSpace;
+                newListing.priorityLevel = amount;
                 newListing.ShareSpaceDetail = new ShareSpaceDetail
                 {
                     MaxSubRenter = sharedListingRequest.ShareSpaceDetailMaxSubRenter,

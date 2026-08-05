@@ -35,6 +35,7 @@ namespace FlexiSpace.Infrastructure
         public IFavoriteListRepository favoriteListRepository { get; }
         public IReviewRepository reviewRepository { get; }
         public IUserAiImageHistoryRepository userAiImageHistoryRepository { get; }
+        public IPriorityLevelRepository priorityLevelRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -65,6 +66,7 @@ namespace FlexiSpace.Infrastructure
             favoriteListRepository = new FavoriteListRepository(_dbContext);
             reviewRepository = new ReviewRepository(_dbContext);
             userAiImageHistoryRepository = new UserAiImageHistoryRepository(_dbContext);
+            priorityLevelRepository = new PriorityLevelRepository(_dbContext);
         }
 
 

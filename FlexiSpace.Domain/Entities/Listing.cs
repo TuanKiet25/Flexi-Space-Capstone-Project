@@ -25,6 +25,7 @@ namespace FlexiSpace.Domain.Entities
         public string Description { get; set; }
         public string CancelReason { get; set; }
         public decimal Price { get; set; }
+        public decimal priorityLevel { get; set; }
         public ListingType ListingType { get; set; }
         public ListingStatusEnum Status { get; set; }
         public virtual ShareSpaceDetail ShareSpaceDetail { get; set; }

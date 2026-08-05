@@ -29,6 +29,7 @@ namespace FlexiSpace.Application
         IFavoriteListRepository favoriteListRepository { get; }
         IUserAiImageHistoryRepository userAiImageHistoryRepository { get; }
         IReviewRepository reviewRepository { get; }
+        IPriorityLevelRepository priorityLevelRepository { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

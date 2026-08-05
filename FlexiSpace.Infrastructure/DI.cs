@@ -57,6 +57,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IFavoriteListRepository, FavoriteListRepository>();
             services.AddScoped<IReviewRepository, ReviewRepository>();
             services.AddScoped<IUserAiImageHistoryRepository, UserAiImageHistoryRepository>();
+            services.AddScoped<IPriorityLevelRepository, PriorityLevelRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services
@@ -89,6 +90,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IFalAiService, FalAiService>();
             services.AddScoped<IAIToolService, AIToolService>();
             services.AddScoped<IUserAiImageHistoryService, UserAiImageHistoryService>();
+            services.AddScoped<IPriorityLevelService, PriorityLevelService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));

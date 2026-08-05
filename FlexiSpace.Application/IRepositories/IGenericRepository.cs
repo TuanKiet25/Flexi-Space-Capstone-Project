@@ -35,6 +35,10 @@ namespace FlexiSpace.Application.IRepositories
         Task<List<T>> GetAllAsync(System.Linq.Expressions.Expression<Func<T, bool>>? filter,
                                                    Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null);
 
+        Task<List<T>> GetAllWithSortAsync(System.Linq.Expressions.Expression<Func<T, bool>>? filter,
+                                                   Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
+                                                   Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
+
         Task UpdateAsync(T entity);
 
         Task<T> GetByIdAsync(Guid id);
