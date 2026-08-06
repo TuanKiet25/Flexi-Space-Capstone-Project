@@ -17,6 +17,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<INotificationRepository> _mockNotificationRepository;
         private readonly Mock<INotificationRealtimeSender> _mockRealtimeSender;
+        private readonly Mock<ICurrentUserService> _mockCurrentUserService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly NotificationService _sut;
 
@@ -25,11 +26,16 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockNotificationRepository = new Mock<INotificationRepository>();
             _mockRealtimeSender = new Mock<INotificationRealtimeSender>();
+            _mockCurrentUserService = new Mock<ICurrentUserService>();
             _mockMapper = new Mock<IMapper>();
 
             _mockUnitOfWork.SetupGet(u => u.notificationRepository).Returns(_mockNotificationRepository.Object);
 
-            _sut = new NotificationService(_mockUnitOfWork.Object, _mockRealtimeSender.Object, _mockMapper.Object);
+            _sut = new NotificationService(
+                _mockUnitOfWork.Object,
+                _mockRealtimeSender.Object,
+                _mockCurrentUserService.Object,
+                _mockMapper.Object);
         }
 
         [Theory]

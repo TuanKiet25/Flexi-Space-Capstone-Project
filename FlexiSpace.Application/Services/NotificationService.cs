@@ -10,15 +10,18 @@ namespace FlexiSpace.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationRealtimeSender _realtimeSender;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
 
         public NotificationService(
             IUnitOfWork unitOfWork,
             INotificationRealtimeSender realtimeSender,
+            ICurrentUserService currentUserService,
             IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _realtimeSender = realtimeSender;
+            _currentUserService = currentUserService;
             _mapper = mapper;
         }
 
@@ -51,6 +54,29 @@ namespace FlexiSpace.Application.Services
 
             await _realtimeSender.SendToUserAsync(userId, response);
             return response;
+        }
+
+        public async Task<ServiceResult<List<NotificationResponse>>> GetHistoryByCurrentUserAsync()
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return new ServiceResult<List<NotificationResponse>>
+                {
+                    IsSuccess = false,
+                    Message = "User is not authenticated."
+                };
+            }
+
+            var notifications = await _unitOfWork.notificationRepository.GetAllWithSortAsync(
+                n => n.UserId == currentUserId,
+                orderBy: query => query.OrderByDescending(n => n.CreatedAt));
+
+            return new ServiceResult<List<NotificationResponse>>
+            {
+                IsSuccess = true,
+                Data = _mapper.Map<List<NotificationResponse>>(notifications)
+            };
         }
     }
 }
