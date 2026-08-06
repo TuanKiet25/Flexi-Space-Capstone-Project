@@ -37,7 +37,8 @@ namespace FlexiSpace.Application.Services
                 if (!isHuman) throw new Exception("Xác thực CAPTCHA thất bại.");
 
                 // 2. Tìm tài khoản theo Email
-                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email == request.Email);
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
+                var account = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
                 if (account == null) throw new Exception("Tài khoản hoặc mật khẩu không chính xác.");
                 if(account.UserStatus == Domain.Enum.UserStatus.Banned) throw new Exception("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.");
                 // 3. Kiểm tra tính hợp lệ của mật khẩu
@@ -75,31 +76,48 @@ namespace FlexiSpace.Application.Services
                 bool isHuman = await _turnstileService.VerifyTokenAsync(request.TurnstileToken);
                 if (!isHuman) throw new Exception("Xác thực CAPTCHA thất bại. Phát hiện hành vi Robot!");
 
-                // 2. Kiểm tra tài khoản đã tồn tại chưa
-                var emailExists = await _unitOfWork.userRepository.GetAsync(u => u.Email == request.Email && u.IsActive == true);
-                if (emailExists != null) throw new Exception("Email này đã được sử dụng hệ thống.");
+                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-                // 3. Khởi tạo Entity mới (Trạng thái mặc định: Chưa kích hoạt)
-                var newAccount = new User
+                // 2. Kiểm tra tài khoản đã tồn tại chưa
+                var existingAccount = await _unitOfWork.userRepository.GetAsync(u => u.Email.ToLower() == normalizedEmail);
+                if (existingAccount != null && existingAccount.IsActive)
                 {
-                    Email = request.Email,
-                    UserName = request.UserName,
-                    Name = request.Name,
-                    CreatedAt = DateTime.UtcNow,
-                    PhoneNumber = request.PhoneNumber,
-                    // Hash mật khẩu bằng BCrypt hoặc PBKDF2 bảo mật
-                    Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                    IsActive = false,
-                    Role = Domain.Enum.RoleEnum.USER, // Hoặc gán Enum Role của hệ thống
-                    Profile = new UserProfile()
-                };
-                
-                await _unitOfWork.userRepository.AddAsync(newAccount);
-                await _unitOfWork.SaveChangesAsync();
+                    throw new Exception("Email này đã được sử dụng hệ thống.");
+                }
+
+                // 3. Tạo mới hoặc cập nhật tài khoản chưa kích hoạt để tránh trùng email trong DB
+                if (existingAccount == null)
+                {
+                    var newAccount = new User
+                    {
+                        Email = normalizedEmail,
+                        UserName = request.UserName,
+                        Name = request.Name,
+                        CreatedAt = DateTime.UtcNow,
+                        PhoneNumber = request.PhoneNumber,
+                        // Hash mật khẩu bằng BCrypt hoặc PBKDF2 bảo mật
+                        Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                        IsActive = false,
+                        Role = Domain.Enum.RoleEnum.USER, // Hoặc gán Enum Role của hệ thống
+                        Profile = new UserProfile()
+                    };
+
+                    await _unitOfWork.userRepository.AddAsync(newAccount);
+                }
+                else
+                {
+                    existingAccount.Email = normalizedEmail;
+                    existingAccount.UserName = request.UserName;
+                    existingAccount.Name = request.Name;
+                    existingAccount.PhoneNumber = request.PhoneNumber;
+                    existingAccount.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                    existingAccount.UpdatedAt = DateTime.UtcNow;
+
+                    await _unitOfWork.userRepository.UpdateAsync(existingAccount);
+                }
 
                 // 4. Sinh mã OTP ngẫu nhiên (6 chữ số) và thiết lập hết hạn sau 5 phút
                 string otpCode = new Random().Next(100000, 999999).ToString();
-                string normalizedEmail = request.Email.Trim().ToLowerInvariant();
                 string redisKey = $"OTP:Register:{normalizedEmail}";
                 var cacheOptions = new DistributedCacheEntryOptions
                 {
@@ -108,6 +126,7 @@ namespace FlexiSpace.Application.Services
 
                 // Lưu mã OTP vào Redis
                 await _cache.SetStringAsync(redisKey, otpCode, cacheOptions);
+                await _unitOfWork.SaveChangesAsync();
                 // 5. Gửi mail chứa mã OTP cho người dùng
                 await _emailService.ResendOtpEmailAsync(request.Email, otpCode);
                 return new ServiceResult<AuthResponse>

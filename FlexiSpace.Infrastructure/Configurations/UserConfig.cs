@@ -13,6 +13,9 @@ namespace FlexiSpace.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
+            builder.HasIndex(u => u.Email)
+                   .IsUnique();
+
             builder.HasMany(u => u.UserOTPs)
                    .WithOne(otp => otp.User)
                    .HasForeignKey(otp => otp.UserId)
@@ -29,7 +32,10 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(r => r.Reporter)
                    .HasForeignKey(r => r.ReporterId)
                    .OnDelete(DeleteBehavior.Cascade);
-
+            builder.HasMany(u => u.DeviceTokens)
+                     .WithOne(dt => dt.User)
+                     .HasForeignKey(dt => dt.UserId)
+                     .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

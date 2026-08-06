@@ -28,6 +28,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual ICollection <UserOTP> UserOTPs { get; set; }
         public virtual ICollection<Notification> Notification { get; set; }
         public virtual ICollection<ListingReport> SubmittedReports { get; set; }
+        public virtual ICollection<DeviceToken> DeviceTokens { get; set; }
         public virtual FavoriteList FavoriteList { get; set; }
     }
 }

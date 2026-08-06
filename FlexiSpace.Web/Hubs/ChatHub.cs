@@ -1,14 +1,22 @@
-﻿using FlexiSpace.Application.IServices;
+﻿using FlexiSpace.Application;
+using FlexiSpace.Application.Events.Notification;
+using FlexiSpace.Application.IServices;
+using FlexiSpace.Infrastructure.Services;
+using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using MimeKit;
+using Org.BouncyCastle.Tls;
 
 namespace FlexiSpace.Web.Hubs
 {
     public class ChatHub : Hub
     {
         private readonly IMessageService _messageService;
-        public ChatHub(IMessageService messageService)
+        private readonly IMediator _mediator;
+        public ChatHub(IMessageService messageService, IMediator mediator)
         {
             _messageService = messageService;
+            _mediator = mediator;
         }
 
         public async Task JoinConversation(string conversationId)
@@ -28,13 +36,16 @@ namespace FlexiSpace.Web.Hubs
             {
                 throw new UnauthorizedAccessException("Không thể xác thực người dùng.");
             }
-
-            // Lưu xuống DB. Lưu ý: Nên điều chỉnh SaveMessageAsync để trả về MessageResponse
             var savedMessage = await _messageService.SaveMessageAsync(conversationId, senderId, message);
 
-            // Gửi cho TOÀN BỘ những ai đang kết nối vào phòng chat này
-            // Đảm bảo event name "ReceiveNewMessage" khớp với Controller chia sẻ hợp đồng
             await Clients.Group(conversationId).SendAsync("ReceiveNewMessage", savedMessage.Data);
+            await _mediator.Publish(new ChatMessageReceivedEvent
+            {
+                ConversationId = conversationId,
+                SenderId = senderId,
+                Content = message,
+
+            });
         }
         public async Task MarkConversationAsRead(string conversationId)
         {
