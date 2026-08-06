@@ -10,14 +10,27 @@ namespace FlexiSpace.Web.Controllers
     public class NotificationController : MyBaseController
     {
         private readonly INotificationExpoService _notificationExpoService;
-        public NotificationController(INotificationExpoService notificationExpoService)
+        private readonly INotificationService _notificationService;
+
+        public NotificationController(
+            INotificationExpoService notificationExpoService,
+            INotificationService notificationService)
         {
             _notificationExpoService = notificationExpoService;
+            _notificationService = notificationService;
         }
+
         [HttpPost("save-token")]
         public async Task<IActionResult> SaveToken([FromBody] SaveTokenRequest saveTokenRequest)
         {
             var result = await _notificationExpoService.SaveToken(saveTokenRequest);
+            return HandleResult(result);
+        }
+
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory()
+        {
+            var result = await _notificationService.GetHistoryByCurrentUserAsync();
             return HandleResult(result);
         }
     }
