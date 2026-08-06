@@ -19,6 +19,8 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<ListingResponse>> HardDeleteListingAsync(long id);
         Task<ServiceResult<ListingResponse>> AcceptOrCancelListingAsync(long id, ListingStatusRequest request);
         Task<ServiceResult<ListingResponse>> SoftDeleteListingAsync(long id);
+        Task<ServiceResult<List<ShareListingResponse>>> GetSoftDeletedListingsAsync(ListingType? listingType = null);
+        Task<ServiceResult<ListingResponse>> RestoreListingAsync(long id);
         Task<ServiceResult<ListingReportResponse>> CreateListingReportAsync(CreateListingReportRequest request);
         Task<ServiceResult<List<ListingReportResponse>>> GetListingReportsAsync(long listingId);
         Task<ServiceResult<List<ReportedListingSummaryResponse>>> GetReportedListingsAsync();
