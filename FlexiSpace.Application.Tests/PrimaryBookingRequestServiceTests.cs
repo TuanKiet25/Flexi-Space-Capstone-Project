@@ -1,4 +1,5 @@
 using AutoMapper;
+using FlexiSpace.Application.Events.Bookings;
 using FluentAssertions;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
@@ -7,6 +8,7 @@ using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
+using MediatR;
 using Microsoft.EntityFrameworkCore.Query;
 using Moq;
 using System;
@@ -24,6 +26,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<IPrimaryBookingRequestRepository> _mockBookingRepository;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ICurrentUserService> _mockCurrentUserService;
+        private readonly Mock<IPublisher> _mockPublisher;
         private readonly PrimaryBookingRequestService _sut;
 
         public PrimaryBookingRequestServiceTests()
@@ -33,11 +36,12 @@ namespace FlexiSpace.Application.Tests
             _mockBookingRepository = new Mock<IPrimaryBookingRequestRepository>();
             _mockMapper = new Mock<IMapper>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
+            _mockPublisher = new Mock<IPublisher>();
 
             _mockUnitOfWork.SetupGet(u => u.listingRepository).Returns(_mockListingRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.primaryBookingRequestRepository).Returns(_mockBookingRepository.Object);
 
-            _sut = new PrimaryBookingRequestService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCurrentUserService.Object);
+            _sut = new PrimaryBookingRequestService(_mockUnitOfWork.Object, _mockMapper.Object, _mockCurrentUserService.Object, _mockPublisher.Object);
         }
 
         [Fact]
@@ -156,6 +160,59 @@ namespace FlexiSpace.Application.Tests
             booking.ExpectedEndDate.Should().Be(request.ExpectedStartDate.AddDays(2));
             _mockBookingRepository.Verify(r => r.AddAsync(booking), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+            _mockPublisher.Verify(p => p.Publish(
+                It.Is<BookingRequestCreatedEvent>(e =>
+                    e.BookingRequestId == booking.Id &&
+                    e.ListingId == booking.ListingId &&
+                    e.SpaceId == booking.SpaceId &&
+                    e.LesseeId == "lessee-1" &&
+                    e.LessorId == "lessor-1"),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateStatusAsync_Approved_PublishesBookingApprovedEvent()
+        {
+            // 1. ARRANGE
+            var booking = new PrimaryBookingRequest
+            {
+                Id = 5,
+                ListingId = 1,
+                SpaceId = 10,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = PrimaryBookingRequestStatusEnum.Pending
+            };
+            var response = new BookingResponse { Id = 5 };
+            _mockBookingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<PrimaryBookingRequest, bool>>>(),
+                    It.IsAny<Func<IQueryable<PrimaryBookingRequest>, IIncludableQueryable<PrimaryBookingRequest, object>>>()))
+                .ReturnsAsync(booking);
+            _mockBookingRepository
+                .Setup(r => r.UpdateAsync(booking))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork
+                .Setup(u => u.SaveChangesAsync())
+                .ReturnsAsync(1);
+            _mockMapper
+                .Setup(m => m.Map<BookingResponse>(booking))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.UpdateStatusAsync(5, new BookingStatusRequest { Status = PrimaryBookingRequestStatusEnum.Approved });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            booking.Status.Should().Be(PrimaryBookingRequestStatusEnum.Approved);
+            _mockPublisher.Verify(p => p.Publish(
+                It.Is<BookingRequestApprovedEvent>(e =>
+                    e.BookingRequestId == booking.Id &&
+                    e.ListingId == booking.ListingId &&
+                    e.SpaceId == booking.SpaceId &&
+                    e.LessorId == "lessor-1" &&
+                    e.LesseeId == "lessee-1"),
+                It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]

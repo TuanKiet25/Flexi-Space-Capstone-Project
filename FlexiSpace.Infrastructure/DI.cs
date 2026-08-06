@@ -7,6 +7,7 @@ using FlexiSpace.Infrastructure.Helper;
 using FlexiSpace.Infrastructure.MappingOptions;
 using FlexiSpace.Infrastructure.Repositories;
 using FlexiSpace.Infrastructure.Services;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ namespace FlexiSpace.Infrastructure
            IConfiguration configuration)
         {
             services.AddHttpContextAccessor();
+            services.AddMediatR(config => config.RegisterServicesFromAssembly(typeof(IUnitOfWork).Assembly));
             // Đăng ký AppDbContext
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -91,6 +93,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IAIToolService, AIToolService>();
             services.AddScoped<IUserAiImageHistoryService, UserAiImageHistoryService>();
             services.AddScoped<IPriorityLevelService, PriorityLevelService>();
+            services.AddScoped<INotificationExpoService,NotificationExpoService>(); 
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
@@ -103,6 +106,7 @@ namespace FlexiSpace.Infrastructure
                 var falSettings = serviceProvider.GetRequiredService<IOptions<FalAiOptions>>().Value;
                 client.BaseAddress = new Uri(falSettings.BaseUrl);
             });
+            services.AddHttpClient<IExpoPushService, ExpoPushService>();
             // Đăng ký CORS
             services.AddCors(options =>
             {
