@@ -8,5 +8,8 @@ namespace FlexiSpace.Application.IServices
         Task<NotificationResponse> CreateAsync(string userId, string title, string content,
             NotificationTypeEnum type, string? referenceId = null);
         Task<ServiceResult<List<NotificationResponse>>> GetHistoryByCurrentUserAsync();
+        Task<ServiceResult<int>> GetUnreadCountByCurrentUserAsync();
+        Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(long notificationId);
+        Task<ServiceResult<int>> MarkAllAsReadByCurrentUserAsync();
     }
 }
