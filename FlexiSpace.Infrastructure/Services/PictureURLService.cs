@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using static System.Net.WebRequestMethods;
 
 namespace FlexiSpace.Infrastructure.Services
@@ -55,10 +56,17 @@ namespace FlexiSpace.Infrastructure.Services
         {
             if (string.IsNullOrEmpty(publicId)) return false;
 
+            var picture = await _db.PictureURLs.FirstOrDefaultAsync(p => p.PublicId == publicId);
+            if (picture != null)
+            {
+                _db.PictureURLs.Remove(picture);
+                await _db.SaveChangesAsync();
+            }
+
             var deleteParams = new DeletionParams(publicId);
             var result = await _cloudinary.DestroyAsync(deleteParams);
 
-            return result.Result == "ok";
+            return result.Result == "ok" || picture != null;
         }
 
         public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId)
