@@ -89,6 +89,21 @@ namespace FlexiSpace.Web.Controllers
             var result = await _listingService.SoftDeleteListingAsync(id);
             return HandleResult(result);
         }
+
+        [HttpGet("SoftDeleted")]
+        public async Task<IActionResult> GetSoftDeletedListings([FromQuery] ListingType? listingType)
+        {
+            var result = await _listingService.GetSoftDeletedListingsAsync(listingType);
+            return HandleResult(result);
+        }
+
+        [HttpPatch("Restore/{id}")]
+        public async Task<IActionResult> RestoreListing(long id)
+        {
+            var result = await _listingService.RestoreListingAsync(id);
+            return HandleResult(result);
+        }
+
         [HttpPost("CreateShareListing")]
         public async Task<IActionResult> CreateShareListing(SharedListingRequest sharedListingRequest, decimal amount)
         {

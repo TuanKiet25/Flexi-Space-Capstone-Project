@@ -730,6 +730,8 @@ namespace FlexiSpace.Application.Services
                     };
                 }
                 listing.IsDeleted = true;
+                listing.IsActive = false;
+                listing.UpdatedAt = DateTime.Now;
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
                 await _unitOfWork.SaveChangesAsync();
                 _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
@@ -748,6 +750,82 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
+
+        public async Task<ServiceResult<List<ShareListingResponse>>> GetSoftDeletedListingsAsync(ListingType? listingType = null)
+        {
+            try
+            {
+                var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
+                    l => l.IsDeleted && (listingType == null || l.ListingType == listingType),
+                    orderBy: l => l.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt),
+                    include: q => q.Include(l => l.Space)
+                                    .Include(l => l.Lessor)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.AvailabilitiesTimes)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceAmenities)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
+
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<List<ShareListingResponse>>(listings)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<ListingResponse>> RestoreListingAsync(long id)
+        {
+            try
+            {
+                var listing = await _unitOfWork.listingRepository.GetAsync(
+                    x => x.Id == id && x.IsDeleted,
+                    include: q => q.Include(l => l.Space).Include(l => l.Lessor));
+
+                if (listing == null)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Không tìm thấy listing đã xóa mềm với Id đã cho."
+                    };
+                }
+
+                listing.IsDeleted = false;
+                listing.IsActive = true;
+                listing.UpdatedAt = DateTime.Now;
+
+                await _unitOfWork.listingRepository.UpdateAsync(listing);
+                await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
+
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<ListingResponse>(listing),
+                    Message = "Khôi phục listing thành công."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount)
         {
             await _unitOfWork.BeginTransactionAsync();

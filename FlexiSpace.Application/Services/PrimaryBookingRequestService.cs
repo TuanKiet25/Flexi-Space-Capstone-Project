@@ -4,6 +4,8 @@ using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
+using FlexiSpace.Application.Events.Bookings;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlexiSpace.Application.Services
@@ -13,12 +15,14 @@ namespace FlexiSpace.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IPublisher _publisher;
 
-        public PrimaryBookingRequestService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUserService)
+        public PrimaryBookingRequestService(IUnitOfWork unitOfWork, IMapper mapper, ICurrentUserService currentUserService, IPublisher publisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _currentUserService = currentUserService;
+            _publisher = publisher;
         }
 
         public async Task<ServiceResult<BookingResponse>> CreateBookingRequestAsync(BookingRequest request)
@@ -85,6 +89,14 @@ namespace FlexiSpace.Application.Services
                 var result = await _unitOfWork.primaryBookingRequestRepository.GetAsync(
                     x => x.Id == newBooking.Id,
                     include: q => q.Include(b => b.Lessor).Include(b => b.Space).Include(b => b.Listing).Include(b => b.Lessee));
+
+                await _publisher.Publish(new BookingRequestCreatedEvent(
+                    newBooking.Id,
+                    newBooking.ListingId,
+                    newBooking.SpaceId,
+                    newBooking.LesseeId,
+                    newBooking.LessorId,
+                    result?.Space?.Address));
 
                 return new ServiceResult<BookingResponse>
                 {
@@ -291,6 +303,17 @@ namespace FlexiSpace.Application.Services
 
                 await _unitOfWork.primaryBookingRequestRepository.UpdateAsync(booking);
                 await _unitOfWork.SaveChangesAsync();
+
+                if (request.Status == PrimaryBookingRequestStatusEnum.Approved)
+                {
+                    await _publisher.Publish(new BookingRequestApprovedEvent(
+                        booking.Id,
+                        booking.ListingId,
+                        booking.SpaceId,
+                        booking.LessorId,
+                        booking.LesseeId,
+                        booking.Space?.Address));
+                }
 
                 return new ServiceResult<BookingResponse>
                 {

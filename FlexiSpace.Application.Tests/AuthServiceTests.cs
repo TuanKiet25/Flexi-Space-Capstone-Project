@@ -175,6 +175,48 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task RegisterAsync_UnverifiedEmailAlreadyExists_UpdatesExistingAccountAndResendsOtp()
+        {
+            // 1. ARRANGE
+            var request = new RegisterRequest("newuser@email.com", "Password123!", "0123456789", "new-username", "new-name", "valid-token");
+            var existingAccount = new User
+            {
+                Email = request.Email,
+                Password = BCrypt.Net.BCrypt.HashPassword("OldPassword123!"),
+                IsActive = false
+            };
+
+            _mockTurnstileService
+                .Setup(s => s.VerifyTokenAsync(request.TurnstileToken))
+                .ReturnsAsync(true);
+            _mockUserRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<User, bool>>>()))
+                .ReturnsAsync(existingAccount);
+            _mockUserRepository
+                .Setup(r => r.UpdateAsync(existingAccount))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork
+                .Setup(u => u.SaveChangesAsync())
+                .ReturnsAsync(1);
+            _mockEmailService
+                .Setup(e => e.ResendOtpEmailAsync(request.Email, It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+
+            // 2. ACT
+            var result = await _sut.RegisterAsync(request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            existingAccount.UserName.Should().Be(request.UserName);
+            existingAccount.Name.Should().Be(request.Name);
+            existingAccount.PhoneNumber.Should().Be(request.PhoneNumber);
+            BCrypt.Net.BCrypt.Verify(request.Password, existingAccount.Password).Should().BeTrue();
+            _mockUserRepository.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Never);
+            _mockUserRepository.Verify(r => r.UpdateAsync(existingAccount), Times.Once);
+            _mockEmailService.Verify(e => e.ResendOtpEmailAsync(request.Email, It.IsAny<string>()), Times.Once);
+        }
+
+        [Fact]
         public async Task VerifyOtpAsync_InvalidOtp_ReturnsFailedResult()
         {
             // 1. ARRANGE
