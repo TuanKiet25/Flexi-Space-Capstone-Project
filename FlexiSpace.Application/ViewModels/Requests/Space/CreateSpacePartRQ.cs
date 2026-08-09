@@ -3,7 +3,6 @@ namespace FlexiSpace.Application.ViewModels.Requests.Space
     public class CreateSpacePartRQ
     {
         public string? Name { get; set; }
-        public string? Address { get; set; }
         public decimal Area { get; set; }
         public bool IsActive { get; set; } = true;
         public double? Latitude { get; set; }

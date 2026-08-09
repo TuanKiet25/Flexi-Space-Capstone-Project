@@ -48,7 +48,7 @@ namespace FlexiSpace.Infrastructure.MappingOptions
 
                     dest.ParentSpaceId = parentSpace.Id;
                     dest.OwnerId = parentSpace.OwnerId;
-                    dest.Address = string.IsNullOrWhiteSpace(src.Address) ? parentSpace.Address : src.Address;
+                    dest.Address = parentSpace.Address;
                     dest.City = parentSpace.City;
                     dest.Latitude = src.Latitude ?? parentSpace.Latitude;
                     dest.Longitude = src.Longitude ?? parentSpace.Longitude;
