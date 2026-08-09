@@ -70,6 +70,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IJwtProvider, JwtProvider>();
             services.AddScoped<ISpaceService, SpaceService>();
+            services.AddScoped<ISpacePartService, SpacePartService>();
             services.AddScoped<IListingService, ListingService>();
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IPrimaryBookingRequestService, PrimaryBookingRequestService>();
