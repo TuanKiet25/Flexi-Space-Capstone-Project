@@ -9,7 +9,6 @@ namespace FlexiSpace.Infrastructure.Configurations
         public void Configure(EntityTypeBuilder<Space> builder)
         {
             builder.HasKey(s => s.Id);
-
             builder.HasOne(s => s.Owner)
                    .WithMany()
                    .HasForeignKey(s => s.OwnerId)
@@ -29,6 +28,12 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .WithOne(img => img.Space)
                    .HasForeignKey(img => img.SpaceId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(s => s.ParentSpace)
+                    .WithMany(s => s.ChildSpaces)
+                    .HasForeignKey(s => s.ParentSpaceId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

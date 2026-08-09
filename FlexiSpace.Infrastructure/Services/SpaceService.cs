@@ -235,7 +235,7 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<CreateSpaceRP>> Create(CreateSpaceRQ space)
+        public async Task<ServiceResult<CreateSpaceRP>> Create(CreateSpaceRQ space) 
         {
             try
             {
@@ -302,6 +302,7 @@ namespace FlexiSpace.Application.Services
             {
                 var spaces = await _spaceRepository.GetAllAsync(
                     filter: x => !x.IsDeleted &&
+                                x.ParentSpaceId == null &&
                                 (string.IsNullOrEmpty(filter.OwnerId) || x.OwnerId == filter.OwnerId) &&
                                 (string.IsNullOrEmpty(filter.Address) || x.Address.Contains(filter.Address)) &&
                                 (string.IsNullOrEmpty(filter.City) || x.City.Contains(filter.City)) &&
@@ -336,7 +337,7 @@ namespace FlexiSpace.Application.Services
             try
             {
                 var space = await _spaceRepository.GetAsync(
-                    x => x.Id == id && !x.IsDeleted,
+                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId == null,
                     include: x => x.Include(s => s.Owner)
                               .Include(s => s.PrimaryBookingRequest)
                               .Include(s => s.Listing)
@@ -385,7 +386,7 @@ namespace FlexiSpace.Application.Services
                 }
 
                 var existingSpace = await _spaceRepository.GetAsync(
-                    x => x.Id == id && !x.IsDeleted,
+                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId == null,
                     include: x => x.Include(s => s.Owner)
                               .Include(s => s.PrimaryBookingRequest)
                               .Include(s => s.Listing)
@@ -436,13 +437,24 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var existingSpace = await _spaceRepository.GetAsync(x => x.Id == id && !x.IsDeleted);
+                var existingSpace = await _spaceRepository.GetAsync(x => x.Id == id && !x.IsDeleted && x.ParentSpaceId == null);
                 if (existingSpace == null)
                 {
                     return new ServiceResult<string>
                     {
                         IsSuccess = false,
                         Message = "Space not found."
+                    };
+                }
+
+                var hasActiveParts = (await _unitOfWork.spaceRepository.GetAllAsync(
+                    x => x.ParentSpaceId == id && !x.IsDeleted && x.IsActive)).Any();
+                if (hasActiveParts)
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        Message = "Cannot delete a parent space that still has active space parts."
                     };
                 }
 

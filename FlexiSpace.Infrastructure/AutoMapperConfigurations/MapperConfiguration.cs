@@ -1,7 +1,9 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
+using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
+using FlexiSpace.Application.ViewModels.Responses.Space;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
 using System;
@@ -75,6 +77,8 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
                 .ForMember(dest => dest.TargetUserName, opt => opt.MapFrom(src => src.TargetUser != null ? (src.TargetUser.Profile != null ? src.TargetUser.Profile.FullName : src.TargetUser.UserName) : null))
                 .ForMember(dest => dest.SpaceId, opt => opt.MapFrom(src => src.PrimaryBookingRequest != null ? src.PrimaryBookingRequest.SpaceId : (long?)null))
                 .ForMember(dest => dest.SpaceAddress, opt => opt.MapFrom(src => src.PrimaryBookingRequest != null && src.PrimaryBookingRequest.Space != null ? src.PrimaryBookingRequest.Space.Address : null));
+
+
         }
         private static List<ReportReasonEnum> ParseReasons(string reasons)
         {
