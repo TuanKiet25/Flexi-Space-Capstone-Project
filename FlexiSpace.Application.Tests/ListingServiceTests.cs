@@ -67,7 +67,7 @@ namespace FlexiSpace.Application.Tests
             // 1. ARRANGE
             var request = CreateListingRequest();
             _mockWalletService
-                .Setup(s => s.SpendWalletBalance(50))
+                .Setup(s => s.SpendWalletBalance(50, "Thanh toán bài đăng"))
                 .ReturnsAsync(new ServiceResult<WalletRespnse> { IsSuccess = false, Message = "Balance not enough" });
 
             // 2. ACT
@@ -296,7 +296,7 @@ namespace FlexiSpace.Application.Tests
         private void SetupWalletSpendSuccess()
         {
             _mockWalletService
-                .Setup(s => s.SpendWalletBalance(It.IsAny<decimal>()))
+                .Setup(s => s.SpendWalletBalance(It.IsAny<decimal>(), It.IsAny<string>()))
                 .ReturnsAsync(new ServiceResult<WalletRespnse>
                 {
                     IsSuccess = true,

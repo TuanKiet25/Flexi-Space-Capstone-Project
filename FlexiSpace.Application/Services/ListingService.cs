@@ -185,7 +185,7 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var wallet = await _walletService.SpendWalletBalance(amount);
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toán bài đăng");
                 if(wallet.IsSuccess == false)
                 {
                     return new ServiceResult<ListingResponse>
@@ -832,7 +832,7 @@ namespace FlexiSpace.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var wallet = await _walletService.SpendWalletBalance(amount);
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toán bài đăng");
                 if (wallet.IsSuccess == false)
                 {
                     return new ServiceResult<ShareListingResponse>

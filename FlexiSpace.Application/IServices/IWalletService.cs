@@ -13,6 +13,6 @@ namespace FlexiSpace.Application.IServices
         public Task<ServiceResult<WalletRespnse>> GetWalletByUserId(string userId);
         public Task<ServiceResult<WalletRespnse>> GetOwnWallet();
         public Task<ServiceResult<WalletRespnse>> UpdateWalletBalance(string userId, decimal uBalance);
-        public Task<ServiceResult<WalletRespnse>> SpendWalletBalance(decimal spend);
+        public Task<ServiceResult<WalletRespnse>> SpendWalletBalance(decimal spend, string description);
     }
 }
