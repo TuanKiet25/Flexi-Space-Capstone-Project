@@ -358,7 +358,7 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null)
+        public async Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null, int? top = null)
         {
             try
             {
@@ -385,7 +385,8 @@ namespace FlexiSpace.Application.Services
                                         .ThenInclude(s => s.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
                                         .ThenInclude(s => s.ShareSpaceCategories)
-                                    .Include(l => l.PictureURLs));
+                                    .Include(l => l.PictureURLs),
+                    take: top);
 
                 var mappedListings = _mapper.Map<List<ShareListingResponse>>(listings);
                 await SetCacheAsync(cacheKey, mappedListings);
