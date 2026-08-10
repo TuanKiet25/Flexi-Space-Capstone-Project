@@ -1056,6 +1056,9 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<string>("OwnerId")
                         .HasColumnType("text");
 
+                    b.Property<long?>("ParentSpaceId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("SpacePictures")
                         .HasColumnType("text");
 
@@ -1068,6 +1071,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("ParentSpaceId");
 
                     b.ToTable("Spaces");
                 });
@@ -1762,7 +1767,14 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("FlexiSpace.Domain.Entities.Space", "ParentSpace")
+                        .WithMany("ChildSpaces")
+                        .HasForeignKey("ParentSpaceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Owner");
+
+                    b.Navigation("ParentSpace");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.SpaceAllowedCategory", b =>
@@ -1905,6 +1917,8 @@ namespace FlexiSpace.Infrastructure.Migrations
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Space", b =>
                 {
                     b.Navigation("Amenity");
+
+                    b.Navigation("ChildSpaces");
 
                     b.Navigation("Contract");
 

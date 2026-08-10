@@ -16,9 +16,11 @@ namespace FlexiSpace.Domain.Entities
             SpaceAllowedCategory = new HashSet<SpaceAllowedCategory>();
             Contract = new HashSet<Contract>();
             PictureURL = new HashSet<PictureURL>();
+            ChildSpaces = new HashSet<Space>();
         }
 
         public long Id { get; set; }
+        public long? ParentSpaceId { get; set; }
         public string OwnerId { get; set; }
         public string Address { get; set; }
         public string City { get; set; }
@@ -27,6 +29,8 @@ namespace FlexiSpace.Domain.Entities
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public virtual User Owner { get; set; }
+        public virtual Space ParentSpace { get; set; }
+        public virtual ICollection<Space> ChildSpaces { get; set; }
         public virtual ICollection<Contract> Contract { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
         public virtual ICollection<Listing> Listing { get; set; }

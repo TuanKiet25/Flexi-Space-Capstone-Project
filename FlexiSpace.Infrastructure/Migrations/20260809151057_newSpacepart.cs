@@ -6,11 +6,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class DeviceTokens : Migration
+    public partial class newSpacepart : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<long>(
+                name: "ParentSpaceId",
+                table: "Spaces",
+                type: "bigint",
+                nullable: true);
+
             migrationBuilder.CreateTable(
                 name: "DeviceTokens",
                 columns: table => new
@@ -39,20 +45,45 @@ namespace FlexiSpace.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Spaces_ParentSpaceId",
+                table: "Spaces",
+                column: "ParentSpaceId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DeviceTokens_UserId",
                 table: "DeviceTokens",
                 column: "UserId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Spaces_Spaces_ParentSpaceId",
+                table: "Spaces",
+                column: "ParentSpaceId",
+                principalTable: "Spaces",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Spaces_Spaces_ParentSpaceId",
+                table: "Spaces");
+
             migrationBuilder.DropTable(
                 name: "DeviceTokens");
 
             migrationBuilder.DropIndex(
                 name: "IX_Users_Email",
                 table: "Users");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Spaces_ParentSpaceId",
+                table: "Spaces");
+
+            migrationBuilder.DropColumn(
+                name: "ParentSpaceId",
+                table: "Spaces");
         }
     }
 }
