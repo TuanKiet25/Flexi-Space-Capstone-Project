@@ -107,7 +107,7 @@ namespace FlexiSpace.Application.Tests
                 .ReturnsAsync(new Wallet { Id = 1, UserId = "user-1", Balance = 50 });
 
             // 2. ACT
-            var result = await _sut.SpendWalletBalance(100);
+            var result = await _sut.SpendWalletBalance(100, "Test spend transaction");
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
@@ -141,7 +141,7 @@ namespace FlexiSpace.Application.Tests
                 .Returns(response);
 
             // 2. ACT
-            var result = await _sut.SpendWalletBalance(-30);
+            var result = await _sut.SpendWalletBalance(-30, "Test spend transaction");
 
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();

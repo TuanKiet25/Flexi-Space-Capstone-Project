@@ -71,7 +71,7 @@ namespace FlexiSpace.Application.Services
                     };
                 }
                 var cloudinaryUrl = await _pictureUrlService.UploadImageFromUrlAsync(falTemporaryUrl, "flexispace_ai_tools");
-                var spendResult = await _walletService.SpendWalletBalance(AiDecorCost);
+                var spendResult = await _walletService.SpendWalletBalance(AiDecorCost, "Thanh toán sử dụng công cụ AI");
                 if (!spendResult.IsSuccess)
                 {
                     return new ServiceResult<string>

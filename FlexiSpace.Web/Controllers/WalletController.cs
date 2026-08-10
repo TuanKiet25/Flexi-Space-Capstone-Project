@@ -35,9 +35,9 @@ namespace FlexiSpace.Web.Controllers
         }
 
         [HttpPut("spend")]
-        public async Task<IActionResult> SpendWalletBalance([FromQuery] decimal spend)
+        public async Task<IActionResult> SpendWalletBalance([FromQuery] decimal spend, string description)
         {
-            var result = await _walletService.SpendWalletBalance(spend);
+            var result = await _walletService.SpendWalletBalance(spend, description);
             return HandleResult(result);
         }
 

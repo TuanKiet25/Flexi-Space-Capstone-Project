@@ -144,7 +144,7 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<WalletRespnse>> SpendWalletBalance(decimal spend)
+        public async Task<ServiceResult<WalletRespnse>> SpendWalletBalance(decimal spend, string description)
         {
             try
             {
@@ -190,10 +190,10 @@ namespace FlexiSpace.Application.Services
                 var transactionHistory = new TransactionHistory
                 {
                     WalletId = wallet.Id,
-                    TransactionAmount = amountToSubtract,
+                    TransactionAmount = -amountToSubtract,
                     WalletAmount = wallet.Balance,
                     Status = Domain.Enum.TransactionEnum.Completed,
-                    Description = "Wallet spend transaction",
+                    Description = description,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userId,
                     IsDeleted = false
