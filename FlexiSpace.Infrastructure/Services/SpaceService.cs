@@ -6,6 +6,7 @@ using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Application.ViewModels.Responses.Space;
 using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Enum;
 using FlexiSpace.Infrastructure;
 using FlexiSpace.Infrastructure.Helper;
 using FlexiSpace.Infrastructure.Services;
@@ -300,10 +301,20 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
+                var now = DateTime.Now;
                 var spaces = await _spaceRepository.GetAllAsync(
                     filter: x => !x.IsDeleted &&
                                 x.ParentSpaceId == null &&
-                                (string.IsNullOrEmpty(filter.OwnerId) || x.OwnerId == filter.OwnerId) &&
+                                (string.IsNullOrEmpty(filter.OwnerId) ||
+                                 x.OwnerId == filter.OwnerId ||
+                                 x.SpaceUsageRights.Any(r =>
+                                    r.UserId == filter.OwnerId &&
+                                    !r.IsDeleted &&
+                                    r.IsActive &&
+                                    r.CanShare &&
+                                    r.Type == SpaceUsageRightType.PrimaryRenter &&
+                                    r.ValidFrom <= now &&
+                                    r.ValidTo >= now)) &&
                                 (string.IsNullOrEmpty(filter.Address) || x.Address.Contains(filter.Address)) &&
                                 (string.IsNullOrEmpty(filter.City) || x.City.Contains(filter.City)) &&
                                 (filter.Area <= 0 || x.Area >= filter.Area),
@@ -314,6 +325,7 @@ namespace FlexiSpace.Application.Services
                               .Include(s => s.OperatingHour)
                               .Include(s => s.SpaceAllowedCategory)
                               .Include(s => s.PictureURL)
+                              .Include(s => s.SpaceUsageRights)
                     );
                 var mappedSpaces = _mapper.Map<IEnumerable<GetAllSpace>>(spaces);
                 return new ServiceResult<IEnumerable<GetAllSpace>>
