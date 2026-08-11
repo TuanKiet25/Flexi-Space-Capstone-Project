@@ -9,6 +9,11 @@ namespace FlexiSpace.Infrastructure.Configurations
         public void Configure(EntityTypeBuilder<PictureURL> builder)
         {
             builder.HasKey(p => p.Id);
+
+            builder.HasOne(p => p.Contract)
+                   .WithMany(c => c.PictureURLs)
+                   .HasForeignKey(p => p.ContractId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

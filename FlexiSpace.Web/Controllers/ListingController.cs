@@ -111,6 +111,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpGet("ShareListing/TimePolicy/{spaceId}")]
+        public async Task<IActionResult> GetShareListingTimePolicy(long spaceId)
+        {
+            var result = await _listingService.GetShareListingTimePolicyAsync(spaceId);
+            return HandleResult(result);
+        }
+
         [HttpPut("UpdateShareListing/{id}")]
         public async Task<IActionResult> UpdateShareListing(long id, SharedListingRequest sharedListingRequest)
         {

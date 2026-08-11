@@ -65,6 +65,7 @@ namespace FlexiSpace.Application.Services
                 contract.CreatedAt = DateTime.Now;
                 contract.UpdatedAt = DateTime.Now;
                 contract.ContractSnapshot = string.Empty;
+                contract.Source = ContractSource.Platform;
                 contract.Lessor = validation.Space.Owner;
                 contract.Lessee = validation.Booking.Lessee;
                 var profileValidation = await PopulateContractParticipantProfilesAsync(contract);
@@ -1010,9 +1011,12 @@ namespace FlexiSpace.Application.Services
             if (contract.ContractVerification.IsLessorAgreed && contract.ContractVerification.IsLesseeAgreed)
             {
                 contract.Status = ContractStatusEnum.Active;
+                contract.IsActive = true;
+                contract.IsDeleted = false;
                 contract.PostSignSnapshot = BuildPostSignSnapshot(contract);
                 contract.PostSignHash = ComputeSha256Hash(contract.PostSignSnapshot);
                 contract.ContractSnapshot = contract.PostSignSnapshot;
+                await EnsureSpaceUsageRightAsync(contract);
                 isFullySigned = true;
             }
             if (isFullySigned)
@@ -1125,6 +1129,32 @@ namespace FlexiSpace.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
+        private async Task EnsureSpaceUsageRightAsync(Contract contract)
+        {
+            var existed = await _unitOfWork.spaceUsageRightRepository.GetAsync(x => x.ContractId == contract.Id && !x.IsDeleted);
+            if (existed != null)
+            {
+                return;
+            }
+
+            await _unitOfWork.spaceUsageRightRepository.AddAsync(new SpaceUsageRight
+            {
+                SpaceId = contract.SpaceId,
+                ContractId = contract.Id,
+                UserId = contract.LesseeId,
+                GrantedByUserId = contract.LessorId,
+                ValidFrom = contract.StartDate,
+                ValidTo = contract.EndDate,
+                CanShare = contract.CanShare,
+                CanGrantSharePermission = contract.CanGrantSharePermission,
+                Type = SpaceUsageRightType.PrimaryRenter,
+                IsActive = true,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = contract.LessorId
+            });
+        }
+
         private string BuildPreSignSnapshot(Contract contract)
         {
             var snapshotPayload = new
@@ -1153,6 +1183,9 @@ namespace FlexiSpace.Application.Services
                 EndDate = contract.EndDate,
                 DepositAmount = contract.DepositAmount,
                 Price = contract.Price,
+                CanShare = contract.CanShare,
+                CanGrantSharePermission = contract.CanGrantSharePermission,
+                Source = contract.Source,
                 Status = contract.Status,
                 ContractSchedules = BuildScheduleSnapshot(contract)
             };
@@ -1197,6 +1230,9 @@ namespace FlexiSpace.Application.Services
                 EndDate = contract.EndDate,
                 DepositAmount = contract.DepositAmount,
                 Price = contract.Price,
+                CanShare = contract.CanShare,
+                CanGrantSharePermission = contract.CanGrantSharePermission,
+                Source = contract.Source,
                 Status = contract.Status,
                 ContractVerification = new
                 {

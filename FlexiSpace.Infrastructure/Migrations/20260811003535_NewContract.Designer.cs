@@ -3,6 +3,7 @@ using System;
 using FlexiSpace.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811003535_NewContract")]
+    partial class NewContract
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -240,7 +243,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
-                    b.Property<long?>("PrimaryBookingRequestId")
+                    b.Property<long>("PrimaryBookingRequestId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("Source")
@@ -274,6 +277,49 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasIndex("SpaceId");
 
                     b.ToTable("Contracts");
+                });
+
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.ContractDocument", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ContractId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.ToTable("ContractDocuments");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.ContractSchedule", b =>
@@ -720,9 +766,6 @@ namespace FlexiSpace.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("ContractId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -763,8 +806,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ContractId");
 
                     b.HasIndex("ListingId");
 
@@ -1543,7 +1584,8 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.PrimaryBookingRequest", "PrimaryBookingRequest")
                         .WithMany("Contracts")
                         .HasForeignKey("PrimaryBookingRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("FlexiSpace.Domain.Entities.Space", "Space")
                         .WithMany("Contract")
@@ -1560,6 +1602,17 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("PrimaryBookingRequest");
 
                     b.Navigation("Space");
+                });
+
+            modelBuilder.Entity("FlexiSpace.Domain.Entities.ContractDocument", b =>
+                {
+                    b.HasOne("FlexiSpace.Domain.Entities.Contract", "Contract")
+                        .WithMany("ContractDocuments")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.ContractSchedule", b =>
@@ -1717,11 +1770,6 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PictureURL", b =>
                 {
-                    b.HasOne("FlexiSpace.Domain.Entities.Contract", "Contract")
-                        .WithMany("PictureURLs")
-                        .HasForeignKey("ContractId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
                         .WithMany("PictureURLs")
                         .HasForeignKey("ListingId")
@@ -1736,8 +1784,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                         .WithOne("Avatar")
                         .HasForeignKey("FlexiSpace.Domain.Entities.PictureURL", "UserProfileId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Contract");
 
                     b.Navigation("Listing");
 
@@ -1997,11 +2043,11 @@ namespace FlexiSpace.Infrastructure.Migrations
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Contract", b =>
                 {
+                    b.Navigation("ContractDocuments");
+
                     b.Navigation("ContractSchedules");
 
                     b.Navigation("ContractVerification");
-
-                    b.Navigation("PictureURLs");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Conversation", b =>

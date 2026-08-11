@@ -13,7 +13,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string? LessorNickName { get; set; }
         public string? LesseeNickName { get; set; }
         public long SpaceId { get; set; }
-        public long PrimaryBookingRequestId { get; set; }
+        public long? PrimaryBookingRequestId { get; set; }
         public string? LessorNumberCard { get; set; }
         public string? LessorName { get; set; }
         public DateOnly LessorCardIssuanceDate { get; set; }
@@ -31,6 +31,9 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public DateTime EndDate { get; set; }
         public decimal DepositAmount { get; set; }
         public decimal Price { get; set; }
+        public bool CanShare { get; set; }
+        public bool CanGrantSharePermission { get; set; }
+        public ContractSource Source { get; set; }
         public string? PreSignHash { get; set; }
         public string? PostSignHash { get; set; }
         public List<ContractScheduleRequest>? ContractSchedules { get; set; }
