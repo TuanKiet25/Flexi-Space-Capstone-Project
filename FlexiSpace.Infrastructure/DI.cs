@@ -95,6 +95,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IUserAiImageHistoryService, UserAiImageHistoryService>();
             services.AddScoped<IPriorityLevelService, PriorityLevelService>();
             services.AddScoped<INotificationExpoService,NotificationExpoService>(); 
+            services.AddScoped<IDashboardService, DashboardService>();
             #endregion
             //Map từ appsettings 
             services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
