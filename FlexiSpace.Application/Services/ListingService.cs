@@ -93,12 +93,28 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        private async Task<string?> ValidationMessageAsync(ListingRequest listing)
+        private async Task<string?> ValidationMessageAsync(ListingRequest listing, long? excludedListingId = null)
         {
-            var isExistedSpace = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == listing.SpaceId);
-            if (isExistedSpace == null)
+            var space = await _unitOfWork.spaceRepository.GetAsync(
+                x => x.Id == listing.SpaceId && !x.IsDeleted && x.IsActive,
+                include: q => q.Include(s => s.ChildSpaces).Include(s => s.ParentSpace));
+            if (space == null)
             {
                 return "Không tìm thấy mặt bằng với Id đã cho.";
+            }
+
+            if (listing.AllowedStartTime == null || listing.AllowedEndTime == null)
+            {
+                return "Vui lòng thiết lập thời gian bắt đầu và kết thúc cho listing.";
+            }
+
+            var allowedStartTime = listing.AllowedStartTime.Value;
+            var allowedEndTime = listing.AllowedEndTime.Value;
+
+            var permissionValidation = await ValidateListingCreatorPermissionAsync(space, listing, allowedStartTime, allowedEndTime);
+            if (permissionValidation != null)
+            {
+                return permissionValidation;
             }
            
             DateOnly currentTime = DateOnly.FromDateTime(DateTime.Now);
@@ -132,6 +148,19 @@ namespace FlexiSpace.Application.Services
             {
                 return "Giá cho thuê phải lớn hơn 0.";
             }
+
+            var isShareListingByRenter = space.OwnerId != _currentUserService.UserId && listing is SharedListingRequest;
+            var timeConflictValidation = await ValidateSpaceListingTimeConflictAsync(
+                space,
+                allowedStartTime,
+                allowedEndTime,
+                excludedListingId,
+                ignoreOwnerSourceListing: isShareListingByRenter);
+            if (timeConflictValidation != null)
+            {
+                return timeConflictValidation;
+            }
+
             if (listing is SharedListingRequest sharedListing)
             {
                 if (sharedListing.ShareSpaceDetailMaxSubRenter <= 0)
@@ -177,6 +206,212 @@ namespace FlexiSpace.Application.Services
                     }
                 }
 
+            }
+
+            return null;
+        }
+
+        private async Task<string?> ValidateListingCreatorPermissionAsync(
+            Space space,
+            ListingRequest listing,
+            DateOnly allowedStartTime,
+            DateOnly allowedEndTime)
+        {
+            var currentUserId = _currentUserService.UserId;
+            if (space.OwnerId == currentUserId)
+            {
+                return null;
+            }
+
+            if (listing is not SharedListingRequest)
+            {
+                return "Bạn không có quyền đăng listing cho mặt bằng này.";
+            }
+
+            var startDate = allowedStartTime.ToDateTime(TimeOnly.MinValue);
+            var endDate = allowedEndTime.ToDateTime(TimeOnly.MaxValue);
+            var usageRights = await _unitOfWork.spaceUsageRightRepository.GetAllAsync(x =>
+                x.SpaceId == space.Id &&
+                x.UserId == currentUserId &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.CanShare &&
+                x.Type != SpaceUsageRightType.SubRenter &&
+                x.ValidFrom <= startDate &&
+                x.ValidTo >= endDate);
+
+            if (!usageRights.Any())
+            {
+                return "Bạn không có quyền share mặt bằng này trong khoảng thời gian được chọn.";
+            }
+
+            return null;
+        }
+
+        public async Task<ServiceResult<ShareListingTimePolicyResponse>> GetShareListingTimePolicyAsync(long spaceId)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                if (string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    return new ServiceResult<ShareListingTimePolicyResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Register first!"
+                    };
+                }
+
+                var space = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == spaceId && !x.IsDeleted && x.IsActive);
+                if (space == null)
+                {
+                    return new ServiceResult<ShareListingTimePolicyResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy mặt bằng với Id đã cho."
+                    };
+                }
+
+                if (space.OwnerId == currentUserId)
+                {
+                    return new ServiceResult<ShareListingTimePolicyResponse>
+                    {
+                        IsSuccess = true,
+                        Data = new ShareListingTimePolicyResponse
+                        {
+                            IsLocked = false,
+                            Message = "Chủ sở hữu tự nhập thời gian cho share listing."
+                        }
+                    };
+                }
+
+                var contracts = await _unitOfWork.contractRepository.GetAllAsync(x =>
+                    x.SpaceId == spaceId &&
+                    x.LesseeId == currentUserId &&
+                    x.CanShare &&
+                    !x.IsDeleted &&
+                    x.IsActive &&
+                    x.Status == ContractStatusEnum.Active);
+
+                var platformContract = contracts
+                    .Where(x => x.Source == ContractSource.Platform)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefault();
+
+                if (platformContract != null)
+                {
+                    return new ServiceResult<ShareListingTimePolicyResponse>
+                    {
+                        IsSuccess = true,
+                        Data = new ShareListingTimePolicyResponse
+                        {
+                            IsLocked = true,
+                            ContractId = platformContract.Id,
+                            Source = platformContract.Source,
+                            AllowedStartTime = DateOnly.FromDateTime(platformContract.StartDate),
+                            AllowedEndTime = DateOnly.FromDateTime(platformContract.EndDate),
+                            Message = "Thời gian share được lấy từ hợp đồng trong hệ thống."
+                        }
+                    };
+                }
+
+                var externalContract = contracts
+                    .Where(x => x.Source == ContractSource.External)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefault();
+
+                return new ServiceResult<ShareListingTimePolicyResponse>
+                {
+                    IsSuccess = true,
+                    Data = new ShareListingTimePolicyResponse
+                    {
+                        IsLocked = false,
+                        ContractId = externalContract?.Id,
+                        Source = externalContract?.Source,
+                        Message = externalContract != null
+                            ? "Vui lòng nhập thời gian share và xác nhận cam kết."
+                            : "Không tìm thấy hợp đồng có quyền share cho mặt bằng này."
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ShareListingTimePolicyResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        private async Task<string?> ValidateSpaceListingTimeConflictAsync(
+            Space space,
+            DateOnly allowedStartTime,
+            DateOnly allowedEndTime,
+            long? excludedListingId = null,
+            bool ignoreOwnerSourceListing = false)
+        {
+            var sameSpaceConflict = await _unitOfWork.listingRepository.GetAllAsync(x =>
+                x.SpaceId == space.Id &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.Status == ListingStatusEnum.Accepted &&
+                (excludedListingId == null || x.Id != excludedListingId.Value) &&
+                x.AllowedStartTime <= allowedEndTime &&
+                x.AllowedEndTime >= allowedStartTime);
+
+            if (ignoreOwnerSourceListing)
+            {
+                sameSpaceConflict = sameSpaceConflict
+                    .Where(x => x.CreatorId != space.OwnerId)
+                    .ToList();
+            }
+
+            if (sameSpaceConflict.Any())
+            {
+                return "Mặt bằng này đã có listing trong khoảng thời gian này.";
+            }
+
+            if (space.ParentSpaceId != null)
+            {
+                var parentConflict = await _unitOfWork.listingRepository.GetAllAsync(x =>
+                    x.SpaceId == space.ParentSpaceId.Value &&
+                    !x.IsDeleted &&
+                    x.IsActive &&
+                    x.Status == ListingStatusEnum.Accepted &&
+                    (excludedListingId == null || x.Id != excludedListingId.Value) &&
+                    x.AllowedStartTime <= allowedEndTime &&
+                    x.AllowedEndTime >= allowedStartTime);
+
+                if (parentConflict.Any())
+                {
+                    return "Mặt bằng lớn đang có listing trong khoảng thời gian này. Chỉ có thể đăng mặt bằng con ngoài khoảng thời gian đó.";
+                }
+            }
+            else
+            {
+                var childSpaceIds = (space.ChildSpaces ?? Enumerable.Empty<Space>())
+                    .Where(x => !x.IsDeleted && x.IsActive)
+                    .Select(x => x.Id)
+                    .ToList();
+
+                if (childSpaceIds.Any())
+                {
+                    var childConflict = await _unitOfWork.listingRepository.GetAllAsync(x =>
+                        childSpaceIds.Contains(x.SpaceId) &&
+                        !x.IsDeleted &&
+                        x.IsActive &&
+                        x.Status == ListingStatusEnum.Accepted &&
+                        (excludedListingId == null || x.Id != excludedListingId.Value) &&
+                        x.AllowedStartTime <= allowedEndTime &&
+                        x.AllowedEndTime >= allowedStartTime);
+
+                    if (childConflict.Any())
+                    {
+                        return "Một hoặc nhiều mặt bằng con đang có listing trong khoảng thời gian này. Không thể đăng thuê nguyên mặt bằng lớn trùng thời gian.";
+                    }
+                }
             }
 
             return null;
@@ -293,7 +528,7 @@ namespace FlexiSpace.Application.Services
                         Message = "Không tìm thấy listing với Id đã cho."
                     };
                 }
-                var checkValidation = await ValidationMessageAsync(listing);
+                var checkValidation = await ValidationMessageAsync(listing, id);
                 if (checkValidation != null)
                 {
                     return new ServiceResult<ListingResponse>
@@ -971,7 +1206,7 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
-                var checkValidation = await ValidationMessageAsync(sharedListingRequest);
+                var checkValidation = await ValidationMessageAsync(sharedListingRequest, id);
                 if (checkValidation != null)
                 {
                     return new ServiceResult<ShareListingResponse>

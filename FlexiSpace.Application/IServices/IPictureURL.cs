@@ -12,7 +12,7 @@ namespace FlexiSpace.Application.IServices
 {
     public interface IPictureURL
     {
-        Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId);
+        Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId, long? contractId = null);
         Task<bool> DeleteImageFromCloudAsync(string publicId);
         Task<string> UploadImageFromUrlAsync(string sourceUrl, string folderName = "flexispace_ai_decor");
     }

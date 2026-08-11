@@ -27,11 +27,13 @@ namespace FlexiSpace.Infrastructure.Configurations
             builder.HasOne(c => c.PrimaryBookingRequest)
                    .WithMany(p => p.Contracts)
                    .HasForeignKey(c => c.PrimaryBookingRequestId)
+                   .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(c => c.Conversation)
                    .WithMany(conv => conv.Contracts)
                    .HasForeignKey(c => c.ConversationId)
+                   .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(c => c.ContractVerification)
@@ -42,6 +44,11 @@ namespace FlexiSpace.Infrastructure.Configurations
             builder.HasMany(c => c.ContractSchedules)
                    .WithOne(cs => cs.Contract)
                    .HasForeignKey(cs => cs.ContractId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(c => c.PictureURLs)
+                   .WithOne(p => p.Contract)
+                   .HasForeignKey(p => p.ContractId)
                    .OnDelete(DeleteBehavior.Cascade);
 
             builder.Property(c => c.ContractSnapshot)

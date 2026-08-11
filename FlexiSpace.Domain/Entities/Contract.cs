@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Domain.Enum;
+﻿                                                                using FlexiSpace.Domain.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,8 +15,8 @@ namespace FlexiSpace.Domain.Entities
         //nguoi thue
         public string LesseeId { get; set; }
         public long SpaceId { get; set; }
-        public long PrimaryBookingRequestId { get; set; }
-        public string ConversationId { get; set; }
+        public long? PrimaryBookingRequestId { get; set; }
+        public string? ConversationId { get; set; }
         public DateOnly Date { get; set; }
         // thong tin nguoi cho thue
         public string LessorNumberCard { get; set; }
@@ -45,6 +45,11 @@ namespace FlexiSpace.Domain.Entities
         public string PreSignHash { get; set; }
         public string PostSignSnapshot { get; set; }
         public string PostSignHash { get; set; }
+        //Permission
+        public bool CanShare { get; set; }
+        public bool CanGrantSharePermission { get; set; }
+        public ContractSource Source { get; set; }
+        
         public ContractStatusEnum Status { get; set; }
         public virtual Space Space { get; set; }
         public virtual Conversation Conversation { get; set; }
@@ -53,5 +58,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual PrimaryBookingRequest PrimaryBookingRequest { get; set; }
         public virtual ContractVerification ContractVerification { get; set; }
         public virtual ICollection<ContractSchedule> ContractSchedules { get; set; } = new List<ContractSchedule>();
+        public virtual ICollection<PictureURL> PictureURLs { get; set; } = new List<PictureURL>();
     }
 }

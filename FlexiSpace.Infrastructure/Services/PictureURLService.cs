@@ -69,11 +69,11 @@ namespace FlexiSpace.Infrastructure.Services
             return result.Result == "ok" || picture != null;
         }
 
-        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId)
+        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId, long? contractId = null)
         {
-            if (spaceId == null && string.IsNullOrEmpty(userProfileId) && listingId == null)
+            if (spaceId == null && string.IsNullOrEmpty(userProfileId) && listingId == null && contractId == null)
             {
-                throw new Exception("At least one target (SpaceId, UserProfileId, or ListingId) must be specified.");
+                throw new Exception("At least one target (SpaceId, UserProfileId, ListingId, or ContractId) must be specified.");
             }
 
             if (spaceId.HasValue)
@@ -89,6 +89,11 @@ namespace FlexiSpace.Infrastructure.Services
             if (listingId.HasValue)
             {
                 var listing = await _unitOfWork.listingRepository.GetAsync(l => l.Id == listingId.Value) ?? throw new Exception("Listing not found");
+            }
+
+            if (contractId.HasValue)
+            {
+                var contract = await _unitOfWork.contractRepository.GetAsync(c => c.Id == contractId.Value) ?? throw new Exception("Contract not found");
             }
 
             var Images = new List<PictureURL>();
@@ -120,7 +125,8 @@ namespace FlexiSpace.Infrastructure.Services
                         IsPrimary = false,
                         SpaceId = spaceId,
                         UserProfileId = userProfileId,
-                        ListingId = listingId
+                        ListingId = listingId,
+                        ContractId = contractId
                     });
                 }
             }

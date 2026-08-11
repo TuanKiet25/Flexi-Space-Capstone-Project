@@ -19,6 +19,8 @@ namespace FlexiSpace.Application.ViewModels.Requests
         public decimal? DepositAmount { get; set; } 
         public string? Description { get; set; }
         public string? BusinessPurpose { get; set; }
+        public bool CanShare { get; set; }
+        public bool CanGrantSharePermission { get; set; }
         public List<ContractScheduleRequest>? ContractSchedules { get; set; }
     }
 }

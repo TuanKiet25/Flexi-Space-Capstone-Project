@@ -15,9 +15,11 @@ namespace FlexiSpace.Domain.Entities
         public long? SpaceId { get; set; }
         public string UserProfileId { get; set; }
         public long? ListingId { get; set; }
+        public long? ContractId { get; set; }
 
         public virtual Space Space { get; set; }
         public virtual UserProfile UserProfile { get; set; }
         public virtual Listing Listing { get; set; }
+        public virtual Contract Contract { get; set; }
     }
 }
