@@ -78,7 +78,8 @@ namespace FlexiSpace.Infrastructure.Repositories
 
         public async Task<List<T>> GetAllWithSortAsync(System.Linq.Expressions.Expression<Func<T, bool>>? filter,
                                                Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
-                                               Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
+                                               Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+                                               int? take = null)
         {
             IQueryable<T> query = _db;
 
@@ -96,6 +97,10 @@ namespace FlexiSpace.Infrastructure.Repositories
             if (orderBy != null)
             {
                 query = orderBy(query);
+            }
+            if (take.HasValue && take.Value > 0)
+            {
+                query = query.Take(take.Value);
             }
             return await query
                 .ToListAsync();

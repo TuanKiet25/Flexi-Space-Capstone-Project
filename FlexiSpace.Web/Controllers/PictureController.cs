@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Application.IServices;
+using FlexiSpace.Application.IServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlexiSpace.Web.Controllers
@@ -23,6 +23,19 @@ namespace FlexiSpace.Web.Controllers
 
             var pictureURL = await _pictureURLService.UploadImagesAsync(file, spaceId, userProfileId, listingId, contractId);
             return Ok(pictureURL);
+        }
+
+        [HttpDelete("{*publicId}")]
+        public async Task<IActionResult> DeletePicture(string publicId)
+        {
+            if (string.IsNullOrEmpty(publicId))
+                return BadRequest("PublicId is required.");
+
+            var result = await _pictureURLService.DeleteImageFromCloudAsync(publicId);
+            if (result)
+                return Ok("Deleted successfully.");
+
+            return BadRequest("Failed to delete picture.");
         }
     }
 }

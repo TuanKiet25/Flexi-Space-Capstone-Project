@@ -22,9 +22,9 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
         [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAllListings([FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType)
+        public async Task<IActionResult> GetAllListings([FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType, [FromQuery] int? top)
         {
-            var result = await _listingService.GetAllListingsAsync(status, listingType);
+            var result = await _listingService.GetAllListingsAsync(status, listingType, top);
             return HandleResult(result);
         }
         [HttpGet("GetById/{id}")]

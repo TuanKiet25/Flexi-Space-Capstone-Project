@@ -107,7 +107,7 @@ namespace FlexiSpace.Application.Tests
                 .ReturnsAsync(new Wallet { Id = 1, UserId = "user-1", Balance = 50 });
 
             // 2. ACT
-            var result = await _sut.SpendWalletBalance(100);
+            var result = await _sut.SpendWalletBalance(100, "Test spend transaction");
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
@@ -141,7 +141,7 @@ namespace FlexiSpace.Application.Tests
                 .Returns(response);
 
             // 2. ACT
-            var result = await _sut.SpendWalletBalance(-30);
+            var result = await _sut.SpendWalletBalance(-30, "Test spend transaction");
 
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();
@@ -151,10 +151,10 @@ namespace FlexiSpace.Application.Tests
             _mockWalletRepository.Verify(r => r.UpdateAsync(wallet), Times.Once);
             _mockTransactionHistoryRepository.Verify(r => r.AddAsync(It.Is<TransactionHistory>(h =>
                 h.WalletId == wallet.Id &&
-                h.TransactionAmount == 30 &&
+                h.TransactionAmount == -30 &&
                 h.WalletAmount == 70 &&
                 h.CreatedBy == "user-1" &&
-                h.Description == "Wallet spend transaction")), Times.Once);
+                h.Description == "Test spend transaction")), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
         }
 

@@ -37,7 +37,8 @@ namespace FlexiSpace.Application.IRepositories
 
         Task<List<T>> GetAllWithSortAsync(System.Linq.Expressions.Expression<Func<T, bool>>? filter,
                                                    Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
-                                                   Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
+                                                   Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+                                                   int? take = null);
 
         Task UpdateAsync(T entity);
 

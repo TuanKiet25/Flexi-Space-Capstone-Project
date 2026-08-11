@@ -420,7 +420,7 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var wallet = await _walletService.SpendWalletBalance(amount);
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toán bài đăng");
                 if(wallet.IsSuccess == false)
                 {
                     return new ServiceResult<ListingResponse>
@@ -593,7 +593,7 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null)
+        public async Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null, int? top = null)
         {
             try
             {
@@ -620,7 +620,8 @@ namespace FlexiSpace.Application.Services
                                         .ThenInclude(s => s.ShareSpaceAmenities)
                                     .Include(l => l.ShareSpaceDetail)
                                         .ThenInclude(s => s.ShareSpaceCategories)
-                                    .Include(l => l.PictureURLs));
+                                    .Include(l => l.PictureURLs),
+                    take: top);
 
                 var mappedListings = _mapper.Map<List<ShareListingResponse>>(listings);
                 await SetCacheAsync(cacheKey, mappedListings);
@@ -1066,7 +1067,7 @@ namespace FlexiSpace.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var wallet = await _walletService.SpendWalletBalance(amount);
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toán bài đăng");
                 if (wallet.IsSuccess == false)
                 {
                     return new ServiceResult<ShareListingResponse>
