@@ -151,10 +151,10 @@ namespace FlexiSpace.Application.Tests
             _mockWalletRepository.Verify(r => r.UpdateAsync(wallet), Times.Once);
             _mockTransactionHistoryRepository.Verify(r => r.AddAsync(It.Is<TransactionHistory>(h =>
                 h.WalletId == wallet.Id &&
-                h.TransactionAmount == 30 &&
+                h.TransactionAmount == -30 &&
                 h.WalletAmount == 70 &&
                 h.CreatedBy == "user-1" &&
-                h.Description == "Wallet spend transaction")), Times.Once);
+                h.Description == "Test spend transaction")), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
         }
 
