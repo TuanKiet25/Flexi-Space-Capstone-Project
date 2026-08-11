@@ -33,6 +33,9 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public decimal Price { get; set; }
         public bool CanShare { get; set; }
         public bool CanGrantSharePermission { get; set; }
+        public string? CurrentUserContractRole { get; set; }
+        public bool CurrentUserCanShareSpace { get; set; }
+        public bool CurrentUserCanGrantSharePermission { get; set; }
         public ContractSource Source { get; set; }
         public string? PreSignHash { get; set; }
         public string? PostSignHash { get; set; }

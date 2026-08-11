@@ -17,6 +17,7 @@ namespace FlexiSpace.Domain.Entities
             Contract = new HashSet<Contract>();
             PictureURL = new HashSet<PictureURL>();
             ChildSpaces = new HashSet<Space>();
+            SpaceUsageRights = new HashSet<SpaceUsageRight>();
         }
 
         public long Id { get; set; }
@@ -32,6 +33,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual Space ParentSpace { get; set; }
         public virtual ICollection<Space> ChildSpaces { get; set; }
         public virtual ICollection<Contract> Contract { get; set; }
+        public virtual ICollection<SpaceUsageRight> SpaceUsageRights { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequest { get; set; }
         public virtual ICollection<Listing> Listing { get; set; }
         public virtual ICollection<Amentity> Amenity { get; set; }

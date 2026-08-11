@@ -23,7 +23,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .IsRequired();
 
             builder.HasOne(x => x.Space)
-                   .WithMany()
+                   .WithMany(x => x.SpaceUsageRights)
                    .HasForeignKey(x => x.SpaceId)
                    .OnDelete(DeleteBehavior.Restrict);
 

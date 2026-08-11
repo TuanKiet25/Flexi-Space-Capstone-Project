@@ -469,10 +469,17 @@ namespace FlexiSpace.Application.Services
                         .Include(c => c.Lessor)
                         .Include(c => c.ContractSchedules));
 
+                var responses = _mapper.Map<List<ContractResponse>>(contracts);
+                foreach (var response in responses)
+                {
+                    var contract = contracts.First(x => x.Id == response.Id);
+                    EnrichContractResponseForCurrentUser(response, contract, currentUserId);
+                }
+
                 return new ServiceResult<List<ContractResponse>>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<List<ContractResponse>>(contracts)
+                    Data = responses
                 };
             }
             catch (Exception ex)
@@ -517,10 +524,13 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
+                var response = _mapper.Map<ContractResponse>(contract);
+                EnrichContractResponseForCurrentUser(response, contract, currentUserId);
+
                 return new ServiceResult<ContractResponse>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<ContractResponse>(contract)
+                    Data = response
                 };
             }
             catch (Exception ex)
@@ -531,6 +541,23 @@ namespace FlexiSpace.Application.Services
                     Message = ex.Message
                 };
             }
+        }
+
+        private static void EnrichContractResponseForCurrentUser(ContractResponse response, Contract contract, string currentUserId)
+        {
+            response.CurrentUserContractRole = contract.LessorId == currentUserId
+                ? "Lessor"
+                : contract.LesseeId == currentUserId
+                    ? "Lessee"
+                    : null;
+
+            var isActiveLessee = contract.LesseeId == currentUserId &&
+                                 contract.Status == ContractStatusEnum.Active &&
+                                 contract.IsActive &&
+                                 !contract.IsDeleted;
+
+            response.CurrentUserCanShareSpace = isActiveLessee && contract.CanShare;
+            response.CurrentUserCanGrantSharePermission = isActiveLessee && contract.CanGrantSharePermission;
         }
 
         public async Task<ServiceResult<string>> GetContractSnapshotByIdAsync(long id)
