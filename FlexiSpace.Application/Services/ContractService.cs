@@ -467,6 +467,7 @@ namespace FlexiSpace.Application.Services
                         .Include(c => c.PrimaryBookingRequest)
                         .Include(c => c.Lessee)
                         .Include(c => c.Lessor)
+                        .Include(c => c.PictureURLs)
                         .Include(c => c.ContractSchedules));
 
                 var responses = _mapper.Map<List<ContractResponse>>(contracts);
@@ -503,6 +504,7 @@ namespace FlexiSpace.Application.Services
                         .Include(c => c.PrimaryBookingRequest)
                         .Include(c => c.Lessee)
                         .Include(c => c.Lessor)
+                        .Include(c => c.PictureURLs)
                         .Include(c => c.ContractSchedules));
 
                 if (contract == null)
