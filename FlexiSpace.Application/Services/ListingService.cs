@@ -117,10 +117,11 @@ namespace FlexiSpace.Application.Services
                 return permissionValidation;
             }
            
+            var isShareListingByRenter = space.OwnerId != _currentUserService.UserId && listing is SharedListingRequest;
             DateOnly currentTime = DateOnly.FromDateTime(DateTime.Now);
             if (listing.AllowedStartTime != null)
             {
-                if (listing.AllowedStartTime < currentTime )
+                if (!isShareListingByRenter && listing.AllowedStartTime < currentTime)
                 {
                     return "Thời gian bắt đầu không thể nằm trong quá khứ.";
                 }
@@ -149,7 +150,6 @@ namespace FlexiSpace.Application.Services
                 return "Giá cho thuê phải lớn hơn 0.";
             }
 
-            var isShareListingByRenter = space.OwnerId != _currentUserService.UserId && listing is SharedListingRequest;
             var timeConflictValidation = await ValidateSpaceListingTimeConflictAsync(
                 space,
                 allowedStartTime,
@@ -228,17 +228,18 @@ namespace FlexiSpace.Application.Services
                 return "Bạn không có quyền đăng listing cho mặt bằng này.";
             }
 
-            var startDate = allowedStartTime.ToDateTime(TimeOnly.MinValue);
-            var endDate = allowedEndTime.ToDateTime(TimeOnly.MaxValue);
             var usageRights = await _unitOfWork.spaceUsageRightRepository.GetAllAsync(x =>
                 x.SpaceId == space.Id &&
                 x.UserId == currentUserId &&
                 !x.IsDeleted &&
                 x.IsActive &&
                 x.CanShare &&
-                x.Type != SpaceUsageRightType.SubRenter &&
-                x.ValidFrom <= startDate &&
-                x.ValidTo >= endDate);
+                x.Type != SpaceUsageRightType.SubRenter);
+
+            usageRights = usageRights
+                .Where(x => DateOnly.FromDateTime(x.ValidFrom) <= allowedStartTime &&
+                            DateOnly.FromDateTime(x.ValidTo) >= allowedEndTime)
+                .ToList();
 
             if (!usageRights.Any())
             {

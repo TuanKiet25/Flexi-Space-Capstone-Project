@@ -33,6 +33,10 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
 
             CreateMap<Contract, ContractResponse>()
                 .ForMember(dest => dest.ContractSchedules, opt => opt.MapFrom(src => src.ContractSchedules))
+                .ForMember(dest => dest.PictureURLs, opt => opt.MapFrom(src => src.PictureURLs))
+                .ForMember(dest => dest.CurrentUserContractRole, opt => opt.Ignore())
+                .ForMember(dest => dest.CurrentUserCanShareSpace, opt => opt.Ignore())
+                .ForMember(dest => dest.CurrentUserCanGrantSharePermission, opt => opt.Ignore())
                 .ForMember(dto => dto.LessorNickName, opt => opt.MapFrom(entity => entity.Lessor.Name))
                 .ForMember(dto => dto.LesseeNickName, opt => opt.MapFrom(entity => entity.Lessee.Name));
             CreateMap<ContractRequest, Contract>();

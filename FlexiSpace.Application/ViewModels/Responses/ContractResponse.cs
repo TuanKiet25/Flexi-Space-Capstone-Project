@@ -40,6 +40,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string? PreSignHash { get; set; }
         public string? PostSignHash { get; set; }
         public List<ContractScheduleRequest>? ContractSchedules { get; set; }
+        public List<PictureURLVModel>? PictureURLs { get; set; }
         public ContractStatusEnum Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
