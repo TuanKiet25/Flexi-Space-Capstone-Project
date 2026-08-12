@@ -71,12 +71,12 @@ namespace FlexiSpace.Application.Tests
                 .ReturnsAsync(new ServiceResult<WalletRespnse> { IsSuccess = false, Message = "Balance not enough" });
 
             // 2. ACT
-            var result = await _sut.CreateListingAsync(request, 50);
+            var result = await _sut.CreateListingAsync(request, 50, 30);
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Be("Balance not enough");
-            _mockSpaceRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()), Times.Never);
+            _mockSpaceRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>(), It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()), Times.Never);
             _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
         }
 
@@ -87,11 +87,13 @@ namespace FlexiSpace.Application.Tests
             var request = CreateListingRequest();
             SetupWalletSpendSuccess();
             _mockSpaceRepository
-                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
                 .ReturnsAsync((Space)null!);
 
             // 2. ACT
-            var result = await _sut.CreateListingAsync(request, 50);
+            var result = await _sut.CreateListingAsync(request, 50, 30);
 
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
@@ -116,7 +118,9 @@ namespace FlexiSpace.Application.Tests
             SetupWalletSpendSuccess();
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
             _mockSpaceRepository
-                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
                 .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "lessor-1" });
             _mockMapper
                 .Setup(m => m.Map<Listing>(request))
@@ -124,6 +128,9 @@ namespace FlexiSpace.Application.Tests
             _mockListingRepository
                 .Setup(r => r.AddAsync(listing))
                 .Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
             _mockUnitOfWork
                 .Setup(u => u.SaveChangesAsync())
                 .ReturnsAsync(1);
@@ -137,7 +144,7 @@ namespace FlexiSpace.Application.Tests
                 .Returns(response);
 
             // 2. ACT
-            var result = await _sut.CreateListingAsync(request, 50);
+            var result = await _sut.CreateListingAsync(request, 50, 30);
 
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();

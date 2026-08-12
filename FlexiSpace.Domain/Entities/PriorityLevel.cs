@@ -10,5 +10,6 @@ namespace FlexiSpace.Domain.Entities
     {
         public long Id { get; set; }
         public decimal Price { get; set; }
+        public int durationInDays { get; set; }
     }
 }
