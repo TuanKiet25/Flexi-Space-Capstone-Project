@@ -111,6 +111,11 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Chỉ có thể xác nhận hợp đồng ngoài đang chờ xác thực." };
                 }
 
+                if (contract.PictureURLs == null || !contract.PictureURLs.Any(x => !x.IsDeleted && x.IsActive))
+                {
+                    return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Vui lòng tải lên ít nhất một ảnh hợp đồng trước khi xác nhận." };
+                }
+
                 contract.ContractVerification ??= new ContractVerification();
 
                 if (currentUserId == contract.LessorId)
@@ -196,6 +201,10 @@ namespace FlexiSpace.Infrastructure.Services
             if (lessee == null) return ("Không tìm thấy người thuê.", null);
 
             var conversation = await _unitOfWork.conversationRepository.GetAsync(x => x.Id == request.ConversationId);
+            if (conversation != null && (conversation.LessorId != currentUserId || conversation.LesseeId != request.LesseeId))
+            {
+                return ("Cuộc trò chuyện không khớp với người cho thuê và người thuê của hợp đồng.", null);
+            }
             if (conversation == null) return ("Không tìm thấy phòng chat.", null);
 
             if (space.OwnerId == currentUserId) return (null, space);
@@ -207,6 +216,11 @@ namespace FlexiSpace.Infrastructure.Services
                 x.IsActive &&
                 x.CanShare &&
                 x.Type != SpaceUsageRightType.SubRenter);
+
+            if (request.CanGrantSharePermission && !rights.Any(x => x.CanGrantSharePermission))
+            {
+                return ("Bạn không có quyền cấp tiếp quyền share cho người thuê sau.", null);
+            }
 
             return rights.Any()
                 ? (null, space)
