@@ -690,6 +690,7 @@ namespace FlexiSpace.Application.Tests
                 {
                     Id = request.PrimaryBookingRequestId,
                     SpaceId = request.SpaceId,
+                    LessorId = "lessor-1",
                     LesseeId = "lessee-1",
                     Lessee = new User { UserId = "lessee-1", Name = "Lessee Name" }
                 });
