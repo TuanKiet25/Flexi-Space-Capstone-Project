@@ -126,7 +126,10 @@ namespace FlexiSpace.Infrastructure.Services
                         SpaceId = spaceId,
                         UserProfileId = userProfileId,
                         ListingId = listingId,
-                        ContractId = contractId
+                        ContractId = contractId,
+                        IsActive = true,
+                        IsDeleted = false,
+                        CreatedAt = DateTime.UtcNow
                     });
                 }
             }

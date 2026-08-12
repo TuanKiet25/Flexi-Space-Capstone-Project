@@ -111,7 +111,7 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Chỉ có thể xác nhận hợp đồng ngoài đang chờ xác thực." };
                 }
 
-                if (contract.PictureURLs == null || !contract.PictureURLs.Any(x => !x.IsDeleted && x.IsActive))
+                if (contract.PictureURLs == null || !contract.PictureURLs.Any(x => !x.IsDeleted))
                 {
                     return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Vui lòng tải lên ít nhất một ảnh hợp đồng trước khi xác nhận." };
                 }
