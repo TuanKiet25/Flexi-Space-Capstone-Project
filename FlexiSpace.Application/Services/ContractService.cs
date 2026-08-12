@@ -88,10 +88,14 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.contractRepository.AddAsync(contract);
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
+
+                var response = _mapper.Map<ContractResponse>(contract);
+                EnrichContractResponseForCurrentUser(response, contract, currentUserId);
+
                 return new ServiceResult<ContractResponse>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<ContractResponse>(contract)
+                    Data = response
                 };
             }
             catch (Exception ex)
@@ -545,8 +549,13 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        private static void EnrichContractResponseForCurrentUser(ContractResponse response, Contract contract, string currentUserId)
+        private static void EnrichContractResponseForCurrentUser(ContractResponse response, Contract contract, string? currentUserId)
         {
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return;
+            }
+
             response.CurrentUserContractRole = contract.LessorId == currentUserId
                 ? "Lessor"
                 : contract.LesseeId == currentUserId
@@ -856,10 +865,13 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.contractRepository.UpdateAsync(existingContract);
                 await _unitOfWork.SaveChangesAsync();
 
+                var response = _mapper.Map<ContractResponse>(existingContract);
+                EnrichContractResponseForCurrentUser(response, existingContract, currentUserId);
+
                 return new ServiceResult<ContractResponse>
                 {
                     IsSuccess = true,
-                    Data = _mapper.Map<ContractResponse>(existingContract)
+                    Data = response
                 };
             }
             catch (Exception ex)
