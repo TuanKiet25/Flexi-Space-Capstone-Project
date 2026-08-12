@@ -48,7 +48,7 @@ namespace FlexiSpace.Application.Services
                         Message = validation.ErrorMessage
                     };
                 }
-                if (validation.Space!.OwnerId != currentUserId)
+                if (validation.Booking!.LessorId != currentUserId)
                 {
                     return new ServiceResult<ContractResponse>
                     {
@@ -58,7 +58,7 @@ namespace FlexiSpace.Application.Services
                 }
     
                 var contract = _mapper.Map<Contract>(request);
-                contract.LessorId = validation.Space!.OwnerId;
+                contract.LessorId = validation.Booking.LessorId;
                 contract.LesseeId = validation.Booking!.LesseeId;
                 contract.StartDate = NormalizeTimestampWithoutTimeZone(contract.StartDate);
                 contract.EndDate = CalculateEndDate(contract.StartDate, contract.DurationUnit, contract.Duration);
@@ -66,7 +66,7 @@ namespace FlexiSpace.Application.Services
                 contract.UpdatedAt = DateTime.Now;
                 contract.ContractSnapshot = string.Empty;
                 contract.Source = ContractSource.Platform;
-                contract.Lessor = validation.Space.Owner;
+                contract.Lessor = validation.Booking.Lessor;
                 contract.Lessee = validation.Booking.Lessee;
                 var profileValidation = await PopulateContractParticipantProfilesAsync(contract);
                 if (profileValidation != null)
@@ -846,7 +846,7 @@ namespace FlexiSpace.Application.Services
                         Message = validation.ErrorMessage
                     };
                 }
-                if (validation.Space!.OwnerId != currentUserId)
+                if (validation.Booking!.LessorId != currentUserId)
                 {
                     return new ServiceResult<ContractResponse>
                     {
@@ -857,7 +857,8 @@ namespace FlexiSpace.Application.Services
 
                 _mapper.Map(request, existingContract);
                 SyncContractSchedules(existingContract, request.ContractSchedules);
-                existingContract.Lessor = validation.Space.Owner;
+                existingContract.LessorId = validation.Booking.LessorId;
+                existingContract.Lessor = validation.Booking.Lessor;
                 existingContract.Lessee = validation.Booking!.Lessee;
                 existingContract.EndDate = CalculateEndDate(existingContract.StartDate, existingContract.DurationUnit, existingContract.Duration);
                 existingContract.UpdatedAt = DateTime.UtcNow;
@@ -1361,7 +1362,7 @@ namespace FlexiSpace.Application.Services
             // 2. Validate Yêu cầu đặt chỗ (BookingRequest)
             var primaryBookingRequest = await _unitOfWork.primaryBookingRequestRepository.GetAsync(
                 x => x.Id == request.PrimaryBookingRequestId && !x.IsDeleted,
-                include: q => q.Include(x => x.Lessee));
+                include: q => q.Include(x => x.Lessee).Include(x => x.Lessor));
             if (primaryBookingRequest == null)
             {
                 return ("Không tìm thấy yêu cầu đặt chỗ với Id đã cho.", null, null, null);
@@ -1382,7 +1383,7 @@ namespace FlexiSpace.Application.Services
             {
                 return ("Không tìm thấy cuộc trò chuyện với Id đã cho.", null, null, null);
             }
-            if(conversation.LessorId != space.OwnerId || conversation.LesseeId != primaryBookingRequest.LesseeId)
+            if(conversation.LessorId != primaryBookingRequest.LessorId || conversation.LesseeId != primaryBookingRequest.LesseeId)
             {
                 return ("Cuộc trò chuyện không khớp với chủ sở hữu và người thuê của hợp đồng.", null, null, null);
             }
