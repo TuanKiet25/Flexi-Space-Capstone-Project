@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
@@ -417,7 +417,7 @@ namespace FlexiSpace.Application.Services
 
             return null;
         }
-        public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount)
+        public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount, int durationInDays)
         {
             try
             {
@@ -446,6 +446,7 @@ namespace FlexiSpace.Application.Services
                 newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.EntireSpace;
                 newListing.priorityLevel = amount;
+                newListing.durationInDays = durationInDays;
                 await _unitOfWork.listingRepository.AddAsync(newListing);
                 await _unitOfWork.SaveChangesAsync();
                 var listingResult = await _unitOfWork.listingRepository.GetAsync(x => x.Id == newListing.Id, include: q => q.Include(l => l.Space).Include(l => l.Lessor));
@@ -1063,7 +1064,7 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        public async Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount)
+        public async Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount, int durationInDays)
         {
             await _unitOfWork.BeginTransactionAsync();
             try
@@ -1124,6 +1125,7 @@ namespace FlexiSpace.Application.Services
                 newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
                 newListing.ListingType = ListingType.SharedSpace;
                 newListing.priorityLevel = amount;
+                newListing.durationInDays = durationInDays;
                 newListing.ShareSpaceDetail = new ShareSpaceDetail
                 {
                     MaxSubRenter = sharedListingRequest.ShareSpaceDetailMaxSubRenter,
@@ -1292,6 +1294,59 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
-        
+
+        public async Task<ServiceResult<int>> DeactivateExpiredListingsAsync()
+        {
+            try
+            {
+                var currentDate = DateOnly.FromDateTime(DateTime.Now);
+                var expiredListings = await _unitOfWork.listingRepository.GetAllAsync(x =>
+                    !x.IsDeleted &&
+                    x.IsActive &&
+                    x.Status == ListingStatusEnum.Accepted);
+
+                if (!expiredListings.Any())
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = true,
+                        Data = 0,
+                        Message = "Không có listing nào hết hạn cần vô hiệu hóa."
+                    };
+                }
+
+                int count = 0;
+                foreach (var listing in expiredListings)
+                {
+                    if (listing.CreatedAt + TimeSpan.FromDays(listing.durationInDays) > DateTime.Now)
+                    {
+                        listing.IsDeleted = true;
+                        listing.IsActive = false;
+                        listing.UpdatedAt = DateTime.Now;
+                        listing.UpdatedBy = "SystemBackgroundWorker";
+                        await _unitOfWork.listingRepository.UpdateAsync(listing);
+                        count++;
+                    }
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(null));
+
+                return new ServiceResult<int>
+                {
+                    IsSuccess = true,
+                    Data = count,
+                    Message = $"Đã tự động xóa mềm {count} listing hết hạn."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<int>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }

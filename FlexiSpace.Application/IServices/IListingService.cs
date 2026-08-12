@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Application.ViewModels.Requests;
+using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
@@ -12,7 +12,7 @@ namespace FlexiSpace.Application.IServices
 {
     public interface IListingService
     {
-        Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount);
+        Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount, int durationInDays);
         Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null, int? top = null);
         Task<ServiceResult<ListingResponse>> GetListingByIdAsync(long id);
         Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing);
@@ -26,7 +26,8 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<List<ReportedListingSummaryResponse>>> GetReportedListingsAsync();
         Task<ServiceResult<ListingReportDetailResponse>> GetListingReportDetailAsync(long listingId);
         Task<ServiceResult<ShareListingTimePolicyResponse>> GetShareListingTimePolicyAsync(long spaceId);
-        Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount);
+        Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount, int durationInDays);
         Task<ServiceResult<ShareListingResponse>> UpdateShareListingAsync(long id, SharedListingRequest sharedListingRequest);
+        Task<ServiceResult<int>> DeactivateExpiredListingsAsync();
     }
 }
