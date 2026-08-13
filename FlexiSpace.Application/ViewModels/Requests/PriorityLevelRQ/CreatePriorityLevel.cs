@@ -28,6 +28,7 @@ namespace FlexiSpace.Application.ViewModels.Requests.PriorityLevelRQ
         public decimal Price { get; set; }
         public int DurationInDays { get; set; }
         public int DurationForBanner { get; set; }
+        public PriorityLevelTypeEnum Type { get; set; }
         public bool IsActive { get; set; }
     }
 
