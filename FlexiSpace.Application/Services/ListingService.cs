@@ -155,7 +155,8 @@ namespace FlexiSpace.Application.Services
                 allowedStartTime,
                 allowedEndTime,
                 excludedListingId,
-                ignoreOwnerSourceListing: isShareListingByRenter);
+                ignoreOwnerSourceListing: isShareListingByRenter,
+                sharedListingRequest: listing as SharedListingRequest);
             if (timeConflictValidation != null)
             {
                 return timeConflictValidation;
@@ -351,7 +352,8 @@ namespace FlexiSpace.Application.Services
             DateOnly allowedStartTime,
             DateOnly allowedEndTime,
             long? excludedListingId = null,
-            bool ignoreOwnerSourceListing = false)
+            bool ignoreOwnerSourceListing = false,
+            SharedListingRequest? sharedListingRequest = null)
         {
             var sameSpaceConflict = await _unitOfWork.listingRepository.GetAllAsync(x =>
                 x.SpaceId == space.Id &&
@@ -367,6 +369,13 @@ namespace FlexiSpace.Application.Services
                 sameSpaceConflict = sameSpaceConflict
                     .Where(x => x.CreatorId != space.OwnerId)
                     .ToList();
+            }
+
+            if (sharedListingRequest != null)
+            {
+                sameSpaceConflict = await FilterShareListingTimeConflictsAsync(
+                    sameSpaceConflict,
+                    sharedListingRequest.ShareSpaceDetailAvailabilitiesTimes ?? new List<AvailabilitiesTimeRequest>());
             }
 
             if (sameSpaceConflict.Any())
@@ -417,6 +426,117 @@ namespace FlexiSpace.Application.Services
 
             return null;
         }
+
+        private async Task<List<Listing>> FilterShareListingTimeConflictsAsync(
+            IEnumerable<Listing> candidateListings,
+            List<AvailabilitiesTimeRequest> requestedTimes)
+        {
+            var candidates = candidateListings.ToList();
+            if (!candidates.Any())
+            {
+                return new List<Listing>();
+            }
+
+            var conflicts = candidates
+                .Where(x => x.ListingType != ListingType.SharedSpace)
+                .ToList();
+
+            var shareListingIds = candidates
+                .Where(x => x.ListingType == ListingType.SharedSpace)
+                .Select(x => x.Id)
+                .ToList();
+
+            if (!shareListingIds.Any())
+            {
+                return conflicts;
+            }
+
+            var shareListings = await _unitOfWork.listingRepository.GetAllAsync(
+                x => shareListingIds.Contains(x.Id),
+                include: q => q.Include(x => x.ShareSpaceDetail)
+                               .ThenInclude(x => x.AvailabilitiesTimes));
+
+            conflicts.AddRange(shareListings.Where(existing =>
+                existing.ShareSpaceDetail?.AvailabilitiesTimes != null &&
+                existing.ShareSpaceDetail.AvailabilitiesTimes.Any(existingTime =>
+                    requestedTimes.Any(requestedTime => IsAvailabilityOverlapped(requestedTime, existingTime)))));
+
+            return conflicts;
+        }
+
+        private static bool IsAvailabilityOverlapped(AvailabilitiesTimeRequest requestTime, AvailabilitiesTime existingTime)
+        {
+            if (requestTime.StartTime == null || requestTime.EndTime == null)
+            {
+                return false;
+            }
+
+            var requestDateFrom = requestTime.ValidFrom ?? requestTime.Specificdate;
+            var requestDateTo = requestTime.ValidTo ?? requestTime.Specificdate;
+            if (requestDateFrom == null || requestDateTo == null)
+            {
+                return false;
+            }
+
+            return IsDatePatternOverlapped(
+                       requestTime.Specificdate,
+                       requestTime.DaysOfWeek,
+                       requestDateFrom.Value,
+                       requestDateTo.Value,
+                       existingTime.Specificdate,
+                       existingTime.DaysOfWeek,
+                       existingTime.ValidFrom,
+                       existingTime.ValidTo) &&
+                   IsTimeOverlapped(requestTime.StartTime.Value, requestTime.EndTime.Value, existingTime.StartTime, existingTime.EndTime);
+        }
+
+        private static bool IsDatePatternOverlapped(
+            DateOnly? leftSpecificDate,
+            List<DayOfWeek>? leftDaysOfWeek,
+            DateOnly leftValidFrom,
+            DateOnly leftValidTo,
+            DateOnly? rightSpecificDate,
+            List<DayOfWeek>? rightDaysOfWeek,
+            DateOnly rightValidFrom,
+            DateOnly rightValidTo)
+        {
+            if (leftValidFrom > rightValidTo || rightValidFrom > leftValidTo)
+            {
+                return false;
+            }
+
+            if (leftSpecificDate != null && rightSpecificDate != null)
+            {
+                return leftSpecificDate == rightSpecificDate;
+            }
+
+            if (leftSpecificDate != null)
+            {
+                return IsSpecificDateMatched(leftSpecificDate.Value, rightValidFrom, rightValidTo, rightDaysOfWeek);
+            }
+
+            if (rightSpecificDate != null)
+            {
+                return IsSpecificDateMatched(rightSpecificDate.Value, leftValidFrom, leftValidTo, leftDaysOfWeek);
+            }
+
+            return (leftDaysOfWeek ?? new List<DayOfWeek>())
+                .Intersect(rightDaysOfWeek ?? new List<DayOfWeek>())
+                .Any();
+        }
+
+        private static bool IsSpecificDateMatched(DateOnly specificDate, DateOnly validFrom, DateOnly validTo, List<DayOfWeek>? daysOfWeek)
+        {
+            return specificDate >= validFrom &&
+                   specificDate <= validTo &&
+                   (daysOfWeek ?? new List<DayOfWeek>()).Contains(specificDate.DayOfWeek);
+        }
+
+        private static bool IsTimeOverlapped(TimeOnly leftStart, TimeOnly leftEnd, TimeOnly rightStart, TimeOnly rightEnd)
+        {
+            return leftStart < rightEnd && leftEnd > rightStart;
+        }
+
         public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount, int durationInDays)
         {
             try
