@@ -13,8 +13,12 @@ namespace FlexiSpace.Infrastructure.MappingOptions
     {
         public PriorityLevelMapping()
         {
-            CreateMap<CreatePriorityLevel, PriorityLevel>().ReverseMap();
-            CreateMap<PriorityLevel, GetAllPriorityLevel>().ReverseMap();
+            CreateMap<CreatePriorityLevel, PriorityLevel>()
+                .ForMember(dest => dest.durationInDays, opt => opt.MapFrom(src => src.DurationInDays))
+                .ReverseMap();
+            CreateMap<PriorityLevel, GetAllPriorityLevel>()
+                .ForMember(dest => dest.DurationInDays, opt => opt.MapFrom(src => src.durationInDays))
+                .ReverseMap();
         }
     }
 }

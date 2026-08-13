@@ -4,6 +4,7 @@ using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests.PriorityLevelRQ;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +60,19 @@ namespace FlexiSpace.Infrastructure.Services
 
                 var result = _mapper.Map<CreatePriorityLevel, PriorityLevel>(priorityLevel);
                 result.IsActive = priorityLevel.IsActive ?? true;
+
+                if (priorityLevel.Type == PriorityLevelTypeEnum.Banner)
+                {
+                    var checkType = await _unitOfWork.priorityLevelRepository.GetAsync(x => x.Type == PriorityLevelTypeEnum.Banner && !x.IsDeleted && x.IsActive);
+                    if (checkType != null)
+                    {
+                        return new ServiceResult<CreatePriorityLevel>
+                        {
+                            IsSuccess = false,
+                            Message = "An active Banner priority level already exists. Only one active Banner priority level is allowed."
+                        };
+                    }
+                }
 
                 await _unitOfWork.priorityLevelRepository.AddAsync(result);
                 await _unitOfWork.SaveChangesAsync();
@@ -160,7 +174,10 @@ namespace FlexiSpace.Infrastructure.Services
                 }
 
                 existingPriority.Name = priorityLevel.Name ?? existingPriority.Name;
+                existingPriority.Description = priorityLevel.Description ?? existingPriority.Description;
                 existingPriority.Price = priorityLevel.Price;
+                existingPriority.durationInDays = priorityLevel.DurationInDays;
+                existingPriority.DurationForBanner = priorityLevel.DurationForBanner;
                 existingPriority.IsActive = priorityLevel.IsActive ?? existingPriority.IsActive;
                 existingPriority.UpdatedBy = _currentUserService.UserId ?? "System";
                 existingPriority.UpdatedAt = DateTime.Now;

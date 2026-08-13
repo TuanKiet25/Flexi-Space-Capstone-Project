@@ -16,12 +16,12 @@ namespace FlexiSpace.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadPicture([FromForm] List<IFormFile> file, [FromForm] long? spaceId, [FromForm] string? userProfileId, [FromForm] long? listingId, [FromForm] long? contractId )
+        public async Task<IActionResult> UploadPicture([FromForm] List<IFormFile> file, [FromForm] long? spaceId, [FromForm] string? userProfileId, [FromForm] long? listingId, [FromForm] long? contractId, [FromForm] long? bannerId )
         {
             if (file == null || file.Count == 0)
                 return BadRequest("No files uploaded.");
 
-            var pictureURL = await _pictureURLService.UploadImagesAsync(file, spaceId, userProfileId, listingId, contractId);
+            var pictureURL = await _pictureURLService.UploadImagesAsync(file, spaceId, userProfileId, listingId, contractId, bannerId);
             return Ok(pictureURL);
         }
 
