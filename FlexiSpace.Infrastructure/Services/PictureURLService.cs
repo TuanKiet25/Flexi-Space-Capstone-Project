@@ -69,11 +69,11 @@ namespace FlexiSpace.Infrastructure.Services
             return result.Result == "ok" || picture != null;
         }
 
-        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId, long? contractId = null)
+        public async Task<List<PictureURLVModel>> UploadImagesAsync(List<IFormFile> files, long? spaceId, string? userProfileId, long? listingId, long? contractId = null, long? bannerId = null)
         {
-            if (spaceId == null && string.IsNullOrEmpty(userProfileId) && listingId == null && contractId == null)
+            if (spaceId == null && string.IsNullOrEmpty(userProfileId) && listingId == null && contractId == null && bannerId == null)
             {
-                throw new Exception("At least one target (SpaceId, UserProfileId, ListingId, or ContractId) must be specified.");
+                throw new Exception("At least one target (SpaceId, UserProfileId, ListingId, ContractId, or BannerId) must be specified.");
             }
 
             if (spaceId.HasValue)
@@ -127,6 +127,7 @@ namespace FlexiSpace.Infrastructure.Services
                         UserProfileId = userProfileId,
                         ListingId = listingId,
                         ContractId = contractId,
+                        BannerId = bannerId,
                         IsActive = true,
                         IsDeleted = false,
                         CreatedAt = DateTime.UtcNow

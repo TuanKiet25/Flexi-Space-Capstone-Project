@@ -32,6 +32,7 @@ namespace FlexiSpace.Application
         IPriorityLevelRepository priorityLevelRepository { get; }
         IDeviceTokenRepository deviceTokenRepository { get; }
         ISpaceUsageRightRepository spaceUsageRightRepository { get; }
+        IBannerRepository bannerRepository { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

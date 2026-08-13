@@ -32,6 +32,7 @@ namespace FlexiSpace.Domain.Entities
         public virtual ShareSpaceDetail ShareSpaceDetail { get; set; }
         public virtual User Lessor { get; set; }
         public virtual Space Space { get; set; }
+        public virtual Banner Banner { get; set; }
         public virtual ICollection<PrimaryBookingRequest> PrimaryBookingRequests { get; set; }
         public virtual ICollection<PictureURL> PictureURLs { get; set; }
         public virtual ICollection<ListingReport> Reports { get; set; }

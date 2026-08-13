@@ -38,6 +38,7 @@ namespace FlexiSpace.Infrastructure
         public IPriorityLevelRepository priorityLevelRepository { get; }
         public IDeviceTokenRepository deviceTokenRepository { get; }
         public ISpaceUsageRightRepository spaceUsageRightRepository { get; }
+        public IBannerRepository bannerRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -71,6 +72,7 @@ namespace FlexiSpace.Infrastructure
             priorityLevelRepository = new PriorityLevelRepository(_dbContext);
             deviceTokenRepository = new DeviceTokenRepository(_dbContext);
             spaceUsageRightRepository = new SpaceUsageRightRepository(_dbContext);
+            bannerRepository = new BannerRepository(_dbContext);
         }
 
 
