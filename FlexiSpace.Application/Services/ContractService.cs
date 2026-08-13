@@ -1391,5 +1391,55 @@ namespace FlexiSpace.Application.Services
             // 4. Nếu mọi thứ hợp lệ, ErrorMessage = null, trả về kèm 2 object
             return (null, space, primaryBookingRequest, conversation);
         }
+
+        public async Task<ServiceResult<int>> DeactivateExpiredContractsAsync()
+        {
+            try
+            {
+                var now = DateTime.Now;
+                var expiredContracts = await _unitOfWork.contractRepository.GetAllAsync(x =>
+                    !x.IsDeleted &&
+                    x.Status == ContractStatusEnum.Active &&
+                    x.EndDate < now);
+
+                if (!expiredContracts.Any())
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = true,
+                        Data = 0,
+                        Message = "Không có hợp đồng nào hết hạn cần vô hiệu hóa."
+                    };
+                }
+
+                int count = 0;
+                foreach (var contract in expiredContracts)
+                {
+                    contract.Status = ContractStatusEnum.Expired;
+                    contract.IsActive = false;
+                    contract.UpdatedAt = DateTime.Now;
+                    contract.UpdatedBy = "SystemBackgroundWorker";
+                    await _unitOfWork.contractRepository.UpdateAsync(contract);
+                    count++;
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<int>
+                {
+                    IsSuccess = true,
+                    Data = count,
+                    Message = $"Đã tự động chuyển trạng thái của {count} hợp đồng hết hạn thành Expired."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<int>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }
