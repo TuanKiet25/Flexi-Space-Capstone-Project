@@ -20,5 +20,6 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<List<ContractCalendarEntryResponse>>> GetContractCalendarBySpaceAsync(long spaceId, DateTime from, DateTime to);
         Task<ServiceResult<bool>> SendContractOtpAsync(long contractId);
         Task<ServiceResult<MessageResponse>> ContractValidateOtpAsync(long contractId, string inputOtp);
+        Task<ServiceResult<int>> DeactivateExpiredContractsAsync();
     }
 }
