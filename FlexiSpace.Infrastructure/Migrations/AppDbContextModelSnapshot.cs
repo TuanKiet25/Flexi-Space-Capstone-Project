@@ -81,16 +81,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<long>("ShareSpaceDetailId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateOnly>("Specificdate")
+                    b.Property<DateOnly?>("Specificdate")
                         .HasColumnType("date");
 
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time without time zone");
 
-                    b.Property<DateOnly>("ValidFrom")
+                    b.Property<DateOnly?>("ValidFrom")
                         .HasColumnType("date");
 
-                    b.Property<DateOnly>("ValidTo")
+                    b.Property<DateOnly?>("ValidTo")
                         .HasColumnType("date");
 
                     b.HasKey("Id");

@@ -155,7 +155,8 @@ namespace FlexiSpace.Application.Services
                 allowedStartTime,
                 allowedEndTime,
                 excludedListingId,
-                ignoreOwnerSourceListing: isShareListingByRenter);
+                ignoreOwnerSourceListing: isShareListingByRenter,
+                sharedListingRequest: listing as SharedListingRequest);
             if (timeConflictValidation != null)
             {
                 return timeConflictValidation;
@@ -181,28 +182,10 @@ namespace FlexiSpace.Application.Services
                 }
                 foreach (var time in sharedListing.ShareSpaceDetailAvailabilitiesTimes)
                 {
-                    // Kiểm tra ValidFrom và ValidTo của bản thân khung giờ
-                    if (time.ValidFrom != null && time.ValidTo != null && time.ValidFrom > time.ValidTo)
+                    var availabilityValidation = ValidateShareAvailabilityTime(time, listing.AllowedStartTime, listing.AllowedEndTime);
+                    if (availabilityValidation != null)
                     {
-                        return "Trong khung giờ cho thuê, ngày bắt đầu (ValidFrom) không được lớn hơn ngày kết thúc (ValidTo).";
-                    }
-
-                    // Kiểm tra ValidFrom phải >= AllowedStartTime
-                    if (listing.AllowedStartTime != null && time.ValidFrom != null)
-                    {
-                        if (time.ValidFrom < listing.AllowedStartTime)
-                        {
-                            return $"Ngày bắt đầu khung giờ ({time.ValidFrom}) không được sớm hơn thời gian bắt đầu hợp đồng chính ({listing.AllowedStartTime}).";
-                        }
-                    }
-
-                    // Kiểm tra ValidTo phải <= AllowedEndTime
-                    if (listing.AllowedEndTime != null && time.ValidTo != null)
-                    {
-                        if (time.ValidTo > listing.AllowedEndTime)
-                        {
-                            return $"Ngày kết thúc khung giờ ({time.ValidTo}) không được trễ hơn thời gian cho phép của hợp đồng ({listing.AllowedEndTime}).";
-                        }
+                        return availabilityValidation;
                     }
                 }
 
@@ -351,7 +334,8 @@ namespace FlexiSpace.Application.Services
             DateOnly allowedStartTime,
             DateOnly allowedEndTime,
             long? excludedListingId = null,
-            bool ignoreOwnerSourceListing = false)
+            bool ignoreOwnerSourceListing = false,
+            SharedListingRequest? sharedListingRequest = null)
         {
             var sameSpaceConflict = await _unitOfWork.listingRepository.GetAllAsync(x =>
                 x.SpaceId == space.Id &&
@@ -366,6 +350,21 @@ namespace FlexiSpace.Application.Services
             {
                 sameSpaceConflict = sameSpaceConflict
                     .Where(x => x.CreatorId != space.OwnerId)
+                    .ToList();
+            }
+
+            if (sharedListingRequest != null)
+            {
+                var shareConflictMessage = await GetShareListingTimeConflictMessageAsync(
+                    sameSpaceConflict,
+                    sharedListingRequest.ShareSpaceDetailAvailabilitiesTimes ?? new List<AvailabilitiesTimeRequest>());
+                if (shareConflictMessage != null)
+                {
+                    return shareConflictMessage;
+                }
+
+                sameSpaceConflict = sameSpaceConflict
+                    .Where(x => x.ListingType != ListingType.SharedSpace)
                     .ToList();
             }
 
@@ -417,6 +416,278 @@ namespace FlexiSpace.Application.Services
 
             return null;
         }
+
+        private static string? ValidateShareAvailabilityTime(
+            AvailabilitiesTimeRequest time,
+            DateOnly? allowedStartTime,
+            DateOnly? allowedEndTime)
+        {
+            if (time.StartTime == null || time.EndTime == null)
+            {
+                return "Vui lòng thiết lập thời gian bắt đầu và kết thúc cho từng khung giờ share.";
+            }
+
+            if (time.StartTime >= time.EndTime)
+            {
+                return "Trong khung giờ cho thuê, giờ bắt đầu phải diễn ra trước giờ kết thúc.";
+            }
+
+            var hasSpecificDate = time.Specificdate != null;
+            var hasDaysOfWeek = time.DaysOfWeek != null && time.DaysOfWeek.Any();
+            var hasValidRange = time.ValidFrom != null || time.ValidTo != null;
+
+            if (!hasSpecificDate && !hasDaysOfWeek)
+            {
+                return "Vui lòng chọn ngày cụ thể hoặc chọn thứ trong tuần cho từng khung giờ share.";
+            }
+
+            if (hasSpecificDate && (hasDaysOfWeek || hasValidRange))
+            {
+                return "Mỗi khung giờ share chỉ được chọn một trong hai loại: ngày cụ thể hoặc lịch lặp theo thứ.";
+            }
+
+            if (hasDaysOfWeek && (time.ValidFrom == null || time.ValidTo == null))
+            {
+                return "Khi chọn lịch lặp theo thứ, vui lòng thiết lập ValidFrom và ValidTo.";
+            }
+
+            if (time.ValidFrom != null && time.ValidTo != null && time.ValidFrom > time.ValidTo)
+            {
+                return "Trong khung giờ cho thuê, ngày bắt đầu (ValidFrom) không được lớn hơn ngày kết thúc (ValidTo).";
+            }
+
+            var dateFrom = time.Specificdate ?? time.ValidFrom;
+            var dateTo = time.Specificdate ?? time.ValidTo;
+
+            if (allowedStartTime != null && dateFrom != null && dateFrom < allowedStartTime)
+            {
+                return $"Ngày bắt đầu khung giờ ({dateFrom}) không được sớm hơn thời gian bắt đầu hợp đồng chính ({allowedStartTime}).";
+            }
+
+            if (allowedEndTime != null && dateTo != null && dateTo > allowedEndTime)
+            {
+                return $"Ngày kết thúc khung giờ ({dateTo}) không được trễ hơn thời gian cho phép của hợp đồng ({allowedEndTime}).";
+            }
+
+            return null;
+        }
+
+        private async Task<string?> GetShareListingTimeConflictMessageAsync(
+            IEnumerable<Listing> candidateListings,
+            List<AvailabilitiesTimeRequest> requestedTimes)
+        {
+            var shareListingIds = candidateListings
+                .Where(x => x.ListingType == ListingType.SharedSpace)
+                .Select(x => x.Id)
+                .ToList();
+
+            if (!shareListingIds.Any())
+            {
+                return null;
+            }
+
+            var shareListings = await _unitOfWork.listingRepository.GetAllAsync(
+                x => shareListingIds.Contains(x.Id),
+                include: q => q.Include(x => x.ShareSpaceDetail)
+                               .ThenInclude(x => x.AvailabilitiesTimes));
+
+            foreach (var existing in shareListings)
+            {
+                if (existing.ShareSpaceDetail?.AvailabilitiesTimes == null)
+                {
+                    continue;
+                }
+
+                foreach (var existingTime in existing.ShareSpaceDetail.AvailabilitiesTimes)
+                {
+                    foreach (var requestedTime in requestedTimes)
+                    {
+                        if (!IsAvailabilityOverlapped(requestedTime, existingTime))
+                        {
+                            continue;
+                        }
+
+                        return BuildShareAvailabilityConflictMessage(existing.Id, requestedTime, existingTime);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<List<Listing>> FilterShareListingTimeConflictsAsync(
+            IEnumerable<Listing> candidateListings,
+            List<AvailabilitiesTimeRequest> requestedTimes)
+        {
+            var candidates = candidateListings.ToList();
+            if (!candidates.Any())
+            {
+                return new List<Listing>();
+            }
+
+            var conflicts = candidates
+                .Where(x => x.ListingType != ListingType.SharedSpace)
+                .ToList();
+
+            var shareListingIds = candidates
+                .Where(x => x.ListingType == ListingType.SharedSpace)
+                .Select(x => x.Id)
+                .ToList();
+
+            if (!shareListingIds.Any())
+            {
+                return conflicts;
+            }
+
+            var shareListings = await _unitOfWork.listingRepository.GetAllAsync(
+                x => shareListingIds.Contains(x.Id),
+                include: q => q.Include(x => x.ShareSpaceDetail)
+                               .ThenInclude(x => x.AvailabilitiesTimes));
+
+            conflicts.AddRange(shareListings.Where(existing =>
+                existing.ShareSpaceDetail?.AvailabilitiesTimes != null &&
+                existing.ShareSpaceDetail.AvailabilitiesTimes.Any(existingTime =>
+                    requestedTimes.Any(requestedTime => IsAvailabilityOverlapped(requestedTime, existingTime)))));
+
+            return conflicts;
+        }
+
+        private static bool IsAvailabilityOverlapped(AvailabilitiesTimeRequest requestTime, AvailabilitiesTime existingTime)
+        {
+            if (requestTime.StartTime == null || requestTime.EndTime == null)
+            {
+                return false;
+            }
+
+            var requestDateFrom = requestTime.ValidFrom ?? requestTime.Specificdate;
+            var requestDateTo = requestTime.ValidTo ?? requestTime.Specificdate;
+            var existingDateFrom = existingTime.ValidFrom ?? existingTime.Specificdate;
+            var existingDateTo = existingTime.ValidTo ?? existingTime.Specificdate;
+            if (requestDateFrom == null || requestDateTo == null || existingDateFrom == null || existingDateTo == null)
+            {
+                return false;
+            }
+
+            return IsDatePatternOverlapped(
+                       requestTime.Specificdate,
+                       requestTime.DaysOfWeek,
+                       requestDateFrom.Value,
+                       requestDateTo.Value,
+                       existingTime.Specificdate,
+                       existingTime.DaysOfWeek,
+                       existingDateFrom.Value,
+                       existingDateTo.Value) &&
+                   IsTimeOverlapped(requestTime.StartTime.Value, requestTime.EndTime.Value, existingTime.StartTime, existingTime.EndTime);
+        }
+
+        private static string BuildShareAvailabilityConflictMessage(long existingListingId, AvailabilitiesTimeRequest requestTime, AvailabilitiesTime existingTime)
+        {
+            var requestDateFrom = requestTime.ValidFrom ?? requestTime.Specificdate!.Value;
+            var requestDateTo = requestTime.ValidTo ?? requestTime.Specificdate!.Value;
+            var existingDateFrom = existingTime.ValidFrom ?? existingTime.Specificdate!.Value;
+            var existingDateTo = existingTime.ValidTo ?? existingTime.Specificdate!.Value;
+
+            var dateDescription = DescribeDateOverlap(
+                requestTime.Specificdate,
+                requestTime.DaysOfWeek,
+                requestDateFrom,
+                requestDateTo,
+                existingTime.Specificdate,
+                existingTime.DaysOfWeek,
+                existingDateFrom,
+                existingDateTo);
+
+            var overlapStart = requestTime.StartTime!.Value > existingTime.StartTime
+                ? requestTime.StartTime.Value
+                : existingTime.StartTime;
+            var overlapEnd = requestTime.EndTime!.Value < existingTime.EndTime
+                ? requestTime.EndTime.Value
+                : existingTime.EndTime;
+
+            return $"Khung giờ share bị trùng với listing #{existingListingId} trong {dateDescription}, khoảng {overlapStart:HH\\:mm} - {overlapEnd:HH\\:mm}. Vui lòng chọn ngày hoặc giờ khác.";
+        }
+
+        private static string DescribeDateOverlap(
+            DateOnly? leftSpecificDate,
+            List<DayOfWeek>? leftDaysOfWeek,
+            DateOnly leftValidFrom,
+            DateOnly leftValidTo,
+            DateOnly? rightSpecificDate,
+            List<DayOfWeek>? rightDaysOfWeek,
+            DateOnly rightValidFrom,
+            DateOnly rightValidTo)
+        {
+            if (leftSpecificDate != null && rightSpecificDate != null)
+            {
+                return $"ngày {leftSpecificDate:yyyy-MM-dd}";
+            }
+
+            if (leftSpecificDate != null)
+            {
+                return $"ngày {leftSpecificDate:yyyy-MM-dd}";
+            }
+
+            if (rightSpecificDate != null)
+            {
+                return $"ngày {rightSpecificDate:yyyy-MM-dd}";
+            }
+
+            var overlapFrom = leftValidFrom > rightValidFrom ? leftValidFrom : rightValidFrom;
+            var overlapTo = leftValidTo < rightValidTo ? leftValidTo : rightValidTo;
+            var overlapDays = (leftDaysOfWeek ?? new List<DayOfWeek>())
+                .Intersect(rightDaysOfWeek ?? new List<DayOfWeek>())
+                .ToList();
+
+            return $"các ngày {string.Join(", ", overlapDays)} từ {overlapFrom:yyyy-MM-dd} đến {overlapTo:yyyy-MM-dd}";
+        }
+
+        private static bool IsDatePatternOverlapped(
+            DateOnly? leftSpecificDate,
+            List<DayOfWeek>? leftDaysOfWeek,
+            DateOnly leftValidFrom,
+            DateOnly leftValidTo,
+            DateOnly? rightSpecificDate,
+            List<DayOfWeek>? rightDaysOfWeek,
+            DateOnly rightValidFrom,
+            DateOnly rightValidTo)
+        {
+            if (leftValidFrom > rightValidTo || rightValidFrom > leftValidTo)
+            {
+                return false;
+            }
+
+            if (leftSpecificDate != null && rightSpecificDate != null)
+            {
+                return leftSpecificDate == rightSpecificDate;
+            }
+
+            if (leftSpecificDate != null)
+            {
+                return IsSpecificDateMatched(leftSpecificDate.Value, rightValidFrom, rightValidTo, rightDaysOfWeek);
+            }
+
+            if (rightSpecificDate != null)
+            {
+                return IsSpecificDateMatched(rightSpecificDate.Value, leftValidFrom, leftValidTo, leftDaysOfWeek);
+            }
+
+            return (leftDaysOfWeek ?? new List<DayOfWeek>())
+                .Intersect(rightDaysOfWeek ?? new List<DayOfWeek>())
+                .Any();
+        }
+
+        private static bool IsSpecificDateMatched(DateOnly specificDate, DateOnly validFrom, DateOnly validTo, List<DayOfWeek>? daysOfWeek)
+        {
+            return specificDate >= validFrom &&
+                   specificDate <= validTo &&
+                   (daysOfWeek ?? new List<DayOfWeek>()).Contains(specificDate.DayOfWeek);
+        }
+
+        private static bool IsTimeOverlapped(TimeOnly leftStart, TimeOnly leftEnd, TimeOnly rightStart, TimeOnly rightEnd)
+        {
+            return leftStart < rightEnd && leftEnd > rightStart;
+        }
+
         public async Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount, int durationInDays)
         {
             try

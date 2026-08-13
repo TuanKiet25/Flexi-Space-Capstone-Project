@@ -21,6 +21,15 @@ namespace FlexiSpace.Infrastructure.Configurations
              ? new List<DayOfWeek>()
              : JsonSerializer.Deserialize<List<DayOfWeek>>(v, JsonSerializerOptions.Default) ?? new List<DayOfWeek>()
             );  
+
+            builder.Property(e => e.Specificdate)
+                .IsRequired(false);
+
+            builder.Property(e => e.ValidFrom)
+                .IsRequired(false);
+
+            builder.Property(e => e.ValidTo)
+                .IsRequired(false);
         }
     }
 }

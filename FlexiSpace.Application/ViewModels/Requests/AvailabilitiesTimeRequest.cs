@@ -8,7 +8,7 @@ namespace FlexiSpace.Application.ViewModels.Requests
 {
     public class AvailabilitiesTimeRequest
     {
-        public List<DayOfWeek> DaysOfWeek { get; set; } = new List<DayOfWeek>();
+        public List<DayOfWeek>? DaysOfWeek { get; set; }
         public DateOnly? Specificdate { get; set; } 
         public TimeOnly? StartTime { get; set; }
         public TimeOnly? EndTime { get; set; }
