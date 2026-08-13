@@ -76,7 +76,9 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<SharedSpaceAmenities, ShareSpaceAmenitiesResponse>().ReverseMap();
             CreateMap<ShareSpaceAmenitiesRequest, SharedSpaceAmenities>().ReverseMap();
             CreateMap<AvailabilitiesTime, AvailabilitiesResponse>().ReverseMap();
-            CreateMap<AvailabilitiesTimeRequest, AvailabilitiesTime>().ReverseMap();
+            CreateMap<AvailabilitiesTimeRequest, AvailabilitiesTime>()
+                .ForMember(dest => dest.DaysOfWeek, opt => opt.MapFrom(src => src.DaysOfWeek ?? new List<DayOfWeek>()))
+                .ReverseMap();
             CreateMap<ShareSpaceCategory, ShareSpaceCategoryResponse>().ReverseMap();
             CreateMap<ShareSpaceCategoryRequest, ShareSpaceCategory>().ReverseMap();
             CreateMap<SharedListingRequest, Listing>().ReverseMap();
