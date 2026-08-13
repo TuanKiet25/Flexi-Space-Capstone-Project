@@ -47,7 +47,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     Title = table.Column<string>(type: "text", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true),
                     DurationInDays = table.Column<int>(type: "integer", nullable: false),
-                    ListingId = table.Column<long>(type: "bigint", nullable: false),
+                    ListingId = table.Column<long>(type: "bigint", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: true),
                     CreatedBy = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260813164826_Banner")]
+    [Migration("20260813180524_Banner")]
     partial class Banner
     {
         /// <inheritdoc />
@@ -84,16 +84,16 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<long>("ShareSpaceDetailId")
                         .HasColumnType("bigint");
 
-                    b.Property<DateOnly>("Specificdate")
+                    b.Property<DateOnly?>("Specificdate")
                         .HasColumnType("date");
 
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time without time zone");
 
-                    b.Property<DateOnly>("ValidFrom")
+                    b.Property<DateOnly?>("ValidFrom")
                         .HasColumnType("date");
 
-                    b.Property<DateOnly>("ValidTo")
+                    b.Property<DateOnly?>("ValidTo")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
@@ -129,7 +129,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("ListingId")
+                    b.Property<long?>("ListingId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")
@@ -1601,8 +1601,7 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
                         .WithOne("Banner")
                         .HasForeignKey("FlexiSpace.Domain.Entities.Banner", "ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Listing");
                 });
