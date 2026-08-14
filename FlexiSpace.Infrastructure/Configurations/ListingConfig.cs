@@ -24,12 +24,16 @@ namespace FlexiSpace.Infrastructure.Configurations
                      .OnDelete(DeleteBehavior.Cascade);
             builder.HasMany(l => l.PictureURLs)
                    .WithOne(p => p.Listing)
-                     .HasForeignKey("ListingId")
+                   .HasForeignKey(p => p.ListingId)
                    .OnDelete(DeleteBehavior.Cascade);
             builder.HasMany(l => l.Reports)
                      .WithOne(r => r.Listing)
                      .HasForeignKey("ListingId")
                      .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(l => l.Banner)
+                   .WithOne(b => b.Listing)
+                   .HasForeignKey<Banner>(b => b.ListingId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
