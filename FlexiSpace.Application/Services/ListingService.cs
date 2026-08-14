@@ -1653,6 +1653,11 @@ namespace FlexiSpace.Application.Services
                         listing.UpdatedAt = DateTime.Now;
                         listing.UpdatedBy = "SystemBackgroundWorker";
                         await _unitOfWork.listingRepository.UpdateAsync(listing);
+                        if(listing.Banner != null)
+                        {
+                            listing.Banner.IsDeleted = true;
+                            await _unitOfWork.bannerRepository.UpdateAsync(listing.Banner);
+                        }
                         count++;
                     }
                 }
