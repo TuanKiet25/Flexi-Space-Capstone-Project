@@ -37,7 +37,15 @@ namespace FlexiSpace.Infrastructure.Services
         {
             try
             {
-                var Banner = await _unitOfWork.priorityLevelRepository.GetAsync(b => b.Type == Domain.Enum.PriorityLevelTypeEnum.Banner && b.IsActive);
+                var bannerPriorityLevel = await _unitOfWork.priorityLevelRepository.GetAsync(b => b.Type == Domain.Enum.PriorityLevelTypeEnum.Banner && b.IsActive);
+                if (bannerPriorityLevel == null)
+                {
+                    return new ServiceResult<IEnumerable<BannerResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "Active banner priority level configuration not found."
+                    };
+                }
 
                 var adminBanners = await _unitOfWork.bannerRepository.GetAllWithSortAsync(
                     filter: b => !b.IsDeleted && b.CreatedBy == AdminCreated,
@@ -47,7 +55,7 @@ namespace FlexiSpace.Infrastructure.Services
                 var userBanners = await _unitOfWork.bannerRepository.GetAllWithSortAsync(
                     filter: b => !b.IsDeleted && b.CreatedBy != AdminCreated,
                     include: q => q.Include(b => b.PictureURL).Include(b => b.Listing),
-                    take: Banner.DurationForBanner,
+                    take: bannerPriorityLevel.DurationForBanner,
                     orderBy: q => q.OrderByDescending(b => b.CreatedAt)
                 );
 
@@ -164,6 +172,15 @@ namespace FlexiSpace.Infrastructure.Services
                     include: q => q.Include(b => b.PictureURL).Include(b => b.Listing)
                 );
                 var bannerPriorityLevel = await _unitOfWork.priorityLevelRepository.GetAsync(b => b.Type == Domain.Enum.PriorityLevelTypeEnum.Banner && b.IsActive);
+                if (bannerPriorityLevel == null)
+                {
+                    return new ServiceResult<BannerResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Active banner priority level configuration not found."
+                    };
+                }
+
                 if (userBanners.Count() > bannerPriorityLevel.DurationForBanner) {
                     return new ServiceResult<BannerResponse>
                     {

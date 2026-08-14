@@ -1212,6 +1212,63 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<int>> ClearListingReportsAsync(long listingId)
+        {
+            try
+            {
+                if (listingId <= 0)
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = false,
+                        Message = "Id bài đăng không hợp lệ."
+                    };
+                }
+
+                var listing = await _unitOfWork.listingRepository.GetAsync(x => x.Id == listingId && !x.IsDeleted);
+                if (listing == null)
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy bài đăng."
+                    };
+                }
+
+                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(x => x.ListingId == listingId);
+                if (!reports.Any())
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = true,
+                        Data = 0,
+                        Message = "Bài đăng này không có report cần gỡ."
+                    };
+                }
+
+                var removedCount = reports.Count;
+                await _unitOfWork.listingReportRepository.RemoveRangeAsync(reports);
+                await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(listingId));
+
+                return new ServiceResult<int>
+                {
+                    IsSuccess = true,
+                    Data = removedCount,
+                    Message = "Đã gỡ bài đăng khỏi danh sách report."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<int>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         private static List<ReportReasonEnum> ParseReasons(string reasons)
         {
             if (string.IsNullOrWhiteSpace(reasons))

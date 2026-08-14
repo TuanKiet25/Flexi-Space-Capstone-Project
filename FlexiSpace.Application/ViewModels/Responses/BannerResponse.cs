@@ -13,6 +13,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string? Description { get; set; }
         public int DurationInDays { get; set; }
         public long? ListingId { get; set; }
+        public string? ImageUrl { get; set; }
         public bool IsActive { get; set; }
         public string? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }

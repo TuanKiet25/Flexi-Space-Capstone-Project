@@ -83,6 +83,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpDelete("Reports/Admin/{listingId}")]
+        public async Task<IActionResult> ClearListingReports(long listingId)
+        {
+            var result = await _listingService.ClearListingReportsAsync(listingId);
+            return HandleResult(result);
+        }
+
         [HttpDelete("SoftDelete/{id}")]
         public async Task<IActionResult> SoftDeleteListing(long id)
         {
