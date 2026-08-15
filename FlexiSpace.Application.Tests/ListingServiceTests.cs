@@ -116,7 +116,8 @@ namespace FlexiSpace.Application.Tests
                 Price = request.Price,
                 CreatorId = "lessor-1",
                 LessorName = "Lessor",
-                SpaceAddress = "Address"
+                SpaceAddress = "Address",
+                SpaceCity= "City"
             };
             SetupWalletSpendSuccess();
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
@@ -154,7 +155,7 @@ namespace FlexiSpace.Application.Tests
             result.Data.Should().Be(response);
             listing.CreatorId.Should().Be("lessor-1");
             listing.IsActive.Should().BeTrue();
-            listing.Status.Should().Be(ListingStatusEnum.Accepted);
+            listing.Status.Should().Be(ListingStatusEnum.Available);
             listing.ListingType.Should().Be(ListingType.EntireSpace);
             _mockListingRepository.Verify(r => r.AddAsync(listing), Times.Once);
         }
@@ -208,7 +209,7 @@ namespace FlexiSpace.Application.Tests
             // 1. ARRANGE
             _mockListingRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
-                .ReturnsAsync(new Listing { Id = 5, Status = ListingStatusEnum.Accepted });
+                .ReturnsAsync(new Listing { Id = 5, Status = ListingStatusEnum.Available });
 
             // 2. ACT
             var result = await _sut.AcceptOrCancelListingAsync(5, new ListingStatusRequest { Status = ListingStatusEnum.Ban });
@@ -347,6 +348,233 @@ namespace FlexiSpace.Application.Tests
             result.Message.Should().Be("Db failure");
         }
 
+        [Fact]
+        public async Task GetAllListingsAsync_NoStatus_ReturnsAvailableListingsOnly()
+        {
+            // 1. ARRANGE
+            var listings = new List<Listing>
+            {
+                new() { Id = 1, Status = ListingStatusEnum.Available, IsDeleted = false, ListingType = ListingType.EntireSpace },
+                new() { Id = 2, Status = ListingStatusEnum.Occupied, IsDeleted = false, ListingType = ListingType.EntireSpace },
+                new() { Id = 3, Status = ListingStatusEnum.Expired, IsDeleted = false, ListingType = ListingType.SharedSpace }
+            };
+            var responses = new List<ShareListingResponse> { CreateShareListingResponse(1) };
+
+            SetupListingSortQuery(listings);
+            _mockMapper
+                .Setup(m => m.Map<List<ShareListingResponse>>(It.IsAny<List<Listing>>()))
+                .Returns(responses);
+
+            // 2. ACT
+            var result = await _sut.GetAllListingsAsync(null);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeEquivalentTo(responses);
+        }
+
+        [Fact]
+        public async Task GetListingsByCurrentUserAsync_ExpiredStatus_ReturnsCurrentUsersExpiredListings()
+        {
+            // 1. ARRANGE
+            var listings = new List<Listing>
+            {
+                new() { Id = 1, CreatorId = "user-1", Status = ListingStatusEnum.Expired, IsDeleted = false },
+                new() { Id = 2, CreatorId = "user-2", Status = ListingStatusEnum.Expired, IsDeleted = false },
+                new() { Id = 3, CreatorId = "user-1", Status = ListingStatusEnum.Available, IsDeleted = false }
+            };
+            var responses = new List<ShareListingResponse> { CreateShareListingResponse(1) };
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            SetupListingSortQuery(listings);
+            _mockMapper
+                .Setup(m => m.Map<List<ShareListingResponse>>(It.IsAny<List<Listing>>()))
+                .Returns(responses);
+
+            // 2. ACT
+            var result = await _sut.GetListingsByCurrentUserAsync(ListingStatusEnum.Expired);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeEquivalentTo(responses);
+        }
+
+        [Fact]
+        public async Task GetListingsByCurrentUserAsync_NullStatus_ReturnsAvailableOccupiedAndExpiredListings()
+        {
+            // 1. ARRANGE
+            var listings = new List<Listing>
+            {
+                new() { Id = 1, CreatorId = "user-1", Status = ListingStatusEnum.Available, IsDeleted = false },
+                new() { Id = 2, CreatorId = "user-1", Status = ListingStatusEnum.Occupied, IsDeleted = false },
+                new() { Id = 3, CreatorId = "user-1", Status = ListingStatusEnum.Expired, IsDeleted = false },
+                new() { Id = 4, CreatorId = "user-1", Status = ListingStatusEnum.Hidden, IsDeleted = false },
+                new() { Id = 5, CreatorId = "user-2", Status = ListingStatusEnum.Available, IsDeleted = false }
+            };
+            List<Listing>? filteredListings = null;
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            SetupListingSortQuery(listings, x => filteredListings = x);
+            _mockMapper
+                .Setup(m => m.Map<List<ShareListingResponse>>(It.IsAny<List<Listing>>()))
+                .Returns(new List<ShareListingResponse>
+                {
+                    CreateShareListingResponse(1),
+                    CreateShareListingResponse(2),
+                    CreateShareListingResponse(3)
+                });
+
+            // 2. ACT
+            var result = await _sut.GetListingsByCurrentUserAsync(null);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            filteredListings.Should().NotBeNull();
+            filteredListings!.Select(x => x.Id).Should().BeEquivalentTo(new[] { 1L, 2L, 3L });
+        }
+
+        [Fact]
+        public async Task GetListingsByUserIdAsync_NullStatus_ReturnsAvailableAndOccupiedListingsOnly()
+        {
+            // 1. ARRANGE
+            var listings = new List<Listing>
+            {
+                new() { Id = 1, CreatorId = "user-1", Status = ListingStatusEnum.Available, IsDeleted = false },
+                new() { Id = 2, CreatorId = "user-1", Status = ListingStatusEnum.Occupied, IsDeleted = false },
+                new() { Id = 3, CreatorId = "user-1", Status = ListingStatusEnum.Expired, IsDeleted = false },
+                new() { Id = 4, CreatorId = "user-1", Status = ListingStatusEnum.Hidden, IsDeleted = false },
+                new() { Id = 5, CreatorId = "user-2", Status = ListingStatusEnum.Available, IsDeleted = false }
+            };
+            List<Listing>? filteredListings = null;
+
+            SetupListingSortQuery(listings, x => filteredListings = x);
+            _mockMapper
+                .Setup(m => m.Map<List<ShareListingResponse>>(It.IsAny<List<Listing>>()))
+                .Returns(new List<ShareListingResponse>
+                {
+                    CreateShareListingResponse(1),
+                    CreateShareListingResponse(2)
+                });
+
+            // 2. ACT
+            var result = await _sut.GetListingsByUserIdAsync("user-1", null);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            filteredListings.Should().NotBeNull();
+            filteredListings!.Select(x => x.Id).Should().BeEquivalentTo(new[] { 1L, 2L });
+        }
+
+        [Fact]
+        public async Task GetListingsByUserIdAsync_MissingUserId_ReturnsFailedResult()
+        {
+            // 1. ACT
+            var result = await _sut.GetListingsByUserIdAsync(" ", null);
+
+            // 2. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("UserId is required.");
+            _mockListingRepository.Verify(r => r.GetAllWithSortAsync(
+                It.IsAny<Expression<Func<Listing, bool>>>(),
+                It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>?>(),
+                It.IsAny<Func<IQueryable<Listing>, IOrderedQueryable<Listing>>?>(),
+                It.IsAny<int?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task RenewExpiredListingAsync_ValidRequest_ChargesWalletAndMakesListingAvailable()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            var listing = new Listing
+            {
+                Id = 5,
+                SpaceId = request.SpaceId,
+                CreatorId = "user-1",
+                Status = ListingStatusEnum.Expired,
+                IsActive = false,
+                IsDeleted = false
+            };
+            var response = CreateListingResponse(5, "user-1");
+
+            SetupWalletSpendSuccess();
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "user-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
+            _mockMapper
+                .Setup(m => m.Map(request, listing))
+                .Returns(listing);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.RenewExpiredListingAsync(5, request, 75, 14);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.Status.Should().Be(ListingStatusEnum.Available);
+            listing.IsActive.Should().BeTrue();
+            listing.priorityLevel.Should().Be(75);
+            listing.durationInDays.Should().Be(14);
+            _mockWalletService.Verify(s => s.SpendWalletBalance(75, "Thanh toÃ¡n gia háº¡n bÃ i Ä‘Äƒng"), Times.Once);
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeactivateExpiredListingsAsync_PostingPeriodEnded_MarksListingExpired()
+        {
+            // 1. ARRANGE
+            var expiredListing = new Listing
+            {
+                Id = 5,
+                Status = ListingStatusEnum.Available,
+                IsActive = true,
+                IsDeleted = false,
+                CreatedAt = DateTime.Now.AddDays(-3),
+                durationInDays = 1
+            };
+            var activeListing = new Listing
+            {
+                Id = 6,
+                Status = ListingStatusEnum.Available,
+                IsActive = true,
+                IsDeleted = false,
+                CreatedAt = DateTime.Now,
+                durationInDays = 3
+            };
+
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing> { expiredListing, activeListing });
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.DeactivateExpiredListingsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(1);
+            expiredListing.Status.Should().Be(ListingStatusEnum.Expired);
+            expiredListing.IsActive.Should().BeFalse();
+            activeListing.Status.Should().Be(ListingStatusEnum.Available);
+            activeListing.IsActive.Should().BeTrue();
+            _mockListingRepository.Verify(r => r.UpdateAsync(expiredListing), Times.Once);
+            _mockBannerRepository.Verify(r => r.UpdateAsync(It.IsAny<Banner>()), Times.Never);
+        }
+
         private static ListingRequest CreateListingRequest() =>
             new()
             {
@@ -367,6 +595,45 @@ namespace FlexiSpace.Application.Tests
                 {
                     IsSuccess = true,
                     Data = new WalletRespnse { Id = 1, Balance = 100 }
+                });
+        }
+
+        private static ListingResponse CreateListingResponse(long id, string creatorId = "user-1") =>
+            new()
+            {
+                Id = id,
+                CreatorId = creatorId,
+                LessorName = "Lessor",
+                SpaceAddress = "Address",
+                SpaceCity = "City"
+            };
+
+        private static ShareListingResponse CreateShareListingResponse(long id, string creatorId = "user-1") =>
+            new()
+            {
+                Id = id,
+                CreatorId = creatorId,
+                LessorName = "Lessor",
+                SpaceAddress = "Address",
+                SpaceCity = "City"
+            };
+
+        private void SetupListingSortQuery(List<Listing> listings, Action<List<Listing>>? onFiltered = null)
+        {
+            _mockListingRepository
+                .Setup(r => r.GetAllWithSortAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>?>(),
+                    It.IsAny<Func<IQueryable<Listing>, IOrderedQueryable<Listing>>?>(),
+                    It.IsAny<int?>()))
+                .ReturnsAsync((Expression<Func<Listing, bool>> filter,
+                    Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>? include,
+                    Func<IQueryable<Listing>, IOrderedQueryable<Listing>>? orderBy,
+                    int? take) =>
+                {
+                    var filtered = listings.Where(filter.Compile()).ToList();
+                    onFiltered?.Invoke(filtered);
+                    return filtered;
                 });
         }
     }

@@ -16,6 +16,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null, int? top = null);
         Task<ServiceResult<ListingResponse>> GetListingByIdAsync(long id);
         Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing);
+        Task<ServiceResult<ListingResponse>> RenewExpiredListingAsync(long id, ListingRequest listing, decimal amount, int durationInDays);
         Task<ServiceResult<ListingResponse>> HardDeleteListingAsync(long id);
         Task<ServiceResult<ListingResponse>> AcceptOrCancelListingAsync(long id, ListingStatusRequest request);
         Task<ServiceResult<ListingResponse>> SoftDeleteListingAsync(long id);
@@ -29,6 +30,8 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<ShareListingTimePolicyResponse>> GetShareListingTimePolicyAsync(long spaceId);
         Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount, int durationInDays);
         Task<ServiceResult<ShareListingResponse>> UpdateShareListingAsync(long id, SharedListingRequest sharedListingRequest);
+        Task<ServiceResult<List<ShareListingResponse>>> GetListingsByCurrentUserAsync(ListingStatusEnum? status, ListingType? listingType = null);
+        Task<ServiceResult<List<ShareListingResponse>>> GetListingsByUserIdAsync(string userId, ListingStatusEnum? status, ListingType? listingType = null);
         Task<ServiceResult<int>> DeactivateExpiredListingsAsync();
     }
 }

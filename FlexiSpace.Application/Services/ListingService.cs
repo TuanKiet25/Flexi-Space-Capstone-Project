@@ -384,7 +384,7 @@ namespace FlexiSpace.Application.Services
                 x.SpaceId == space.Id &&
                 !x.IsDeleted &&
                 x.IsActive &&
-                x.Status == ListingStatusEnum.Accepted &&
+                x.Status == ListingStatusEnum.Available &&
                 (excludedListingId == null || x.Id != excludedListingId.Value) &&
                 x.AllowedStartTime <= allowedEndTime &&
                 x.AllowedEndTime >= allowedStartTime);
@@ -422,7 +422,7 @@ namespace FlexiSpace.Application.Services
                     x.SpaceId == space.ParentSpaceId.Value &&
                     !x.IsDeleted &&
                     x.IsActive &&
-                    x.Status == ListingStatusEnum.Accepted &&
+                    x.Status == ListingStatusEnum.Available &&
                     (excludedListingId == null || x.Id != excludedListingId.Value) &&
                     x.AllowedStartTime <= allowedEndTime &&
                     x.AllowedEndTime >= allowedStartTime);
@@ -445,7 +445,7 @@ namespace FlexiSpace.Application.Services
                         childSpaceIds.Contains(x.SpaceId) &&
                         !x.IsDeleted &&
                         x.IsActive &&
-                        x.Status == ListingStatusEnum.Accepted &&
+                        x.Status == ListingStatusEnum.Available &&
                         (excludedListingId == null || x.Id != excludedListingId.Value) &&
                         x.AllowedStartTime <= allowedEndTime &&
                         x.AllowedEndTime >= allowedStartTime);
@@ -757,7 +757,7 @@ namespace FlexiSpace.Application.Services
                 newListing.CreatorId = _currentUserService.UserId;
                 newListing.CreatedAt = DateTime.Now;
                 newListing.IsActive = true;
-                newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
+                newListing.Status = Domain.Enum.ListingStatusEnum.Available;
                 newListing.ListingType = ListingType.EntireSpace;
                 newListing.priorityLevel = amount;
                 newListing.durationInDays = durationInDays;
@@ -877,6 +877,88 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<ListingResponse>> RenewExpiredListingAsync(long id, ListingRequest listing, decimal amount, int durationInDays)
+        {
+            try
+            {
+                var existingListing = await _unitOfWork.listingRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted,
+                    include: q => q.Include(l => l.Space).Include(l => l.Lessor));
+
+                if (existingListing == null)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "KhÃ´ng tÃ¬m tháº¥y listing vá»›i Id Ä‘Ã£ cho."
+                    };
+                }
+
+                if (existingListing.CreatorId != _currentUserService.UserId)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Báº¡n khÃ´ng cÃ³ quyá»n gia háº¡n listing nÃ y."
+                    };
+                }
+
+                if (existingListing.Status != ListingStatusEnum.Expired)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "Chá»‰ cÃ³ thá»ƒ gia háº¡n listing Ä‘ang háº¿t háº¡n."
+                    };
+                }
+
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toÃ¡n gia háº¡n bÃ i Ä‘Äƒng");
+                if (wallet.IsSuccess == false)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = wallet.Message
+                    };
+                }
+
+                var checkValidation = await ValidationMessageAsync(listing, id);
+                if (checkValidation != null)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = checkValidation.ToString()
+                    };
+                }
+
+                _mapper.Map(listing, existingListing);
+                existingListing.priorityLevel = amount;
+                existingListing.durationInDays = durationInDays;
+                existingListing.Status = ListingStatusEnum.Available;
+                existingListing.IsActive = true;
+                existingListing.UpdatedAt = DateTime.Now;
+
+                await _unitOfWork.listingRepository.UpdateAsync(existingListing);
+                await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
+
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<ListingResponse>(existingListing)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<ListingResponse>> HardDeleteListingAsync(long id)
         {
             try
@@ -925,7 +1007,9 @@ namespace FlexiSpace.Application.Services
                 }
                 var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
                     l => !l.IsDeleted
-                        && (status == null || l.Status == status)
+                        && (status == null
+                            ? (l.Status == ListingStatusEnum.Available || l.Status == ListingStatusEnum.Occupied)
+                            : l.Status == status)
                         && (listingType == null || l.ListingType == listingType),
                     orderBy: l => l.OrderByDescending(x => x.priorityLevel).ThenByDescending(x => x.CreatedAt),
                     include: q => q.Include(l => l.Space)
@@ -970,9 +1054,9 @@ namespace FlexiSpace.Application.Services
                         Message = "Không tìm thấy listing với Id đã cho."
                     };
                 }
-                if (request.Status == Domain.Enum.ListingStatusEnum.Accepted)
+                if (request.Status == Domain.Enum.ListingStatusEnum.Available)
                 {
-                    listing.Status = Domain.Enum.ListingStatusEnum.Accepted;
+                    listing.Status = Domain.Enum.ListingStatusEnum.Available;
                     listing.IsActive = true;
                     listing.CancelReason = null;
                 }
@@ -1504,7 +1588,7 @@ namespace FlexiSpace.Application.Services
                 newListing.CreatorId = _currentUserService.UserId;
                 newListing.CreatedAt = DateTime.Now;
                 newListing.IsActive = true;
-                newListing.Status = Domain.Enum.ListingStatusEnum.Accepted;
+                newListing.Status = Domain.Enum.ListingStatusEnum.Available;
                 newListing.ListingType = ListingType.SharedSpace;
                 newListing.priorityLevel = amount;
                 newListing.durationInDays = durationInDays;
@@ -1677,6 +1761,103 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<List<ShareListingResponse>>> GetListingsByCurrentUserAsync(ListingStatusEnum? status, ListingType? listingType = null)
+        {
+            try
+            {
+                var currentUserId = _currentUserService.UserId;
+                if (string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    return new ServiceResult<List<ShareListingResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "Register first!"
+                    };
+                }
+
+                var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
+                    l => !l.IsDeleted
+                        && l.CreatorId == currentUserId
+                        && (status == null
+                            ? (l.Status == ListingStatusEnum.Available ||
+                               l.Status == ListingStatusEnum.Occupied ||
+                               l.Status == ListingStatusEnum.Expired)
+                            : l.Status == status)
+                        && (listingType == null || l.ListingType == listingType),
+                    orderBy: l => l.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt),
+                    include: q => q.Include(l => l.Space)
+                                    .Include(l => l.Lessor)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.AvailabilitiesTimes)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceAmenities)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
+
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<List<ShareListingResponse>>(listings)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<List<ShareListingResponse>>> GetListingsByUserIdAsync(string userId, ListingStatusEnum? status, ListingType? listingType = null)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    return new ServiceResult<List<ShareListingResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "UserId is required."
+                    };
+                }
+
+                var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
+                    l => !l.IsDeleted
+                        && l.CreatorId == userId
+                        && (status == null
+                            ? (l.Status == ListingStatusEnum.Available || l.Status == ListingStatusEnum.Occupied)
+                            : l.Status == status)
+                        && (listingType == null || l.ListingType == listingType),
+                    orderBy: l => l.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt),
+                    include: q => q.Include(l => l.Space)
+                                    .Include(l => l.Lessor)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.AvailabilitiesTimes)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceAmenities)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
+
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = true,
+                    Data = _mapper.Map<List<ShareListingResponse>>(listings)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ShareListingResponse>>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<int>> DeactivateExpiredListingsAsync()
         {
             try
@@ -1685,7 +1866,7 @@ namespace FlexiSpace.Application.Services
                 var expiredListings = await _unitOfWork.listingRepository.GetAllAsync(x =>
                     !x.IsDeleted &&
                     x.IsActive &&
-                    x.Status == ListingStatusEnum.Accepted);
+                    x.Status == ListingStatusEnum.Available);
 
                 if (!expiredListings.Any())
                 {
@@ -1702,16 +1883,11 @@ namespace FlexiSpace.Application.Services
                 {
                     if (listing.CreatedAt + TimeSpan.FromDays(listing.durationInDays) < DateTime.Now)
                     {
-                        listing.IsDeleted = true;
+                        listing.Status = ListingStatusEnum.Expired;
                         listing.IsActive = false;
                         listing.UpdatedAt = DateTime.Now;
                         listing.UpdatedBy = "SystemBackgroundWorker";
                         await _unitOfWork.listingRepository.UpdateAsync(listing);
-                        if(listing.Banner != null)
-                        {
-                            listing.Banner.IsDeleted = true;
-                            await _unitOfWork.bannerRepository.UpdateAsync(listing.Banner);
-                        }
                         count++;
                     }
                 }
