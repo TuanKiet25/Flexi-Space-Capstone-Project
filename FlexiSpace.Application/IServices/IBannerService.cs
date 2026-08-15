@@ -16,5 +16,6 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<BannerResponse>> CreateForAdminAsync(CreateBannerRequest request, int durationInDays);
         Task<ServiceResult<BannerResponse>> UpdateAsync(long id, UpdateBannerRequest request);
         Task<ServiceResult<string>> DeleteAsync(long id);
+        Task<ServiceResult<int>> DeleteExpiredBannersAsync();
     }
 }
