@@ -160,6 +160,31 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task CreateListingAsync_PriceUnitExceedsListingPeriod_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.AllowedEndTime = request.AllowedStartTime!.Value.AddDays(30);
+            request.PriceUnit = PriceUnit.PerYear;
+
+            SetupWalletSpendSuccess();
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "lessor-1" });
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain(nameof(PriceUnit.PerMonth));
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
         public async Task GetListingByIdAsync_ListingNotFound_ReturnsFailedResult()
         {
             // 1. ARRANGE
@@ -329,6 +354,7 @@ namespace FlexiSpace.Application.Tests
                 Name = "Listing",
                 Description = "Description",
                 Price = 100,
+                PriceUnit = PriceUnit.PerDay,
                 AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(10))
             };

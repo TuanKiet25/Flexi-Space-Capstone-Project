@@ -150,6 +150,12 @@ namespace FlexiSpace.Application.Services
                 return "Giá cho thuê phải lớn hơn 0.";
             }
 
+            var priceUnitValidation = ValidatePriceUnitWithinListingPeriod(listing.PriceUnit, allowedStartTime, allowedEndTime);
+            if (priceUnitValidation != null)
+            {
+                return priceUnitValidation;
+            }
+
             var timeConflictValidation = await ValidateSpaceListingTimeConflictAsync(
                 space,
                 allowedStartTime,
@@ -192,6 +198,43 @@ namespace FlexiSpace.Application.Services
             }
 
             return null;
+        }
+
+        private static string? ValidatePriceUnitWithinListingPeriod(PriceUnit priceUnit, DateOnly allowedStartTime, DateOnly allowedEndTime)
+        {
+            if (!Enum.IsDefined(typeof(PriceUnit), priceUnit))
+            {
+                return "Price unit is invalid.";
+            }
+
+            var maxPriceUnit = GetMaxPriceUnitForListingPeriod(allowedStartTime, allowedEndTime);
+            if (priceUnit > maxPriceUnit)
+            {
+                return $"Price unit cannot exceed {maxPriceUnit} for the listing rental period.";
+            }
+
+            return null;
+        }
+
+        private static PriceUnit GetMaxPriceUnitForListingPeriod(DateOnly allowedStartTime, DateOnly allowedEndTime)
+        {
+            var totalDays = allowedEndTime.DayNumber - allowedStartTime.DayNumber;
+            if (totalDays >= 365)
+            {
+                return PriceUnit.PerYear;
+            }
+
+            if (totalDays >= 30)
+            {
+                return PriceUnit.PerMonth;
+            }
+
+            if (totalDays >= 7)
+            {
+                return PriceUnit.PerWeek;
+            }
+
+            return PriceUnit.PerDay;
         }
 
         private async Task<string?> ValidateListingCreatorPermissionAsync(
