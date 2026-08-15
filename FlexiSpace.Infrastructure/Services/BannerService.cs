@@ -355,5 +355,54 @@ namespace FlexiSpace.Infrastructure.Services
                 };
             }
         }
+
+        public async Task<ServiceResult<int>> DeleteExpiredBannersAsync()
+        {
+            try
+            {
+                var banners = await _unitOfWork.bannerRepository.GetAllAsync(b => !b.IsDeleted && b.IsActive);
+
+                if (!banners.Any())
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = true,
+                        Data = 0,
+                        Message = "Không có banner nào hết hạn cần xóa."
+                    };
+                }
+
+                int count = 0;
+                foreach (var banner in banners)
+                {
+                    if (banner.CreatedAt + TimeSpan.FromDays(banner.DurationInDays) < DateTime.Now)
+                    {
+                        banner.IsDeleted = true;
+                        banner.IsActive = false;
+                        banner.UpdatedAt = DateTime.Now;
+                        banner.UpdatedBy = "SystemBackgroundWorker";
+                        await _unitOfWork.bannerRepository.UpdateAsync(banner);
+                        count++;
+                    }
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return new ServiceResult<int>
+                {
+                    IsSuccess = true,
+                    Data = count,
+                    Message = $"Đã tự động xóa {count} banner hết hạn."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<int>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }

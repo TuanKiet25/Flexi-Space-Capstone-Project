@@ -1589,7 +1589,7 @@ namespace FlexiSpace.Application.Services
                 int count = 0;
                 foreach (var listing in expiredListings)
                 {
-                    if (listing.CreatedAt + TimeSpan.FromDays(listing.durationInDays) > DateTime.Now)
+                    if (listing.CreatedAt + TimeSpan.FromDays(listing.durationInDays) < DateTime.Now)
                     {
                         listing.IsDeleted = true;
                         listing.IsActive = false;

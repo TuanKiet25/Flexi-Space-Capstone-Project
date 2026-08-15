@@ -20,6 +20,7 @@ builder.Services.AddScoped<FlexiSpace.Application.IServices.INotificationRealtim
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddHostedService<FlexiSpace.Web.BackgroundServices.ListingExpirationWorker>();
 builder.Services.AddHostedService<FlexiSpace.Web.BackgroundServices.ContractExpirationWorker>();
+builder.Services.AddHostedService<FlexiSpace.Web.BackgroundServices.BannerExpirationWorker>();
 builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
