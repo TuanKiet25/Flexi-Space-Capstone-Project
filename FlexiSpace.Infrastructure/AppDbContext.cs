@@ -39,6 +39,7 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<FavoriteListing> FavoriteListings { get; set; }
         public virtual DbSet<UserAiImageHistory> UserAiImageHistories { get; set; }
         public virtual DbSet<DeviceToken> DeviceTokens { get; set; }
+        public virtual DbSet<ListingViewDailyStat> ListingViewDailyStats { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

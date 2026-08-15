@@ -20,6 +20,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
         {
             CreateMap<Listing, ListingResponse>()
                 .ForMember(dest => dest.ListingPictures, opt => opt.MapFrom(src => src.PictureURLs))
+                .ForMember(dest => dest.ViewCount, opt => opt.MapFrom(src => src.viewCount))
                 .ReverseMap();
             CreateMap<ListingRequest, Listing>().ReverseMap();
             CreateMap<FavoriteList, FavoriteListResponse>()
@@ -84,6 +85,7 @@ namespace FlexiSpace.Infrastructure.AutoMapperConfigurations
             CreateMap<SharedListingRequest, Listing>().ReverseMap();
             CreateMap<Listing, ShareListingResponse>()
                 .ForMember(dest => dest.ListingPictures, opt => opt.MapFrom(src => src.PictureURLs))
+                .ForMember(dest => dest.ViewCount, opt => opt.MapFrom(src => src.viewCount))
                 .ReverseMap();
             
             CreateMap<Wallet, WalletRespnse>().ReverseMap();

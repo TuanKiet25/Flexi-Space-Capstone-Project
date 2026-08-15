@@ -29,6 +29,7 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public double SpaceLongitude { get; set; }
         public decimal Price { get; set; }
         public PriceUnit PriceUnit { get; set; }
+        public int ViewCount { get; set; }
         public DateTime CreatedAt { get; set; } 
         public DateTime UpdatedAt { get; set; }
         public bool IsDeleted { get; set; } 

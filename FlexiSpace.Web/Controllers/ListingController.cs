@@ -46,6 +46,13 @@ namespace FlexiSpace.Web.Controllers
             return HandleResult(result);
         }
 
+        [HttpPatch("ViewCount/{id}")]
+        public async Task<IActionResult> IncreaseViewCount(long id)
+        {
+            var result = await _listingService.IncreaseViewCountAsync(id);
+            return HandleResult(result);
+        }
+
         [HttpPut("Update/{id}")]
         public async Task<IActionResult> UpdateListing(long id, ListingRequest listingRequest)
         {

@@ -3,6 +3,7 @@ using System;
 using FlexiSpace.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FlexiSpace.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815203447_Viewcount")]
+    partial class Viewcount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -634,39 +637,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.HasIndex("ReporterId");
 
                     b.ToTable("ListingReports");
-                });
-
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.ListingViewDailyStat", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<long>("ListingId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("ViewCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId", "Date")
-                        .IsUnique();
-
-                    b.ToTable("ListingViewDailyStats");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Message", b =>
@@ -1796,17 +1766,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Reporter");
                 });
 
-            modelBuilder.Entity("FlexiSpace.Domain.Entities.ListingViewDailyStat", b =>
-                {
-                    b.HasOne("FlexiSpace.Domain.Entities.Listing", "Listing")
-                        .WithMany("ViewDailyStats")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
-                });
-
             modelBuilder.Entity("FlexiSpace.Domain.Entities.Message", b =>
                 {
                     b.HasOne("FlexiSpace.Domain.Entities.Conversation", "Conversation")
@@ -2171,8 +2130,6 @@ namespace FlexiSpace.Infrastructure.Migrations
                     b.Navigation("Reports");
 
                     b.Navigation("ShareSpaceDetail");
-
-                    b.Navigation("ViewDailyStats");
                 });
 
             modelBuilder.Entity("FlexiSpace.Domain.Entities.PrimaryBookingRequest", b =>

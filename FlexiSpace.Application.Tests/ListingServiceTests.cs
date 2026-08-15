@@ -25,6 +25,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<ISpaceRepository> _mockSpaceRepository;
         private readonly Mock<IAmentityRepository> _mockAmenityRepository;
         private readonly Mock<IListingReportRepository> _mockListingReportRepository;
+        private readonly Mock<IListingViewDailyStatRepository> _mockListingViewDailyStatRepository;
         private readonly Mock<IBannerRepository> _mockBannerRepository;
         private readonly Mock<IWalletService> _mockWalletService;
         private readonly Mock<IMapper> _mockMapper;
@@ -39,6 +40,7 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository = new Mock<ISpaceRepository>();
             _mockAmenityRepository = new Mock<IAmentityRepository>();
             _mockListingReportRepository = new Mock<IListingReportRepository>();
+            _mockListingViewDailyStatRepository = new Mock<IListingViewDailyStatRepository>();
             _mockBannerRepository = new Mock<IBannerRepository>();
             _mockWalletService = new Mock<IWalletService>();
             _mockMapper = new Mock<IMapper>();
@@ -49,6 +51,7 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.amenityRepository).Returns(_mockAmenityRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingReportRepository).Returns(_mockListingReportRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.listingViewDailyStatRepository).Returns(_mockListingViewDailyStatRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.bannerRepository).Returns(_mockBannerRepository.Object);
 
             _mockCache
@@ -201,6 +204,123 @@ namespace FlexiSpace.Application.Tests
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Contain("Không tìm thấy listing");
+        }
+
+        [Fact]
+        public async Task IncreaseViewCountAsync_ListingExists_IncrementsViewCountAndReturnsResponse()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, viewCount = 7, IsDeleted = false };
+            var response = CreateListingResponse(5);
+            response.ViewCount = 8;
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockListingRepository
+                .Setup(r => r.UpdateAsync(listing))
+                .Returns(Task.CompletedTask);
+            _mockListingViewDailyStatRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<ListingViewDailyStat, bool>>>()))
+                .ReturnsAsync((ListingViewDailyStat)null!);
+            _mockListingViewDailyStatRepository
+                .Setup(r => r.AddAsync(It.IsAny<ListingViewDailyStat>()))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork
+                .Setup(u => u.SaveChangesAsync())
+                .ReturnsAsync(1);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.IncreaseViewCountAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+            result.Data!.ViewCount.Should().Be(8);
+            result.Message.Should().Be("Tăng lượt xem listing thành công.");
+            listing.viewCount.Should().Be(8);
+            listing.UpdatedAt.Should().NotBe(default);
+            _mockListingViewDailyStatRepository.Verify(r => r.AddAsync(It.Is<ListingViewDailyStat>(x =>
+                x.ListingId == 5 &&
+                x.Date == DateOnly.FromDateTime(DateTime.Now) &&
+                x.ViewCount == 1)), Times.Once);
+            _mockListingViewDailyStatRepository.Verify(r => r.UpdateAsync(It.IsAny<ListingViewDailyStat>()), Times.Never);
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task IncreaseViewCountAsync_DailyStatExists_IncrementsDailyStat()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, viewCount = 7, IsDeleted = false };
+            var dailyStat = new ListingViewDailyStat
+            {
+                ListingId = 5,
+                Date = DateOnly.FromDateTime(DateTime.Now),
+                ViewCount = 3
+            };
+            var response = CreateListingResponse(5);
+            response.ViewCount = 8;
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockListingViewDailyStatRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<ListingViewDailyStat, bool>>>()))
+                .ReturnsAsync(dailyStat);
+            _mockListingViewDailyStatRepository
+                .Setup(r => r.UpdateAsync(dailyStat))
+                .Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.UpdateAsync(listing))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork
+                .Setup(u => u.SaveChangesAsync())
+                .ReturnsAsync(1);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.IncreaseViewCountAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.viewCount.Should().Be(8);
+            dailyStat.ViewCount.Should().Be(4);
+            dailyStat.UpdatedAt.Should().NotBe(default);
+            _mockListingViewDailyStatRepository.Verify(r => r.UpdateAsync(dailyStat), Times.Once);
+            _mockListingViewDailyStatRepository.Verify(r => r.AddAsync(It.IsAny<ListingViewDailyStat>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task IncreaseViewCountAsync_ListingNotFound_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.IncreaseViewCountAsync(99);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+            result.Message.Should().Be("Không tìm thấy listing với Id đã cho.");
+            _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
         }
 
         [Fact]
