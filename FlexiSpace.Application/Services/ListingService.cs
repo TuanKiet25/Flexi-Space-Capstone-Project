@@ -1299,6 +1299,17 @@ namespace FlexiSpace.Application.Services
                 listing.IsActive = false;
                 listing.UpdatedAt = DateTime.Now;
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
+
+                var banner = await _unitOfWork.bannerRepository.GetAsync(x => x.ListingId == id && !x.IsDeleted);
+                if (banner != null)
+                {
+                    banner.IsDeleted = true;
+                    banner.IsActive = false;
+                    banner.UpdatedAt = DateTime.Now;
+                    banner.UpdatedBy = _currentUserService.UserId ?? "System";
+                    await _unitOfWork.bannerRepository.UpdateAsync(banner);
+                }
+
                 await _unitOfWork.SaveChangesAsync();
                 _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
                 return new ServiceResult<ListingResponse>
