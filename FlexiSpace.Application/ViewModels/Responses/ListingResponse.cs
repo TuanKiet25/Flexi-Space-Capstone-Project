@@ -23,6 +23,8 @@ namespace FlexiSpace.Application.ViewModels.Responses
         public string LessorName { get; set; }
         required
         public string SpaceAddress { get; set; }
+        required
+        public string SpaceCity { get; set; }
         public double SpaceLatitude { get; set; }
         public double SpaceLongitude { get; set; }
         public decimal Price { get; set; }
