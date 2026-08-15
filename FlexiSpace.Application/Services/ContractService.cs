@@ -998,7 +998,11 @@ namespace FlexiSpace.Application.Services
             // Lấy Hợp đồng kèm luôn Verification trong 1 câu SQL duy nhất
             var contract = await _unitOfWork.contractRepository.GetAsync(
                 c => c.Id == contractId,
-                include: q => q.Include(c => c.ContractVerification).Include(c => c.ContractSchedules)
+                include: q => q.Include(c => c.ContractVerification)
+                               .Include(c => c.ContractSchedules)
+                               .Include(c => c.PrimaryBookingRequest)
+                                   .ThenInclude(b => b.Listing)
+                                       .ThenInclude(l => l.ShareSpaceDetail)
             );
             if (contract == null || contract.ContractVerification == null)
             {
@@ -1059,6 +1063,7 @@ namespace FlexiSpace.Application.Services
                 contract.PostSignHash = ComputeSha256Hash(contract.PostSignSnapshot);
                 contract.ContractSnapshot = contract.PostSignSnapshot;
                 await EnsureSpaceUsageRightAsync(contract);
+                await MarkListingOccupiedAfterSuccessfulRentalAsync(contract);
                 isFullySigned = true;
             }
             if (isFullySigned)
@@ -1108,6 +1113,78 @@ namespace FlexiSpace.Application.Services
                 Data = _mapper.Map<MessageResponse>(returnMessage),
                 Message = "Đã xác thực hợp đồng thành công"
             };
+        }
+
+        private async Task MarkListingOccupiedAfterSuccessfulRentalAsync(Contract contract)
+        {
+            var listing = contract.PrimaryBookingRequest?.Listing;
+            if (listing == null && contract.PrimaryBookingRequestId.HasValue)
+            {
+                var booking = await _unitOfWork.primaryBookingRequestRepository.GetAsync(
+                    x => x.Id == contract.PrimaryBookingRequestId.Value && !x.IsDeleted,
+                    include: q => q.Include(b => b.Listing).ThenInclude(l => l.ShareSpaceDetail));
+                listing = booking?.Listing;
+            }
+
+            if (listing == null || listing.Status != ListingStatusEnum.Available)
+            {
+                return;
+            }
+
+            if (listing.ListingType == ListingType.SharedSpace)
+            {
+                if (listing.ShareSpaceDetail == null)
+                {
+                    return;
+                }
+
+                if (listing.ShareSpaceDetail.MaxSubRenter > 0)
+                {
+                    listing.ShareSpaceDetail.MaxSubRenter -= 1;
+                }
+
+                if (listing.ShareSpaceDetail.MaxSubRenter <= 0)
+                {
+                    listing.Status = ListingStatusEnum.Occupied;
+                    listing.IsActive = false;
+                }
+            }
+            else
+            {
+                listing.Status = ListingStatusEnum.Occupied;
+                listing.IsActive = false;
+            }
+
+            listing.UpdatedAt = DateTime.Now;
+            listing.UpdatedBy = "SystemContractSigning";
+            await _unitOfWork.listingRepository.UpdateAsync(listing);
+            await InvalidateListingCacheAsync(listing.Id);
+        }
+
+        private async Task InvalidateListingCacheAsync(long listingId)
+        {
+            var keysToInvalidate = new List<string>
+            {
+                $"Cache:Listing:Id_{listingId}"
+            };
+
+            var allStatuses = Enum.GetValues<ListingStatusEnum>().Cast<ListingStatusEnum?>().ToList();
+            allStatuses.Add(null);
+            var allTypes = Enum.GetValues<ListingType>().Cast<ListingType?>().ToList();
+            allTypes.Add(null);
+
+            foreach (var status in allStatuses)
+            {
+                foreach (var type in allTypes)
+                {
+                    keysToInvalidate.Add($"Cache:Listings:Status_{status?.ToString() ?? "All"}:Type_{type?.ToString() ?? "All"}");
+                }
+            }
+
+            foreach (var key in keysToInvalidate.Distinct())
+            {
+                await _cache.RemoveAsync(key);
+            }
         }
       
 

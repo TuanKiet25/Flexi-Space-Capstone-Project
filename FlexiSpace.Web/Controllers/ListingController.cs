@@ -27,6 +27,18 @@ namespace FlexiSpace.Web.Controllers
             var result = await _listingService.GetAllListingsAsync(status, listingType, top);
             return HandleResult(result);
         }
+        [HttpGet("GetAllByCurrentUser")]
+        public async Task<IActionResult> GetListingsByCurrentUser([FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType)
+        {
+            var result = await _listingService.GetListingsByCurrentUserAsync(status, listingType);
+            return HandleResult(result);
+        }
+        [HttpGet("GetAllByUserId/{userId}")]
+        public async Task<IActionResult> GetListingsByUserId(string userId, [FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType)
+        {
+            var result = await _listingService.GetListingsByUserIdAsync(userId, status, listingType);
+            return HandleResult(result);
+        }
         [HttpGet("GetById/{id}")]
         public async Task<IActionResult> GetListingById(long id)
         {
@@ -38,6 +50,13 @@ namespace FlexiSpace.Web.Controllers
         public async Task<IActionResult> UpdateListing(long id, ListingRequest listingRequest)
         {
             var result = await _listingService.UpdateListingAsync(id, listingRequest);
+            return HandleResult(result);
+        }
+
+        [HttpPut("Renew/{id}")]
+        public async Task<IActionResult> RenewExpiredListing(long id, ListingRequest listingRequest, decimal amount, int durationInDays)
+        {
+            var result = await _listingService.RenewExpiredListingAsync(id, listingRequest, amount, durationInDays);
             return HandleResult(result);
         }
 

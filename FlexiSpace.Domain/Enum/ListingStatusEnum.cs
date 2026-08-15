@@ -8,7 +8,10 @@ namespace FlexiSpace.Domain.Enum
 {
     public enum ListingStatusEnum
     {
-        Accepted,
+        Available,      
+        Occupied,       
+        Hidden, 
         Ban,
+        Expired 
     }
 }
