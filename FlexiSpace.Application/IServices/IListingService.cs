@@ -25,6 +25,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<List<ListingReportResponse>>> GetListingReportsAsync(long listingId);
         Task<ServiceResult<List<ReportedListingSummaryResponse>>> GetReportedListingsAsync();
         Task<ServiceResult<ListingReportDetailResponse>> GetListingReportDetailAsync(long listingId);
+        Task<ServiceResult<int>> ClearListingReportsAsync(long listingId);
         Task<ServiceResult<ShareListingTimePolicyResponse>> GetShareListingTimePolicyAsync(long spaceId);
         Task<ServiceResult<ShareListingResponse>> CreateShareListingAsync(SharedListingRequest sharedListingRequest, decimal amount, int durationInDays);
         Task<ServiceResult<ShareListingResponse>> UpdateShareListingAsync(long id, SharedListingRequest sharedListingRequest);

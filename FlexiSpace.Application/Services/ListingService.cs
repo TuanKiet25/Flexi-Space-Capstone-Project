@@ -150,6 +150,12 @@ namespace FlexiSpace.Application.Services
                 return "Giá cho thuê phải lớn hơn 0.";
             }
 
+            var priceUnitValidation = ValidatePriceUnitWithinListingPeriod(listing.PriceUnit, allowedStartTime, allowedEndTime);
+            if (priceUnitValidation != null)
+            {
+                return priceUnitValidation;
+            }
+
             var timeConflictValidation = await ValidateSpaceListingTimeConflictAsync(
                 space,
                 allowedStartTime,
@@ -192,6 +198,43 @@ namespace FlexiSpace.Application.Services
             }
 
             return null;
+        }
+
+        private static string? ValidatePriceUnitWithinListingPeriod(PriceUnit priceUnit, DateOnly allowedStartTime, DateOnly allowedEndTime)
+        {
+            if (!Enum.IsDefined(typeof(PriceUnit), priceUnit))
+            {
+                return "Price unit is invalid.";
+            }
+
+            var maxPriceUnit = GetMaxPriceUnitForListingPeriod(allowedStartTime, allowedEndTime);
+            if (priceUnit > maxPriceUnit)
+            {
+                return $"Price unit cannot exceed {maxPriceUnit} for the listing rental period.";
+            }
+
+            return null;
+        }
+
+        private static PriceUnit GetMaxPriceUnitForListingPeriod(DateOnly allowedStartTime, DateOnly allowedEndTime)
+        {
+            var totalDays = allowedEndTime.DayNumber - allowedStartTime.DayNumber;
+            if (totalDays >= 365)
+            {
+                return PriceUnit.PerYear;
+            }
+
+            if (totalDays >= 30)
+            {
+                return PriceUnit.PerMonth;
+            }
+
+            if (totalDays >= 7)
+            {
+                return PriceUnit.PerWeek;
+            }
+
+            return PriceUnit.PerDay;
         }
 
         private async Task<string?> ValidateListingCreatorPermissionAsync(
@@ -1212,6 +1255,63 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<int>> ClearListingReportsAsync(long listingId)
+        {
+            try
+            {
+                if (listingId <= 0)
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = false,
+                        Message = "Id bài đăng không hợp lệ."
+                    };
+                }
+
+                var listing = await _unitOfWork.listingRepository.GetAsync(x => x.Id == listingId && !x.IsDeleted);
+                if (listing == null)
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy bài đăng."
+                    };
+                }
+
+                var reports = await _unitOfWork.listingReportRepository.GetAllAsync(x => x.ListingId == listingId);
+                if (!reports.Any())
+                {
+                    return new ServiceResult<int>
+                    {
+                        IsSuccess = true,
+                        Data = 0,
+                        Message = "Bài đăng này không có report cần gỡ."
+                    };
+                }
+
+                var removedCount = reports.Count;
+                await _unitOfWork.listingReportRepository.RemoveRangeAsync(reports);
+                await _unitOfWork.SaveChangesAsync();
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(listingId));
+
+                return new ServiceResult<int>
+                {
+                    IsSuccess = true,
+                    Data = removedCount,
+                    Message = "Đã gỡ bài đăng khỏi danh sách report."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<int>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         private static List<ReportReasonEnum> ParseReasons(string reasons)
         {
             if (string.IsNullOrWhiteSpace(reasons))
@@ -1242,6 +1342,17 @@ namespace FlexiSpace.Application.Services
                 listing.IsActive = false;
                 listing.UpdatedAt = DateTime.Now;
                 await _unitOfWork.listingRepository.UpdateAsync(listing);
+
+                var banner = await _unitOfWork.bannerRepository.GetAsync(x => x.ListingId == id && !x.IsDeleted);
+                if (banner != null)
+                {
+                    banner.IsDeleted = true;
+                    banner.IsActive = false;
+                    banner.UpdatedAt = DateTime.Now;
+                    banner.UpdatedBy = _currentUserService.UserId ?? "System";
+                    await _unitOfWork.bannerRepository.UpdateAsync(banner);
+                }
+
                 await _unitOfWork.SaveChangesAsync();
                 _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
                 return new ServiceResult<ListingResponse>

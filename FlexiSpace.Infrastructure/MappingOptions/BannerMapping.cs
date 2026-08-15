@@ -13,7 +13,8 @@ namespace FlexiSpace.Infrastructure.MappingOptions
             CreateMap<UpdateBannerRequest, Banner>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
-            CreateMap<Banner, BannerResponse>();
+            CreateMap<Banner, BannerResponse>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src => src.PictureURL != null ? src.PictureURL.ImageUrl : null));
         }
     }
 }

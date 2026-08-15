@@ -25,6 +25,7 @@ namespace FlexiSpace.Domain.Entities
         public string Description { get; set; }
         public string CancelReason { get; set; }
         public decimal Price { get; set; }
+        public PriceUnit PriceUnit { get; set; }
         public decimal priorityLevel { get; set; }
         public int durationInDays { get; set; }
         public ListingType ListingType { get; set; }
