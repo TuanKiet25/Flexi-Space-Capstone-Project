@@ -62,6 +62,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IPriorityLevelRepository, PriorityLevelRepository>();
             services.AddScoped<ISpaceUsageRightRepository, SpaceUsageRightRepository>();
             services.AddScoped<IBannerRepository, BannerRepository>();
+            services.AddScoped<IListingViewDailyStatRepository, ListingViewDailyStatRepository>();
             services.AddScoped(typeof(IInsertAndUpdate<,>), typeof(InsertAndUpdate<,>));
             #endregion
             // Đăng ký services

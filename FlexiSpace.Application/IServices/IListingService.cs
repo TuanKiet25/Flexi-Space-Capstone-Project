@@ -15,6 +15,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<ListingResponse>> CreateListingAsync(ListingRequest listing, decimal amount, int durationInDays);
         Task<ServiceResult<List<ShareListingResponse>>> GetAllListingsAsync(ListingStatusEnum? status, ListingType? listingType = null, int? top = null);
         Task<ServiceResult<ListingResponse>> GetListingByIdAsync(long id);
+        Task<ServiceResult<ListingResponse>> IncreaseViewCountAsync(long id);
         Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing);
         Task<ServiceResult<ListingResponse>> RenewExpiredListingAsync(long id, ListingRequest listing, decimal amount, int durationInDays);
         Task<ServiceResult<ListingResponse>> HardDeleteListingAsync(long id);

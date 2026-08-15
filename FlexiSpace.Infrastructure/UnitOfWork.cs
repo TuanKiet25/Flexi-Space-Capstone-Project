@@ -39,6 +39,7 @@ namespace FlexiSpace.Infrastructure
         public IDeviceTokenRepository deviceTokenRepository { get; }
         public ISpaceUsageRightRepository spaceUsageRightRepository { get; }
         public IBannerRepository bannerRepository { get; }
+        public IListingViewDailyStatRepository listingViewDailyStatRepository { get; }
 
         public UnitOfWork(AppDbContext dbContext)
         {
@@ -73,6 +74,7 @@ namespace FlexiSpace.Infrastructure
             deviceTokenRepository = new DeviceTokenRepository(_dbContext);
             spaceUsageRightRepository = new SpaceUsageRightRepository(_dbContext);
             bannerRepository = new BannerRepository(_dbContext);
+            listingViewDailyStatRepository = new ListingViewDailyStatRepository(_dbContext);
         }
 
 

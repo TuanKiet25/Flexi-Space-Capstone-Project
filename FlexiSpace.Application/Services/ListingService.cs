@@ -831,6 +831,77 @@ namespace FlexiSpace.Application.Services
             }
         }
 
+        public async Task<ServiceResult<ListingResponse>> IncreaseViewCountAsync(long id)
+        {
+            try
+            {
+                var listing = await _unitOfWork.listingRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted,
+                    include: q => q.Include(l => l.Space)
+                                   .Include(l => l.Lessor)
+                                   .Include(l => l.PictureURLs));
+
+                if (listing == null)
+                {
+                    return new ServiceResult<ListingResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy listing với Id đã cho."
+                    };
+                }
+
+                listing.viewCount += 1;
+                listing.UpdatedAt = DateTime.Now;
+
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                var dailyStat = await _unitOfWork.listingViewDailyStatRepository.GetAsync(x =>
+                    x.ListingId == id &&
+                    x.Date == today);
+
+                if (dailyStat == null)
+                {
+                    dailyStat = new ListingViewDailyStat
+                    {
+                        ListingId = id,
+                        Date = today,
+                        ViewCount = 1,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now
+                    };
+
+                    await _unitOfWork.listingViewDailyStatRepository.AddAsync(dailyStat);
+                }
+                else
+                {
+                    dailyStat.ViewCount += 1;
+                    dailyStat.UpdatedAt = DateTime.Now;
+                    await _unitOfWork.listingViewDailyStatRepository.UpdateAsync(dailyStat);
+                }
+
+                await _unitOfWork.listingRepository.UpdateAsync(listing);
+                await _unitOfWork.SaveChangesAsync();
+
+                var result = _mapper.Map<ListingResponse>(listing);
+                _ = Task.Run(async () => await InvalidateListingCacheAsync(id));
+
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = true,
+                    Data = result,
+                    Message = "Tăng lượt xem listing thành công."
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ListingResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<ServiceResult<ListingResponse>> UpdateListingAsync(long id, ListingRequest listing)
         {
             try

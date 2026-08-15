@@ -15,6 +15,7 @@ namespace FlexiSpace.Domain.Entities
             PictureURLs = new HashSet<PictureURL>();
             Reports = new HashSet<ListingReport>();
             FavoriteListings = new HashSet<FavoriteListing>();
+            ViewDailyStats = new HashSet<ListingViewDailyStat>();
         }
 
         public long Id { get; set; }
@@ -28,6 +29,7 @@ namespace FlexiSpace.Domain.Entities
         public PriceUnit PriceUnit { get; set; }
         public decimal priorityLevel { get; set; }
         public int durationInDays { get; set; }
+        public int viewCount { get; set; }
         public ListingType ListingType { get; set; }
         public ListingStatusEnum Status { get; set; }
         public virtual ShareSpaceDetail ShareSpaceDetail { get; set; }
@@ -38,5 +40,6 @@ namespace FlexiSpace.Domain.Entities
         public virtual ICollection<PictureURL> PictureURLs { get; set; }
         public virtual ICollection<ListingReport> Reports { get; set; }
         public virtual ICollection<FavoriteListing> FavoriteListings { get; set; }
+        public virtual ICollection<ListingViewDailyStat> ViewDailyStats { get; set; }
     }
 }
