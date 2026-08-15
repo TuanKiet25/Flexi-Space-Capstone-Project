@@ -25,6 +25,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<ISpaceRepository> _mockSpaceRepository;
         private readonly Mock<IAmentityRepository> _mockAmenityRepository;
         private readonly Mock<IListingReportRepository> _mockListingReportRepository;
+        private readonly Mock<IBannerRepository> _mockBannerRepository;
         private readonly Mock<IWalletService> _mockWalletService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ICurrentUserService> _mockCurrentUserService;
@@ -38,6 +39,7 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository = new Mock<ISpaceRepository>();
             _mockAmenityRepository = new Mock<IAmentityRepository>();
             _mockListingReportRepository = new Mock<IListingReportRepository>();
+            _mockBannerRepository = new Mock<IBannerRepository>();
             _mockWalletService = new Mock<IWalletService>();
             _mockMapper = new Mock<IMapper>();
             _mockCurrentUserService = new Mock<ICurrentUserService>();
@@ -47,6 +49,7 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.amenityRepository).Returns(_mockAmenityRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingReportRepository).Returns(_mockListingReportRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.bannerRepository).Returns(_mockBannerRepository.Object);
 
             _mockCache
                 .Setup(c => c.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -154,6 +157,31 @@ namespace FlexiSpace.Application.Tests
             listing.Status.Should().Be(ListingStatusEnum.Accepted);
             listing.ListingType.Should().Be(ListingType.EntireSpace);
             _mockListingRepository.Verify(r => r.AddAsync(listing), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateListingAsync_PriceUnitExceedsListingPeriod_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.AllowedEndTime = request.AllowedStartTime!.Value.AddDays(30);
+            request.PriceUnit = PriceUnit.PerYear;
+
+            SetupWalletSpendSuccess();
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "lessor-1" });
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain(nameof(PriceUnit.PerMonth));
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
         }
 
         [Fact]
@@ -274,6 +302,36 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task SoftDeleteListingAsync_ListingHasBanner_SoftDeletesBanner()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, IsDeleted = false, IsActive = true };
+            var banner = new Banner { Id = 10, ListingId = 5, IsDeleted = false, IsActive = true };
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(listing);
+            _mockBannerRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Banner, bool>>>()))
+                .ReturnsAsync(banner);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("admin-1");
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.SoftDeleteListingAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.IsDeleted.Should().BeTrue();
+            listing.IsActive.Should().BeFalse();
+            banner.IsDeleted.Should().BeTrue();
+            banner.IsActive.Should().BeFalse();
+            banner.UpdatedBy.Should().Be("admin-1");
+            _mockBannerRepository.Verify(r => r.UpdateAsync(banner), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
         public async Task SoftDeleteListingAsync_RepositoryThrowsException_ReturnsFailedResult()
         {
             // 1. ARRANGE
@@ -296,6 +354,7 @@ namespace FlexiSpace.Application.Tests
                 Name = "Listing",
                 Description = "Description",
                 Price = 100,
+                PriceUnit = PriceUnit.PerDay,
                 AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(10))
             };
