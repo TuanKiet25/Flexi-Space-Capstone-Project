@@ -44,6 +44,12 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = validation };
                 }
 
+                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id);
+                if (splitValidation != null)
+                {
+                    return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = splitValidation };
+                }
+
                 var spacePart = _mapper.Map<Space>(request, opt => opt.Items["ParentSpace"] = parentSpace!);
                 spacePart.ParentSpaceId = parentSpaceId;
                 spacePart.OwnerId = parentSpace!.OwnerId;
@@ -87,6 +93,12 @@ namespace FlexiSpace.Infrastructure.Services
                 if (validation != null)
                 {
                     return new ServiceResult<IEnumerable<SpacePartResponse>> { IsSuccess = false, Message = validation };
+                }
+
+                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id);
+                if (splitValidation != null)
+                {
+                    return new ServiceResult<IEnumerable<SpacePartResponse>> { IsSuccess = false, Message = splitValidation };
                 }
 
                 await _unitOfWork.BeginTransactionAsync();
@@ -439,6 +451,32 @@ namespace FlexiSpace.Infrastructure.Services
                 x.ValidTo >= now);
 
             return rights.Any();
+        }
+
+        private async Task<string?> ValidateParentSpaceCanBeSplitAsync(long parentSpaceId)
+        {
+            var hasSignedListing = (await _unitOfWork.listingRepository.GetAllAsync(x =>
+                x.SpaceId == parentSpaceId &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.Status == ListingStatusEnum.Occupied)).Any();
+
+            if (hasSignedListing)
+            {
+                return "Cannot split this space because its listing has already been signed.";
+            }
+
+            var hasActiveContract = (await _unitOfWork.contractRepository.GetAllAsync(x =>
+                x.SpaceId == parentSpaceId &&
+                !x.IsDeleted &&
+                x.Status == ContractStatusEnum.Active)).Any();
+
+            if (hasActiveContract)
+            {
+                return "Cannot split this space because it already has an active contract.";
+            }
+
+            return null;
         }
     }
 }
