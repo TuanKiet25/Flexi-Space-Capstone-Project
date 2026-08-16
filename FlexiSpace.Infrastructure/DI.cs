@@ -90,6 +90,7 @@ namespace FlexiSpace.Infrastructure
             services.AddScoped<IRootEmailService, RootEmailService>();
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<ITransactionService, TransactionService>();
+            services.AddScoped<IPayOSGateway, PayOSGateway>();
             services.AddScoped<ITransactionHistoryService, TransactionHistoryService>();
             services.AddScoped<IWalletService, WalletService>();
             services.AddScoped<INotificationService, NotificationService>();

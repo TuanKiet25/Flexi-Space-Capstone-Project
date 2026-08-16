@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!-- Focus coverage on application business logic. -->
+          <Include>
+            [FlexiSpace.Application]FlexiSpace.Application.Services.*,
+            [FlexiSpace.Application]FlexiSpace.Application.Events.*
+          </Include>
+
+          <!-- Exclude generated, wiring, contracts, and pure data-shape code. -->
+          <Exclude>
+            [*.Tests]*,
+            [FlexiSpace.Application]FlexiSpace.Application.Services.ExpoPushService*,
+            [FlexiSpace.Application]FlexiSpace.Application.IRepositories.*,
+            [FlexiSpace.Application]FlexiSpace.Application.IServices.*,
+            [FlexiSpace.Application]FlexiSpace.Application.ViewModels.*,
+            [FlexiSpace.Application]FlexiSpace.Application.Validators.*,
+            [FlexiSpace.Application]FlexiSpace.Application.DataSeeder,
+            [FlexiSpace.Domain]*,
+            [FlexiSpace.Infrastructure]*,
+            [FlexiSpace.Web]*
+          </Exclude>
+
+          <!-- Path-based exclusions for files that should not affect business coverage. -->
+          <ExcludeByFile>
+            **/Migrations/**/*.cs,
+            **/bin/**/*.cs,
+            **/obj/**/*.cs,
+            **/Program.cs,
+            **/*Designer.cs,
+            **/*Snapshot.cs,
+            **/Configurations/**/*.cs,
+            **/MappingOptions/**/*.cs,
+            **/AutoMapperConfigurations/**/*.cs,
+            **/Properties/**/*.cs
+          </ExcludeByFile>
+
+          <ExcludeByAttribute>
+            <Attribute>System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute</Attribute>
+            <Attribute>System.CodeDom.Compiler.GeneratedCodeAttribute</Attribute>
+            <Attribute>System.Runtime.CompilerServices.CompilerGeneratedAttribute</Attribute>
+          </ExcludeByAttribute>
+
+          <SkipAutoProps>true</SkipAutoProps>
+          <UseSourceLink>false</UseSourceLink>
+          <SingleHit>false</SingleHit>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
