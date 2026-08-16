@@ -244,9 +244,37 @@ namespace FlexiSpace.Application.Services
             DateOnly allowedEndTime)
         {
             var currentUserId = _currentUserService.UserId;
+            if (string.IsNullOrWhiteSpace(currentUserId))
+            {
+                return "Register first!";
+            }
+
             if (space.OwnerId == currentUserId)
             {
                 return null;
+            }
+
+            if (listing is not SharedListingRequest && space.ParentSpaceId != null)
+            {
+                var canListChildSpace = await HasActiveShareRightForListingAsync(
+                    space.ParentSpaceId.Value,
+                    currentUserId,
+                    allowedStartTime,
+                    allowedEndTime);
+
+                if (!canListChildSpace)
+                {
+                    canListChildSpace = await HasActiveShareRightForListingAsync(
+                        space.Id,
+                        currentUserId,
+                        allowedStartTime,
+                        allowedEndTime);
+                }
+
+                if (canListChildSpace)
+                {
+                    return null;
+                }
             }
 
             if (listing is not SharedListingRequest)
@@ -273,6 +301,25 @@ namespace FlexiSpace.Application.Services
             }
 
             return null;
+        }
+
+        private async Task<bool> HasActiveShareRightForListingAsync(
+            long spaceId,
+            string userId,
+            DateOnly allowedStartTime,
+            DateOnly allowedEndTime)
+        {
+            var usageRights = await _unitOfWork.spaceUsageRightRepository.GetAllAsync(x =>
+                x.SpaceId == spaceId &&
+                x.UserId == userId &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.CanShare &&
+                x.Type != SpaceUsageRightType.SubRenter);
+
+            return usageRights.Any(x =>
+                DateOnly.FromDateTime(x.ValidFrom) <= allowedStartTime &&
+                DateOnly.FromDateTime(x.ValidTo) >= allowedEndTime);
         }
 
         public async Task<ServiceResult<ShareListingTimePolicyResponse>> GetShareListingTimePolicyAsync(long spaceId)

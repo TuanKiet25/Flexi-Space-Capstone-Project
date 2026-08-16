@@ -5,6 +5,7 @@ using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Application.ViewModels.Responses.Space;
 using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Enum;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
@@ -133,6 +134,12 @@ namespace FlexiSpace.Infrastructure.Services
         {
             try
             {
+                var currentUserId = _currentUserService.UserId;
+                if (string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    return new ServiceResult<IEnumerable<SpacePartResponse>> { IsSuccess = false, Message = "Register first!" };
+                }
+
                 var parentSpace = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == parentSpaceId && !x.IsDeleted);
                 if (parentSpace == null)
                 {
@@ -140,7 +147,7 @@ namespace FlexiSpace.Infrastructure.Services
                 }
 
                 var parts = await _unitOfWork.spaceRepository.GetAllAsync(
-                    x => x.ParentSpaceId == parentSpaceId && !x.IsDeleted,
+                    x => x.ParentSpaceId == parentSpaceId && !x.IsDeleted && x.CreatedBy == currentUserId,
                     include: q => q.Include(s => s.ParentSpace)
                                    .Include(s => s.Amenity)
                                    .Include(s => s.OperatingHour)
@@ -163,7 +170,13 @@ namespace FlexiSpace.Infrastructure.Services
         {
             try
             {
-                var part = await LoadPartAsync(id);
+                var currentUserId = _currentUserService.UserId;
+                if (string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = "Register first!" };
+                }
+
+                var part = await LoadPartAsync(id, currentUserId);
                 if (part == null)
                 {
                     return new ServiceResult<SpacePartResponse> { IsSuccess = false, IsNotFound = true, Message = "Space part not found." };
@@ -192,7 +205,7 @@ namespace FlexiSpace.Infrastructure.Services
                 }
 
                 var existingPart = await _unitOfWork.spaceRepository.GetAsync(
-                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId != null,
+                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId != null && x.CreatedBy == currentUserId,
                     include: q => q.Include(s => s.ParentSpace)
                                    .Include(s => s.Amenity)
                                    .Include(s => s.OperatingHour)
@@ -240,15 +253,12 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<string> { IsSuccess = false, Message = "Register first!" };
                 }
 
-                var existingPart = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == id && !x.IsDeleted && x.ParentSpaceId != null, include: q => q.Include(s => s.ParentSpace));
+                var existingPart = await _unitOfWork.spaceRepository.GetAsync(
+                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId != null && x.CreatedBy == currentUserId,
+                    include: q => q.Include(s => s.ParentSpace));
                 if (existingPart == null)
                 {
                     return new ServiceResult<string> { IsSuccess = false, IsNotFound = true, Message = "Space part not found." };
-                }
-
-                if (existingPart.OwnerId != currentUserId)
-                {
-                    return new ServiceResult<string> { IsSuccess = false, Message = "Only the space owner can delete this part." };
                 }
 
                 var hasActiveListing = (await _unitOfWork.listingRepository.GetAllAsync(
@@ -284,9 +294,9 @@ namespace FlexiSpace.Infrastructure.Services
                 return "Parent space not found.";
             }
 
-            if (parentSpace.OwnerId != currentUserId)
+            if (parentSpace.OwnerId != currentUserId && !await HasActiveShareRightAsync(parentSpace.Id, currentUserId))
             {
-                return "Only the parent space owner can manage space parts.";
+                return "Only the parent space owner or a user with share permission can manage space parts.";
             }
 
             var basicValidation = await ValidatePartBasicInfoAsync(request);
@@ -350,9 +360,9 @@ namespace FlexiSpace.Infrastructure.Services
                 return "Parent space not found.";
             }
 
-            if (parentSpace.OwnerId != currentUserId)
+            if (parentSpace.OwnerId != currentUserId && !await HasActiveShareRightAsync(parentSpace.Id, currentUserId))
             {
-                return "Only the parent space owner can manage space parts.";
+                return "Only the parent space owner or a user with share permission can manage space parts.";
             }
 
             if (request.Parts == null || !request.Parts.Any())
@@ -393,6 +403,17 @@ namespace FlexiSpace.Infrastructure.Services
                                .Include(s => s.PictureURL));
         }
 
+        private async Task<Space?> LoadPartAsync(long id, string createdBy)
+        {
+            return await _unitOfWork.spaceRepository.GetAsync(
+                x => x.Id == id && !x.IsDeleted && x.ParentSpaceId != null && x.CreatedBy == createdBy,
+                include: q => q.Include(s => s.ParentSpace)
+                               .Include(s => s.Amenity)
+                               .Include(s => s.OperatingHour)
+                               .Include(s => s.SpaceAllowedCategory)
+                               .Include(s => s.PictureURL));
+        }
+
         private async Task<List<Space>> LoadPartsAsync(List<long> ids)
         {
             return await _unitOfWork.spaceRepository.GetAllAsync(
@@ -402,6 +423,22 @@ namespace FlexiSpace.Infrastructure.Services
                                .Include(s => s.OperatingHour)
                                .Include(s => s.SpaceAllowedCategory)
                                .Include(s => s.PictureURL));
+        }
+
+        private async Task<bool> HasActiveShareRightAsync(long spaceId, string userId)
+        {
+            var now = DateTime.UtcNow;
+            var rights = await _unitOfWork.spaceUsageRightRepository.GetAllAsync(x =>
+                x.SpaceId == spaceId &&
+                x.UserId == userId &&
+                !x.IsDeleted &&
+                x.IsActive &&
+                x.CanShare &&
+                x.Type != SpaceUsageRightType.SubRenter &&
+                x.ValidFrom <= now &&
+                x.ValidTo >= now);
+
+            return rights.Any();
         }
     }
 }

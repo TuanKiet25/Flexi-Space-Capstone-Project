@@ -586,6 +586,96 @@ namespace FlexiSpace.Application.Tests
             booking.ExpectedEndDate.Should().Be(expectedEndDate);
         }
 
+        [Fact]
+        public async Task CreateBookingRequestAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Create failure"));
+
+            // 2. ACT
+            var result = await _sut.CreateBookingRequestAsync(CreateBookingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Create failure");
+        }
+
+        [Fact]
+        public async Task GetAllBookingRequestsAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockBookingRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<PrimaryBookingRequest, bool>>>(),
+                    It.IsAny<Func<IQueryable<PrimaryBookingRequest>, IIncludableQueryable<PrimaryBookingRequest, object>>?>()))
+                .ThrowsAsync(new InvalidOperationException("Get all failure"));
+
+            // 2. ACT
+            var result = await _sut.GetAllBookingRequestsAsync(null);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get all failure");
+        }
+
+        [Fact]
+        public async Task GetBookingRequestByIdAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockBookingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<PrimaryBookingRequest, bool>>>(),
+                    It.IsAny<Func<IQueryable<PrimaryBookingRequest>, IIncludableQueryable<PrimaryBookingRequest, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Get by id failure"));
+
+            // 2. ACT
+            var result = await _sut.GetBookingRequestByIdAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get by id failure");
+        }
+
+        [Fact]
+        public async Task UpdateBookingRequestAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockBookingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<PrimaryBookingRequest, bool>>>(),
+                    It.IsAny<Func<IQueryable<PrimaryBookingRequest>, IIncludableQueryable<PrimaryBookingRequest, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Update failure"));
+
+            // 2. ACT
+            var result = await _sut.UpdateBookingRequestAsync(5, CreateBookingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Update failure");
+        }
+
+        [Fact]
+        public async Task UpdateStatusAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockBookingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<PrimaryBookingRequest, bool>>>(),
+                    It.IsAny<Func<IQueryable<PrimaryBookingRequest>, IIncludableQueryable<PrimaryBookingRequest, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Status failure"));
+
+            // 2. ACT
+            var result = await _sut.UpdateStatusAsync(5, new BookingStatusRequest { Status = PrimaryBookingRequestStatusEnum.Approved });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Status failure");
+        }
+
         private static BookingRequest CreateBookingRequest() =>
             new()
             {

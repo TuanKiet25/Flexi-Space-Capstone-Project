@@ -553,6 +553,96 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task StartContractSigningAsync_ContractNotFound_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync((Contract)null!);
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task StartContractSigningAsync_CurrentUserIsNotLessor_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Draft });
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest { LessorId = "lessor-1", LesseeId = "lessee-1" });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task StartContractSigningAsync_ParticipantsMismatch_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Draft });
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest { LessorId = "lessor-1", LesseeId = "other" });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task StartContractSigningAsync_NonDraftContract_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Active });
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest { LessorId = "lessor-1", LesseeId = "lessee-1" });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task StartContractSigningAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Start signing failure"));
+
+            // 2. ACT
+            var result = await _sut.StartContractSigningAsync(7, new StartContractSigningRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Start signing failure");
+        }
+
+        [Fact]
         public async Task CancelContractSigningAsync_SigningContract_ReturnsDraftAndClearsSigningData()
         {
             // 1. ARRANGE
@@ -592,6 +682,78 @@ namespace FlexiSpace.Application.Tests
             contract.ContractVerification.LessorSignedAt.Should().BeNull();
             _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CancelContractSigningAsync_ContractNotFound_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync((Contract)null!);
+
+            // 2. ACT
+            var result = await _sut.CancelContractSigningAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task CancelContractSigningAsync_CurrentUserIsNotLessor_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Signing });
+
+            // 2. ACT
+            var result = await _sut.CancelContractSigningAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task CancelContractSigningAsync_NonSigningContract_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Draft });
+
+            // 2. ACT
+            var result = await _sut.CancelContractSigningAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task CancelContractSigningAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Cancel signing failure"));
+
+            // 2. ACT
+            var result = await _sut.CancelContractSigningAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Cancel signing failure");
         }
 
         [Fact]
@@ -1048,6 +1210,219 @@ namespace FlexiSpace.Application.Tests
             contracts.Should().OnlyContain(c => c.Status == ContractStatusEnum.Expired && !c.IsActive && c.UpdatedBy == "SystemBackgroundWorker");
             _mockContractRepository.Verify(r => r.UpdateAsync(It.IsAny<Contract>()), Times.Exactly(2));
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateContractAsync_RepositoryThrowsException_ReturnsFailedResultAndRollsBack()
+        {
+            // 1. ARRANGE
+            var request = CreateContractRequest();
+            SetupValidContractRequestValidation(request);
+            SetupParticipantProfiles();
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockMapper.Setup(m => m.Map<Contract>(request)).Returns(new Contract
+            {
+                SpaceId = request.SpaceId,
+                PrimaryBookingRequestId = request.PrimaryBookingRequestId,
+                ConversationId = request.ConversationId,
+                StartDate = request.StartDate,
+                Duration = request.Duration,
+                DurationUnit = request.DurationUnit
+            });
+            _mockContractRepository
+                .Setup(r => r.AddAsync(It.IsAny<Contract>()))
+                .ThrowsAsync(new InvalidOperationException("Create contract failure"));
+
+            // 2. ACT
+            var result = await _sut.CreateContractAsync(request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Create contract failure");
+            _mockUnitOfWork.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ShareContractAsync_RepositoryThrowsException_ReturnsFailedResultAndRollsBack()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Share failure"));
+
+            // 2. ACT
+            var result = await _sut.ShareContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("Share failure");
+            _mockUnitOfWork.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAllContractsAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Get contracts failure"));
+
+            // 2. ACT
+            var result = await _sut.GetAllContractsAsync(new FilterGetAllContract());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get contracts failure");
+        }
+
+        [Fact]
+        public async Task GetContractByIdAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Get contract failure"));
+
+            // 2. ACT
+            var result = await _sut.GetContractByIdAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get contract failure");
+        }
+
+        [Fact]
+        public async Task UpdateContractAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Update contract failure"));
+
+            // 2. ACT
+            var result = await _sut.UpdateContractAsync(7, CreateContractRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Update contract failure");
+        }
+
+        [Fact]
+        public async Task DeleteContractAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Delete contract failure"));
+
+            // 2. ACT
+            var result = await _sut.DeleteContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Delete contract failure");
+        }
+
+        [Fact]
+        public async Task DeactivateExpiredContractsAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Deactivate failure"));
+
+            // 2. ACT
+            var result = await _sut.DeactivateExpiredContractsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Deactivate failure");
+        }
+
+        [Fact]
+        public async Task ContractPrivateHelpers_RemainingBranches_ReturnExpectedResults()
+        {
+            // 1. ARRANGE
+            var calculateEndDate = typeof(ContractService).GetMethod("CalculateEndDate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var populateProfiles = typeof(ContractService).GetMethod("PopulateContractParticipantProfilesAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var syncSchedules = typeof(ContractService).GetMethod("SyncContractSchedules", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var resetSigningSession = typeof(ContractService).GetMethod("ResetSigningSession", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var enrichResponse = typeof(ContractService).GetMethod("EnrichContractResponseForCurrentUser", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+
+            var start = new DateTime(2026, 1, 1);
+            var contractWithoutSchedules = new Contract();
+            contractWithoutSchedules.ContractSchedules = null!;
+            var contractWithSchedules = new Contract
+            {
+                ContractSchedules = new List<ContractSchedule>
+                {
+                    new() { DayOfWeek = DayOfWeek.Monday }
+                }
+            };
+            var contractWithoutVerification = new Contract
+            {
+                PreSignSnapshot = "{}",
+                PreSignHash = "hash",
+                PostSignSnapshot = "{}",
+                PostSignHash = "hash"
+            };
+            var contractMissingProfile = new Contract { LessorId = "lessor-1", LesseeId = "lessee-1" };
+            _mockProfileRepository
+                .SetupSequence(r => r.GetAsync(It.IsAny<Expression<Func<UserProfile, bool>>>()))
+                .ReturnsAsync((UserProfile)null!)
+                .ReturnsAsync(new UserProfile { UserId = "lessee-1", IsVerified = true });
+
+            // 2. ACT
+            var weekEnd = (DateTime)calculateEndDate!.Invoke(_sut, new object[] { start, DurationUnitEnum.Weeks, 2 })!;
+            var dayEnd = (DateTime)calculateEndDate.Invoke(_sut, new object[] { start, DurationUnitEnum.Days, 3 })!;
+            var yearEnd = (DateTime)calculateEndDate.Invoke(_sut, new object[] { start, DurationUnitEnum.Years, 1 })!;
+            var defaultEnd = (DateTime)calculateEndDate.Invoke(_sut, new object[] { start, (DurationUnitEnum)999, 1 })!;
+            var emptyCurrentUserResponse = new ContractResponse();
+            var profileTask = (Task<string?>)populateProfiles!.Invoke(_sut, new object[] { contractMissingProfile })!;
+            var profileError = await profileTask;
+            enrichResponse!.Invoke(null, new object?[] { emptyCurrentUserResponse, new Contract { LessorId = "lessor-1", LesseeId = "lessee-1" }, " " });
+            syncSchedules!.Invoke(_sut, new object?[] { contractWithoutSchedules, null });
+            syncSchedules.Invoke(_sut, new object?[] { contractWithSchedules, new List<ContractScheduleRequest>() });
+            resetSigningSession!.Invoke(null, new object[] { contractWithoutVerification });
+
+            // 3. ASSERT
+            weekEnd.Should().Be(start.AddDays(14));
+            dayEnd.Should().Be(start.AddDays(3));
+            yearEnd.Should().Be(start.AddYears(1));
+            defaultEnd.Should().Be(start);
+            emptyCurrentUserResponse.CurrentUserContractRole.Should().BeNull();
+            profileError.Should().Be("Nguoi tham gia can cap nhat ho so CCCD truoc khi tao hop dong.");
+            contractWithoutSchedules.ContractSchedules.Should().NotBeNull();
+            contractWithoutSchedules.ContractSchedules.Should().BeEmpty();
+            contractWithSchedules.ContractSchedules.Should().BeEmpty();
+            contractWithoutVerification.PreSignSnapshot.Should().BeNull();
+            contractWithoutVerification.PreSignHash.Should().BeNull();
+            contractWithoutVerification.PostSignSnapshot.Should().BeNull();
+            contractWithoutVerification.PostSignHash.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task ContractPrivateHelpers_UnverifiedProfiles_ReturnsVerificationError()
+        {
+            // 1. ARRANGE
+            var populateProfiles = typeof(ContractService).GetMethod("PopulateContractParticipantProfilesAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            _mockProfileRepository
+                .SetupSequence(r => r.GetAsync(It.IsAny<Expression<Func<UserProfile, bool>>>()))
+                .ReturnsAsync(new UserProfile { UserId = "lessor-1", IsVerified = false })
+                .ReturnsAsync(new UserProfile { UserId = "lessee-1", IsVerified = true });
+
+            // 2. ACT
+            var profileTask = (Task<string?>)populateProfiles!.Invoke(_sut, new object[] { new Contract { LessorId = "lessor-1", LesseeId = "lessee-1" } })!;
+            var profileError = await profileTask;
+
+            // 3. ASSERT
+            profileError.Should().Be("Ca hai nguoi tham gia can xac thuc CCCD truoc khi tao hop dong.");
         }
 
         private void SetupValidContractRequestValidation(ContractRequest request)

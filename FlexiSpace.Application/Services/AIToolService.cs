@@ -17,7 +17,7 @@ namespace FlexiSpace.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
         private readonly IWalletService _walletService;
-        private const decimal AiDecorCost = 2000;
+        private static decimal AiDecorCost => 2000;
         public AIToolService(
             IFalAiService falAiService,
             IPictureURL pictureUrlService,

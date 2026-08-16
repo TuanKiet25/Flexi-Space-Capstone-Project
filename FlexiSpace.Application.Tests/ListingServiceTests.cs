@@ -192,6 +192,76 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task CreateListingAsync_MissingAllowedTimes_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.AllowedStartTime = null;
+            SetupWalletSpendSuccess();
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateListingAsync_PastStartDate_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(-1));
+            request.AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(2));
+            SetupWalletSpendSuccess();
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateListingAsync_StartDateAfterEndDate_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(5));
+            request.AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(5));
+            SetupWalletSpendSuccess();
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateListingAsync_NonPositivePrice_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            request.Price = 0;
+            SetupWalletSpendSuccess();
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
         public async Task GetListingByIdAsync_ListingNotFound_ReturnsFailedResult()
         {
             // 1. ARRANGE
@@ -1092,6 +1162,68 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task CreateShareListingAsync_InvalidMaxSubRenter_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            request.ShareSpaceDetailMaxSubRenter = 0;
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_MissingAvailabilityTimes_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            request.ShareSpaceDetailAvailabilitiesTimes = new List<AvailabilitiesTimeRequest>();
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_InvalidAvailabilityTime_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            request.ShareSpaceDetailAvailabilitiesTimes = new List<AvailabilitiesTimeRequest>
+            {
+                new()
+                {
+                    StartTime = new TimeOnly(17, 0),
+                    EndTime = new TimeOnly(9, 0),
+                    Specificdate = DateOnly.FromDateTime(DateTime.Now.AddDays(2))
+                }
+            };
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            SetupOwnerSpaceAndNoListingConflicts(request.SpaceId);
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
         public async Task UpdateShareListingAsync_ListingNotFound_ReturnsFailedResult()
         {
             // 1. ARRANGE
@@ -1444,6 +1576,263 @@ namespace FlexiSpace.Application.Tests
             _mockBannerRepository.Verify(r => r.UpdateAsync(It.IsAny<Banner>()), Times.Never);
         }
 
+        [Fact]
+        public async Task GetShareListingTimePolicyAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Policy failure"));
+
+            // 2. ACT
+            var result = await _sut.GetShareListingTimePolicyAsync(10);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Policy failure");
+        }
+
+        [Fact]
+        public async Task GetListingByIdAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Get listing failure"));
+
+            // 2. ACT
+            var result = await _sut.GetListingByIdAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get listing failure");
+        }
+
+        [Fact]
+        public async Task IncreaseViewCountAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("View failure"));
+
+            // 2. ACT
+            var result = await _sut.IncreaseViewCountAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("View failure");
+        }
+
+        [Fact]
+        public async Task UpdateListingAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Update listing failure"));
+
+            // 2. ACT
+            var result = await _sut.UpdateListingAsync(5, CreateListingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Update listing failure");
+        }
+
+        [Fact]
+        public async Task RenewExpiredListingAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Renew failure"));
+
+            // 2. ACT
+            var result = await _sut.RenewExpiredListingAsync(5, CreateListingRequest(), 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Renew failure");
+        }
+
+        [Fact]
+        public async Task GetAllListingsAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAllWithSortAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>?>(),
+                    It.IsAny<Func<IQueryable<Listing>, IOrderedQueryable<Listing>>?>(),
+                    It.IsAny<int?>()))
+                .ThrowsAsync(new InvalidOperationException("Get all listing failure"));
+
+            // 2. ACT
+            var result = await _sut.GetAllListingsAsync(null);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Get all listing failure");
+        }
+
+        [Fact]
+        public async Task AcceptOrCancelListingAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Accept failure"));
+
+            // 2. ACT
+            var result = await _sut.AcceptOrCancelListingAsync(5, new ListingStatusRequest { Status = ListingStatusEnum.Available });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Accept failure");
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_RepositoryThrowsException_RollsBackAndReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+            _mockWalletService
+                .Setup(s => s.SpendWalletBalance(It.IsAny<decimal>(), It.IsAny<string>()))
+                .ThrowsAsync(new InvalidOperationException("Share create failure"));
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(CreateSharedListingRequest(), 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Share create failure");
+            _mockUnitOfWork.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateShareListingAsync_RepositoryThrowsException_RollsBackAndReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ThrowsAsync(new InvalidOperationException("Share update failure"));
+
+            // 2. ACT
+            var result = await _sut.UpdateShareListingAsync(5, CreateSharedListingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Share update failure");
+            _mockUnitOfWork.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeactivateExpiredListingsAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Deactivate listing failure"));
+
+            // 2. ACT
+            var result = await _sut.DeactivateExpiredListingsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Deactivate listing failure");
+        }
+
+        [Fact]
+        public void ListingPrivateHelpers_RemainingValidationBranches_ReturnExpectedValues()
+        {
+            // 1. ARRANGE
+            var validatePriceUnit = typeof(ListingService).GetMethod("ValidatePriceUnitWithinListingPeriod", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var validateAvailability = typeof(ListingService).GetMethod("ValidateShareAvailabilityTime", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var isOverlapped = typeof(ListingService).GetMethod("IsAvailabilityOverlapped", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var describeOverlap = typeof(ListingService).GetMethod("DescribeDateOverlap", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var datePatternOverlapped = typeof(ListingService).GetMethod("IsDatePatternOverlapped", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var specificDateMatched = typeof(ListingService).GetMethod("IsSpecificDateMatched", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var getMaxPriceUnit = typeof(ListingService).GetMethod("GetMaxPriceUnitForListingPeriod", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            var parseReasons = typeof(ListingService).GetMethod("ParseReasons", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+
+            var allowedStart = DateOnly.FromDateTime(DateTime.Now.AddDays(1));
+            var allowedEnd = allowedStart.AddDays(10);
+
+            // 2. ACT
+            var maxYearPriceUnit = (PriceUnit)getMaxPriceUnit!.Invoke(null, new object[] { allowedStart, allowedStart.AddDays(365) })!;
+            var maxDayPriceUnit = (PriceUnit)getMaxPriceUnit.Invoke(null, new object[] { allowedStart, allowedStart.AddDays(1) })!;
+            var invalidPriceUnit = (string?)validatePriceUnit!.Invoke(null, new object[] { (PriceUnit)999, allowedStart, allowedEnd });
+            var yearPriceUnitMessage = (string?)validatePriceUnit.Invoke(null, new object[] { PriceUnit.PerYear, allowedStart, allowedEnd });
+            var missingStartTime = (string?)validateAvailability!.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { EndTime = new TimeOnly(9, 0), Specificdate = allowedStart }, allowedStart, allowedEnd });
+            var noDatePattern = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0) }, allowedStart, allowedEnd });
+            var mixedDatePattern = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0), Specificdate = allowedStart, DaysOfWeek = new List<DayOfWeek> { allowedStart.DayOfWeek } }, allowedStart, allowedEnd });
+            var missingValidRange = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0), DaysOfWeek = new List<DayOfWeek> { DayOfWeek.Monday } }, allowedStart, allowedEnd });
+            var invalidValidRange = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0), DaysOfWeek = new List<DayOfWeek> { DayOfWeek.Monday }, ValidFrom = allowedEnd, ValidTo = allowedStart }, allowedStart, allowedEnd });
+            var beforeAllowedStart = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0), Specificdate = allowedStart.AddDays(-1) }, allowedStart, allowedEnd });
+            var afterAllowedEnd = (string?)validateAvailability.Invoke(null, new object?[] { new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0), Specificdate = allowedEnd.AddDays(1) }, allowedStart, allowedEnd });
+
+            var noTimeOverlap = (bool)isOverlapped!.Invoke(null, new object[]
+            {
+                new AvailabilitiesTimeRequest { Specificdate = allowedStart, EndTime = new TimeOnly(9, 0) },
+                new AvailabilitiesTime { Specificdate = allowedStart, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(10, 0) }
+            })!;
+            var missingDateOverlap = (bool)isOverlapped.Invoke(null, new object[]
+            {
+                new AvailabilitiesTimeRequest { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(10, 0) },
+                new AvailabilitiesTime { StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(10, 0) }
+            })!;
+            var leftSpecificDescription = (string)describeOverlap!.Invoke(null, new object?[] { allowedStart, null, allowedStart, allowedEnd, null, new List<DayOfWeek> { allowedStart.DayOfWeek }, allowedStart, allowedEnd })!;
+            var rightSpecificDescription = (string)describeOverlap.Invoke(null, new object?[] { null, new List<DayOfWeek> { allowedStart.DayOfWeek }, allowedStart, allowedEnd, allowedStart, null, allowedStart, allowedEnd })!;
+            var recurringDescription = (string)describeOverlap.Invoke(null, new object?[] { null, new List<DayOfWeek> { DayOfWeek.Monday }, allowedStart, allowedEnd, null, new List<DayOfWeek> { DayOfWeek.Monday }, allowedStart.AddDays(1), allowedEnd.AddDays(-1) })!;
+            var outsideDateRange = (bool)datePatternOverlapped!.Invoke(null, new object?[] { null, new List<DayOfWeek> { DayOfWeek.Monday }, allowedStart, allowedStart, null, new List<DayOfWeek> { DayOfWeek.Monday }, allowedEnd, allowedEnd })!;
+            var leftSpecificMatch = (bool)datePatternOverlapped.Invoke(null, new object?[] { allowedStart, null, allowedStart, allowedStart, null, new List<DayOfWeek> { allowedStart.DayOfWeek }, allowedStart, allowedEnd })!;
+            var rightSpecificMatch = (bool)datePatternOverlapped.Invoke(null, new object?[] { null, new List<DayOfWeek> { allowedStart.DayOfWeek }, allowedStart, allowedEnd, allowedStart, null, allowedStart, allowedStart })!;
+            var exactSpecificMismatch = (bool)datePatternOverlapped.Invoke(null, new object?[] { allowedStart, null, allowedStart, allowedStart, allowedStart.AddDays(1), null, allowedStart, allowedEnd })!;
+            var specificMatched = (bool)specificDateMatched!.Invoke(null, new object?[] { allowedStart, allowedStart, allowedEnd, new List<DayOfWeek> { allowedStart.DayOfWeek } })!;
+            var recurringIntersection = (bool)datePatternOverlapped.Invoke(null, new object?[] { null, new List<DayOfWeek> { DayOfWeek.Monday }, allowedStart, allowedEnd, null, new List<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Tuesday }, allowedStart, allowedEnd })!;
+            var emptyReasons = (List<ReportReasonEnum>)parseReasons!.Invoke(null, new object[] { " " })!;
+
+            // 3. ASSERT
+            maxYearPriceUnit.Should().Be(PriceUnit.PerYear);
+            maxDayPriceUnit.Should().Be(PriceUnit.PerDay);
+            invalidPriceUnit.Should().Be("Price unit is invalid.");
+            yearPriceUnitMessage.Should().Contain(nameof(PriceUnit.PerWeek));
+            missingStartTime.Should().NotBeNullOrWhiteSpace();
+            noDatePattern.Should().NotBeNullOrWhiteSpace();
+            mixedDatePattern.Should().NotBeNullOrWhiteSpace();
+            missingValidRange.Should().NotBeNullOrWhiteSpace();
+            invalidValidRange.Should().NotBeNullOrWhiteSpace();
+            beforeAllowedStart.Should().NotBeNullOrWhiteSpace();
+            afterAllowedEnd.Should().NotBeNullOrWhiteSpace();
+            noTimeOverlap.Should().BeFalse();
+            missingDateOverlap.Should().BeFalse();
+            leftSpecificDescription.Should().Contain(allowedStart.ToString("yyyy-MM-dd"));
+            rightSpecificDescription.Should().Contain(allowedStart.ToString("yyyy-MM-dd"));
+            recurringDescription.Should().Contain(nameof(DayOfWeek.Monday));
+            outsideDateRange.Should().BeFalse();
+            leftSpecificMatch.Should().BeTrue();
+            rightSpecificMatch.Should().BeTrue();
+            exactSpecificMismatch.Should().BeFalse();
+            specificMatched.Should().BeTrue();
+            recurringIntersection.Should().BeTrue();
+            emptyReasons.Should().BeEmpty();
+        }
+
         private static ListingRequest CreateListingRequest() =>
             new()
             {
@@ -1488,6 +1877,19 @@ namespace FlexiSpace.Application.Tests
                     IsSuccess = true,
                     Data = new WalletRespnse { Id = 1, Balance = 100 }
                 });
+        }
+
+        private void SetupOwnerSpaceAndNoListingConflicts(long spaceId)
+        {
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = spaceId, OwnerId = "owner-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
         }
 
         private static ListingResponse CreateListingResponse(long id, string creatorId = "user-1") =>
