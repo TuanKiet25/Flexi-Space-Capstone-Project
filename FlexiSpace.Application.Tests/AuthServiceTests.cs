@@ -263,6 +263,47 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task SendPasswordOtpAsync_EmailNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            var request = new ForgotPasswordRequest("missing@email.com");
+            _mockUserRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<User, bool>>>()))
+                .ReturnsAsync((User)null!);
+
+            // 2. ACT
+            var result = await _sut.SendPasswordOtpAsync(request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("Email");
+            _mockEmailService.Verify(e => e.ResendOtpEmailAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SendPasswordOtpAsync_ExistingEmail_SavesOtpAndSendsEmail()
+        {
+            // 1. ARRANGE
+            var request = new ForgotPasswordRequest(" User@Email.com ");
+            _mockUserRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<User, bool>>>()))
+                .ReturnsAsync(new User { UserId = "user-1", Email = "user@email.com" });
+            _mockEmailService
+                .Setup(e => e.ResendOtpEmailAsync(request.Email, It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+
+            // 2. ACT
+            var result = await _sut.SendPasswordOtpAsync(request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            var savedOtp = await _cache.GetStringAsync("OTP:Password:user@email.com");
+            savedOtp.Should().NotBeNullOrWhiteSpace();
+            savedOtp.Should().HaveLength(6);
+            _mockEmailService.Verify(e => e.ResendOtpEmailAsync(request.Email, It.IsAny<string>()), Times.Once);
+        }
+
+        [Fact]
         public async Task ResetPasswordAsync_InvalidOtp_ReturnsFailedResult()
         {
             // 1. ARRANGE

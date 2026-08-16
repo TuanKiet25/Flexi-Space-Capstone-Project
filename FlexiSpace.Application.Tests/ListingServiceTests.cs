@@ -26,6 +26,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<IAmentityRepository> _mockAmenityRepository;
         private readonly Mock<IListingReportRepository> _mockListingReportRepository;
         private readonly Mock<IListingViewDailyStatRepository> _mockListingViewDailyStatRepository;
+        private readonly Mock<ISpaceUsageRightRepository> _mockSpaceUsageRightRepository;
         private readonly Mock<IBannerRepository> _mockBannerRepository;
         private readonly Mock<IWalletService> _mockWalletService;
         private readonly Mock<IMapper> _mockMapper;
@@ -41,6 +42,7 @@ namespace FlexiSpace.Application.Tests
             _mockAmenityRepository = new Mock<IAmentityRepository>();
             _mockListingReportRepository = new Mock<IListingReportRepository>();
             _mockListingViewDailyStatRepository = new Mock<IListingViewDailyStatRepository>();
+            _mockSpaceUsageRightRepository = new Mock<ISpaceUsageRightRepository>();
             _mockBannerRepository = new Mock<IBannerRepository>();
             _mockWalletService = new Mock<IWalletService>();
             _mockMapper = new Mock<IMapper>();
@@ -52,6 +54,7 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.SetupGet(u => u.amenityRepository).Returns(_mockAmenityRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingReportRepository).Returns(_mockListingReportRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.listingViewDailyStatRepository).Returns(_mockListingViewDailyStatRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.spaceUsageRightRepository).Returns(_mockSpaceUsageRightRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.bannerRepository).Returns(_mockBannerRepository.Object);
 
             _mockCache
@@ -207,6 +210,35 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetListingByIdAsync_ListingExists_ReturnsMappedListing()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, SpaceId = 10 };
+            var response = CreateListingResponse(5);
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.GetListingByIdAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+            _mockCache.Verify(c => c.SetAsync(
+                "Cache:Listing:Id_5",
+                It.IsAny<byte[]>(),
+                It.IsAny<DistributedCacheEntryOptions>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task IncreaseViewCountAsync_ListingExists_IncrementsViewCountAndReturnsResponse()
         {
             // 1. ARRANGE
@@ -324,6 +356,104 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task UpdateListingAsync_ListingNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.UpdateListingAsync(99, CreateListingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("Không tìm thấy listing");
+            _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateListingAsync_ValidRequest_UpdatesListing()
+        {
+            // 1. ARRANGE
+            var request = CreateListingRequest();
+            var listing = new Listing { Id = 5, SpaceId = request.SpaceId, CreatorId = "owner-1" };
+            var response = CreateListingResponse(5, "owner-1");
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "owner-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
+            _mockMapper
+                .Setup(m => m.Map(request, listing))
+                .Returns(listing);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.UpdateListingAsync(5, request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+            listing.UpdatedAt.Should().NotBe(default);
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task HardDeleteListingAsync_ListingExists_RemovesListing()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new Listing { Id = 5 });
+            _mockListingRepository
+                .Setup(r => r.RemoveByIdAsync(5L))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.HardDeleteListingAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Message.Should().Contain("listing");
+            _mockListingRepository.Verify(r => r.RemoveByIdAsync(5L), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task HardDeleteListingAsync_ListingNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.HardDeleteListingAsync(99);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.RemoveByIdAsync(It.IsAny<object>()), Times.Never);
+        }
+
+        [Fact]
         public async Task AcceptOrCancelListingAsync_BanWithoutReason_ReturnsFailedResult()
         {
             // 1. ARRANGE
@@ -338,6 +468,41 @@ namespace FlexiSpace.Application.Tests
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Contain("lý do");
             _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AcceptOrCancelListingAsync_BanWithReason_BansListingAndMarksReports()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, Status = ListingStatusEnum.Available, IsActive = true };
+            var reports = new List<ListingReport>
+            {
+                new() { Id = 1, ListingId = 5 },
+                new() { Id = 2, ListingId = 5 }
+            };
+            var response = CreateListingResponse(5);
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(listing);
+            _mockListingReportRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ListingReport, bool>>>()))
+                .ReturnsAsync(reports);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.AcceptOrCancelListingAsync(5, new ListingStatusRequest { Status = ListingStatusEnum.Ban, CancelReason = "Fraud" });
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.Status.Should().Be(ListingStatusEnum.Ban);
+            listing.IsActive.Should().BeFalse();
+            reports.Should().OnlyContain(x => x.IsBanned);
+            _mockListingReportRepository.Verify(r => r.UpdateAsync(It.IsAny<ListingReport>()), Times.Exactly(2));
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
         }
 
         [Fact]
@@ -423,6 +588,154 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetListingReportsAsync_ListingExists_ReturnsReportsNewestFirst()
+        {
+            // 1. ARRANGE
+            var reports = new List<ListingReport>
+            {
+                new() { Id = 1, ListingId = 5, CreatedAt = DateTime.Now.AddDays(-2) },
+                new() { Id = 2, ListingId = 5, CreatedAt = DateTime.Now }
+            };
+            var responses = new List<ListingReportResponse>
+            {
+                new() { Id = 2, ListingId = 5 },
+                new() { Id = 1, ListingId = 5 }
+            };
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new Listing { Id = 5 });
+            _mockListingReportRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<ListingReport, bool>>>(),
+                    It.IsAny<Func<IQueryable<ListingReport>, IIncludableQueryable<ListingReport, object>>?>()))
+                .ReturnsAsync(reports);
+            _mockMapper
+                .Setup(m => m.Map<List<ListingReportResponse>>(It.IsAny<List<ListingReport>>()))
+                .Returns(responses);
+
+            // 2. ACT
+            var result = await _sut.GetListingReportsAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeEquivalentTo(responses);
+        }
+
+        [Fact]
+        public async Task GetListingReportsAsync_ListingNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.GetListingReportsAsync(99);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingReportRepository.Verify(r => r.GetAllAsync(
+                It.IsAny<Expression<Func<ListingReport, bool>>>(),
+                It.IsAny<Func<IQueryable<ListingReport>, IIncludableQueryable<ListingReport, object>>?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetReportedListingsAsync_ReportsExist_ReturnsGroupedSummaries()
+        {
+            // 1. ARRANGE
+            var reports = new List<ListingReport>
+            {
+                new() { ListingId = 5, IsBanned = false, Listing = new Listing { Id = 5, Status = ListingStatusEnum.Available, Description = "A" } },
+                new() { ListingId = 5, IsBanned = true, Listing = new Listing { Id = 5, Status = ListingStatusEnum.Available, Description = "A" } },
+                new() { ListingId = 6, IsBanned = false, Listing = new Listing { Id = 6, Status = ListingStatusEnum.Ban, Description = "B" } }
+            };
+
+            _mockListingReportRepository
+                .Setup(r => r.GetAllWithSortAsync(
+                    It.IsAny<Expression<Func<ListingReport, bool>>?>(),
+                    It.IsAny<Func<IQueryable<ListingReport>, IIncludableQueryable<ListingReport, object>>?>(),
+                    It.IsAny<Func<IQueryable<ListingReport>, IOrderedQueryable<ListingReport>>?>(),
+                    It.IsAny<int?>()))
+                .ReturnsAsync(reports);
+
+            // 2. ACT
+            var result = await _sut.GetReportedListingsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().NotBeNull();
+            result.Data![0].ListingId.Should().Be(5);
+            result.Data[0].ReportCount.Should().Be(2);
+            result.Data[0].IsBanned.Should().BeTrue();
+            result.Data[1].ListingId.Should().Be(6);
+        }
+
+        [Fact]
+        public async Task ClearListingReportsAsync_ReportsExist_RemovesReports()
+        {
+            // 1. ARRANGE
+            var reports = new List<ListingReport>
+            {
+                new() { Id = 1, ListingId = 5 },
+                new() { Id = 2, ListingId = 5 }
+            };
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new Listing { Id = 5 });
+            _mockListingReportRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ListingReport, bool>>>()))
+                .ReturnsAsync(reports);
+            _mockListingReportRepository
+                .Setup(r => r.RemoveRangeAsync(reports))
+                .Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.ClearListingReportsAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(2);
+            _mockListingReportRepository.Verify(r => r.RemoveRangeAsync(reports), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ClearListingReportsAsync_InvalidListingId_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+
+            // 2. ACT
+            var result = await _sut.ClearListingReportsAsync(0);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ClearListingReportsAsync_NoReports_ReturnsZero()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new Listing { Id = 5 });
+            _mockListingReportRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<ListingReport, bool>>>()))
+                .ReturnsAsync(new List<ListingReport>());
+
+            // 2. ACT
+            var result = await _sut.ClearListingReportsAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(0);
+            _mockListingReportRepository.Verify(r => r.RemoveRangeAsync(It.IsAny<IEnumerable<ListingReport>>()), Times.Never);
+        }
+
+        [Fact]
         public async Task SoftDeleteListingAsync_ListingHasBanner_SoftDeletesBanner()
         {
             // 1. ARRANGE
@@ -466,6 +779,76 @@ namespace FlexiSpace.Application.Tests
             // 3. ASSERT
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Be("Db failure");
+        }
+
+        [Fact]
+        public async Task GetSoftDeletedListingsAsync_DeletedListingsExist_ReturnsMappedListings()
+        {
+            // 1. ARRANGE
+            var listings = new List<Listing>
+            {
+                new() { Id = 1, IsDeleted = true, ListingType = ListingType.EntireSpace },
+                new() { Id = 2, IsDeleted = true, ListingType = ListingType.SharedSpace }
+            };
+            var responses = new List<ShareListingResponse> { CreateShareListingResponse(1), CreateShareListingResponse(2) };
+
+            SetupListingSortQuery(listings);
+            _mockMapper
+                .Setup(m => m.Map<List<ShareListingResponse>>(It.IsAny<List<Listing>>()))
+                .Returns(responses);
+
+            // 2. ACT
+            var result = await _sut.GetSoftDeletedListingsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeEquivalentTo(responses);
+        }
+
+        [Fact]
+        public async Task RestoreListingAsync_DeletedListingExists_RestoresListing()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 5, IsDeleted = true, IsActive = false };
+            var response = CreateListingResponse(5);
+
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.RestoreListingAsync(5);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+            listing.IsDeleted.Should().BeFalse();
+            listing.IsActive.Should().BeTrue();
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
+        }
+
+        [Fact]
+        public async Task RestoreListingAsync_DeletedListingNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.RestoreListingAsync(99);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
         }
 
         [Fact]
@@ -602,6 +985,372 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetShareListingTimePolicyAsync_MissingCurrentUser_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns(" ");
+
+            // 2. ACT
+            var result = await _sut.GetShareListingTimePolicyAsync(10);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Register first!");
+            _mockSpaceRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetShareListingTimePolicyAsync_SpaceNotFound_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync((Space)null!);
+
+            // 2. ACT
+            var result = await _sut.GetShareListingTimePolicyAsync(10);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task GetShareListingTimePolicyAsync_CurrentUserOwnsSpace_ReturnsUnlockedPolicy()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "owner-1" });
+
+            // 2. ACT
+            var result = await _sut.GetShareListingTimePolicyAsync(10);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().NotBeNull();
+            result.Data!.IsLocked.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task GetShareListingTimePolicyAsync_PlatformContractExists_ReturnsLockedPolicy()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "owner-1" });
+            _mockUnitOfWork.SetupGet(u => u.contractRepository).Returns(new Mock<IContractRepository>().Object);
+            var mockContractRepository = Mock.Get(_mockUnitOfWork.Object.contractRepository);
+            mockContractRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new List<Contract>
+                {
+                    new()
+                    {
+                        Id = 99,
+                        SpaceId = 10,
+                        LesseeId = "lessee-1",
+                        CanShare = true,
+                        Source = ContractSource.Platform,
+                        Status = ContractStatusEnum.Active,
+                        StartDate = DateTime.Now.AddDays(-1),
+                        EndDate = DateTime.Now.AddDays(10),
+                        IsActive = true
+                    }
+                });
+
+            // 2. ACT
+            var result = await _sut.GetShareListingTimePolicyAsync(10);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().NotBeNull();
+            result.Data!.IsLocked.Should().BeTrue();
+            result.Data.ContractId.Should().Be(99);
+            result.Data.Source.Should().Be(ContractSource.Platform);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_WalletSpendFails_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockWalletService
+                .Setup(s => s.SpendWalletBalance(50, It.IsAny<string>()))
+                .ReturnsAsync(new ServiceResult<WalletRespnse> { IsSuccess = false, Message = "Balance not enough" });
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(CreateSharedListingRequest(), 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("Balance not enough");
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateShareListingAsync_ListingNotFound_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync((Listing)null!);
+
+            // 2. ACT
+            var result = await _sut.UpdateShareListingAsync(99, CreateSharedListingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateShareListingAsync_EntireSpaceListing_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(new Listing { Id = 5, ListingType = ListingType.EntireSpace });
+
+            // 2. ACT
+            var result = await _sut.UpdateShareListingAsync(5, CreateSharedListingRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("SharedSpace");
+            _mockListingRepository.Verify(r => r.UpdateAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_ValidOwnerRequest_CreatesSharedListing()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            var listing = new Listing { Id = 5, SpaceId = request.SpaceId };
+            var availability = new AvailabilitiesTime
+            {
+                StartTime = new TimeOnly(9, 0),
+                EndTime = new TimeOnly(17, 0),
+                Specificdate = request.ShareSpaceDetailAvailabilitiesTimes!.First().Specificdate
+            };
+            var response = CreateShareListingResponse(5, "owner-1");
+
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "owner-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
+            _mockMapper.Setup(m => m.Map<Listing>(request)).Returns(listing);
+            _mockMapper.Setup(m => m.Map<AvailabilitiesTime>(It.IsAny<AvailabilitiesTimeRequest>())).Returns(availability);
+            _mockListingRepository.Setup(r => r.AddAsync(listing)).Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockMapper.Setup(m => m.Map<ShareListingResponse>(listing)).Returns(response);
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.CreatorId.Should().Be("owner-1");
+            listing.ListingType.Should().Be(ListingType.SharedSpace);
+            listing.Status.Should().Be(ListingStatusEnum.Available);
+            listing.ShareSpaceDetail.Should().NotBeNull();
+            listing.ShareSpaceDetail!.MaxSubRenter.Should().Be(2);
+            listing.ShareSpaceDetail.AvailabilitiesTimes.Should().ContainSingle();
+            _mockListingRepository.Verify(r => r.AddAsync(listing), Times.Once);
+            _mockUnitOfWork.Verify(u => u.CommitTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_RenterHasShareRight_CreatesSharedListing()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            var listing = new Listing { Id = 6, SpaceId = request.SpaceId };
+            var response = CreateShareListingResponse(6, "renter-1");
+
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("renter-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "owner-1" });
+            _mockSpaceUsageRightRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<SpaceUsageRight, bool>>>()))
+                .ReturnsAsync(new List<SpaceUsageRight>
+                {
+                    new()
+                    {
+                        SpaceId = request.SpaceId,
+                        UserId = "renter-1",
+                        IsActive = true,
+                        CanShare = true,
+                        Type = SpaceUsageRightType.PrimaryRenter,
+                        ValidFrom = request.AllowedStartTime!.Value.ToDateTime(TimeOnly.MinValue).AddDays(-1),
+                        ValidTo = request.AllowedEndTime!.Value.ToDateTime(TimeOnly.MinValue).AddDays(1)
+                    }
+                });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
+            _mockMapper.Setup(m => m.Map<Listing>(request)).Returns(listing);
+            _mockMapper
+                .Setup(m => m.Map<AvailabilitiesTime>(It.IsAny<AvailabilitiesTimeRequest>()))
+                .Returns(new AvailabilitiesTime
+                {
+                    StartTime = new TimeOnly(9, 0),
+                    EndTime = new TimeOnly(17, 0),
+                    Specificdate = request.ShareSpaceDetailAvailabilitiesTimes!.First().Specificdate
+                });
+            _mockListingRepository.Setup(r => r.AddAsync(listing)).Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(listing);
+            _mockMapper.Setup(m => m.Map<ShareListingResponse>(listing)).Returns(response);
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            listing.CreatorId.Should().Be("renter-1");
+            listing.ListingType.Should().Be(ListingType.SharedSpace);
+            _mockSpaceUsageRightRepository.Verify(r => r.GetAllAsync(It.IsAny<Expression<Func<SpaceUsageRight, bool>>>()), Times.Once);
+            _mockListingRepository.Verify(r => r.AddAsync(listing), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateShareListingAsync_SharedTimeOverlapsExistingSharedListing_ReturnsConflict()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            var requestTime = request.ShareSpaceDetailAvailabilitiesTimes!.First();
+            var existingSharedListing = new Listing { Id = 9, SpaceId = request.SpaceId, ListingType = ListingType.SharedSpace };
+            var existingWithTimes = new Listing
+            {
+                Id = 9,
+                SpaceId = request.SpaceId,
+                ListingType = ListingType.SharedSpace,
+                ShareSpaceDetail = new ShareSpaceDetail
+                {
+                    AvailabilitiesTimes = new List<AvailabilitiesTime>
+                    {
+                        new()
+                        {
+                            StartTime = new TimeOnly(10, 0),
+                            EndTime = new TimeOnly(12, 0),
+                            Specificdate = requestTime.Specificdate
+                        }
+                    }
+                }
+            };
+
+            SetupWalletSpendSuccess();
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "owner-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing> { existingSharedListing });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(new List<Listing> { existingWithTimes });
+
+            // 2. ACT
+            var result = await _sut.CreateShareListingAsync(request, 50, 30);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("#9");
+            result.Message.Should().Contain("10:00");
+            _mockListingRepository.Verify(r => r.AddAsync(It.IsAny<Listing>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateShareListingAsync_ValidRequest_RebuildsSharedDetail()
+        {
+            // 1. ARRANGE
+            var request = CreateSharedListingRequest();
+            var existingListing = new Listing
+            {
+                Id = 5,
+                SpaceId = request.SpaceId,
+                ListingType = ListingType.SharedSpace,
+                ShareSpaceDetail = new ShareSpaceDetail
+                {
+                    AvailabilitiesTimes = new List<AvailabilitiesTime>(),
+                    ShareSpaceAmenities = new List<SharedSpaceAmenities>(),
+                    ShareSpaceCategories = new List<ShareSpaceCategory>()
+                }
+            };
+            var response = CreateShareListingResponse(5, "owner-1");
+
+            _mockUnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockListingRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Listing, bool>>>(),
+                    It.IsAny<Func<IQueryable<Listing>, IIncludableQueryable<Listing, object>>>()))
+                .ReturnsAsync(existingListing);
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>()))
+                .ReturnsAsync(new Space { Id = request.SpaceId, OwnerId = "owner-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ReturnsAsync(new List<Listing>());
+            _mockMapper.Setup(m => m.Map(request, existingListing)).Returns(existingListing);
+            _mockMapper
+                .Setup(m => m.Map<AvailabilitiesTime>(It.IsAny<AvailabilitiesTimeRequest>()))
+                .Returns(new AvailabilitiesTime { StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(17, 0), Specificdate = request.ShareSpaceDetailAvailabilitiesTimes!.First().Specificdate });
+            _mockMapper.Setup(m => m.Map<ShareListingResponse>(existingListing)).Returns(response);
+
+            // 2. ACT
+            var result = await _sut.UpdateShareListingAsync(5, request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            existingListing.ShareSpaceDetail.Should().NotBeNull();
+            existingListing.ShareSpaceDetail!.MaxSubRenter.Should().Be(2);
+            existingListing.ShareSpaceDetail.AvailabilitiesTimes.Should().ContainSingle();
+            _mockListingRepository.Verify(r => r.UpdateAsync(existingListing), Times.Once);
+            _mockUnitOfWork.Verify(u => u.CommitTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
         public async Task RenewExpiredListingAsync_ValidRequest_ChargesWalletAndMakesListingAvailable()
         {
             // 1. ARRANGE
@@ -705,6 +1454,29 @@ namespace FlexiSpace.Application.Tests
                 PriceUnit = PriceUnit.PerDay,
                 AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(10))
+            };
+
+        private static SharedListingRequest CreateSharedListingRequest() =>
+            new()
+            {
+                SpaceId = 10,
+                Name = "Shared Listing",
+                Description = "Description",
+                Price = 100,
+                PriceUnit = PriceUnit.PerDay,
+                AllowedStartTime = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
+                AllowedEndTime = DateOnly.FromDateTime(DateTime.Now.AddDays(10)),
+                ShareSpaceDetailMaxSubRenter = 2,
+                ShareSpaceDetailIsLegalCommitted = true,
+                ShareSpaceDetailAvailabilitiesTimes = new List<AvailabilitiesTimeRequest>
+                {
+                    new()
+                    {
+                        StartTime = new TimeOnly(9, 0),
+                        EndTime = new TimeOnly(17, 0),
+                        Specificdate = DateOnly.FromDateTime(DateTime.Now.AddDays(2))
+                    }
+                }
             };
 
         private void SetupWalletSpendSuccess()

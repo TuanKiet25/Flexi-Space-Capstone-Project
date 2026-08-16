@@ -6,9 +6,11 @@ using FlexiSpace.Application.Services;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Domain.Entities;
 using FlexiSpace.Domain.Enum;
+using Microsoft.EntityFrameworkCore.Query;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
@@ -146,6 +148,60 @@ namespace FlexiSpace.Application.Tests
             // 3. ASSERT
             result.IsSuccess.Should().BeTrue();
             result.Data.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task GetHistoryByCurrentUserAsync_AuthenticatedUser_ReturnsMappedNotifications()
+        {
+            // 1. ARRANGE
+            var notifications = new List<Notification>
+            {
+                new() { Id = 1, UserId = "user-1", Title = "A" },
+                new() { Id = 2, UserId = "user-1", Title = "B" }
+            };
+            var responses = new List<NotificationResponse>
+            {
+                new() { Id = 1, UserId = "user-1", Title = "A" },
+                new() { Id = 2, UserId = "user-1", Title = "B" }
+            };
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockNotificationRepository
+                .Setup(r => r.GetAllWithSortAsync(
+                    It.IsAny<Expression<Func<Notification, bool>>>(),
+                    It.IsAny<Func<IQueryable<Notification>, IIncludableQueryable<Notification, object>>?>(),
+                    It.IsAny<Func<IQueryable<Notification>, IOrderedQueryable<Notification>>?>(),
+                    It.IsAny<int?>()))
+                .ReturnsAsync(notifications);
+            _mockMapper
+                .Setup(m => m.Map<List<NotificationResponse>>(notifications))
+                .Returns(responses);
+
+            // 2. ACT
+            var result = await _sut.GetHistoryByCurrentUserAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeEquivalentTo(responses);
+        }
+
+        [Fact]
+        public async Task GetHistoryByCurrentUserAsync_UnauthenticatedUser_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns(" ");
+
+            // 2. ACT
+            var result = await _sut.GetHistoryByCurrentUserAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("User is not authenticated.");
+            _mockNotificationRepository.Verify(r => r.GetAllWithSortAsync(
+                It.IsAny<Expression<Func<Notification, bool>>>(),
+                It.IsAny<Func<IQueryable<Notification>, IIncludableQueryable<Notification, object>>?>(),
+                It.IsAny<Func<IQueryable<Notification>, IOrderedQueryable<Notification>>?>(),
+                It.IsAny<int?>()), Times.Never);
         }
 
         [Fact]

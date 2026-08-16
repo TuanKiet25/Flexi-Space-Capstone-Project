@@ -23,7 +23,9 @@ namespace FlexiSpace.Application.Tests
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IContractRepository> _mockContractRepository;
+        private readonly Mock<IListingRepository> _mockListingRepository;
         private readonly Mock<ISpaceRepository> _mockSpaceRepository;
+        private readonly Mock<ISpaceUsageRightRepository> _mockSpaceUsageRightRepository;
         private readonly Mock<IPrimaryBookingRequestRepository> _mockBookingRepository;
         private readonly Mock<IConversationRepository> _mockConversationRepository;
         private readonly Mock<IMessageRepository> _mockMessageRepository;
@@ -40,7 +42,9 @@ namespace FlexiSpace.Application.Tests
         {
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockContractRepository = new Mock<IContractRepository>();
+            _mockListingRepository = new Mock<IListingRepository>();
             _mockSpaceRepository = new Mock<ISpaceRepository>();
+            _mockSpaceUsageRightRepository = new Mock<ISpaceUsageRightRepository>();
             _mockBookingRepository = new Mock<IPrimaryBookingRequestRepository>();
             _mockConversationRepository = new Mock<IConversationRepository>();
             _mockMessageRepository = new Mock<IMessageRepository>();
@@ -53,7 +57,9 @@ namespace FlexiSpace.Application.Tests
             _cache = new TestDistributedCache();
 
             _mockUnitOfWork.SetupGet(u => u.contractRepository).Returns(_mockContractRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.listingRepository).Returns(_mockListingRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.spaceUsageRightRepository).Returns(_mockSpaceUsageRightRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.primaryBookingRequestRepository).Returns(_mockBookingRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.conversationRepository).Returns(_mockConversationRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.messageRepository).Returns(_mockMessageRepository.Object);
@@ -243,6 +249,77 @@ namespace FlexiSpace.Application.Tests
             result.IsSuccess.Should().BeFalse();
             result.Message.Should().Contain("Không tìm thấy");
             _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ShareContractAsync_CurrentUserIsNotLessor_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Draft });
+
+            // 2. ACT
+            var result = await _sut.ShareContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ShareContractAsync_NonDraftContract_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Signing });
+
+            // 2. ACT
+            var result = await _sut.ShareContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockMessageRepository.Verify(r => r.AddAsync(It.IsAny<Message>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ShareContractAsync_DraftContractOwnedByCurrentUser_AddsProposalMessage()
+        {
+            // 1. ARRANGE
+            var response = new MessageResponse { Id = "99", Content = "7" };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract
+                {
+                    Id = 7,
+                    LessorId = "lessor-1",
+                    Status = ContractStatusEnum.Draft,
+                    ConversationId = "conversation-1"
+                });
+            _mockConversationRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Conversation, bool>>>()))
+                .ReturnsAsync(new Conversation { Id = "conversation-1" });
+            _mockMapper
+                .Setup(m => m.Map<MessageResponse>(It.IsAny<Message>()))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.ShareContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+            _mockMessageRepository.Verify(r => r.AddAsync(It.Is<Message>(m =>
+                m.ConversationId == "conversation-1" &&
+                m.SenderId == "lessor-1" &&
+                m.Content == "7" &&
+                m.MessageType == MessageTypeEnum.ContractProposal)), Times.Once);
+            _mockConversationRepository.Verify(r => r.UpdateAsync(It.IsAny<Conversation>()), Times.Once);
+            _mockUnitOfWork.Verify(u => u.CommitTransactionAsync(), Times.Once);
         }
 
         [Fact]
@@ -670,6 +747,309 @@ namespace FlexiSpace.Application.Tests
             result.Message.Should().Contain("không hợp lệ");
         }
 
+        [Fact]
+        public async Task ContractValidateOtpAsync_LastSignerActivatesContractAndOccupiesListing()
+        {
+            // 1. ARRANGE
+            var listing = new Listing
+            {
+                Id = 50,
+                Status = ListingStatusEnum.Available,
+                IsActive = true,
+                ListingType = ListingType.EntireSpace
+            };
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                SpaceId = 10,
+                PrimaryBookingRequestId = 20,
+                ConversationId = "conversation-1",
+                Status = ContractStatusEnum.Signing,
+                StartDate = new DateTime(2026, 8, 1),
+                EndDate = new DateTime(2026, 9, 1),
+                CanShare = true,
+                CanGrantSharePermission = true,
+                ContractVerification = new ContractVerification { IsLessorAgreed = true },
+                ContractSchedules = new List<ContractSchedule>(),
+                PrimaryBookingRequest = new PrimaryBookingRequest { Id = 20, Listing = listing }
+            };
+            contract.PreSignSnapshot = BuildPreSignSnapshotForTest(contract);
+            contract.PreSignHash = ComputeSha256HashForTest(contract.PreSignSnapshot);
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
+            _mockCurrentUserService.Setup(s => s.GetClientIpAddress()).Returns("127.0.0.1");
+            await _cache.SetStringAsync("OTP:SignContract:7:lessee-1", "123456");
+            _mockUserRepository
+                .SetupSequence(r => r.GetAsync(
+                    It.IsAny<Expression<Func<User, bool>>>(),
+                    It.IsAny<Func<IQueryable<User>, IIncludableQueryable<User, object>>>()))
+                .ReturnsAsync(new User
+                {
+                    UserId = "lessee-1",
+                    Email = "lessee@example.com",
+                    Profile = new UserProfile
+                    {
+                        UserId = "lessee-1",
+                        FullName = "Lessee Full Name",
+                        IdentityCardNumber = "222",
+                        PermanentResidence = "Lessee Address",
+                        DateOfIssue = new DateOnly(2021, 1, 1)
+                    }
+                })
+                .ReturnsAsync(new User
+                {
+                    UserId = "lessor-1",
+                    Email = "lessor@example.com",
+                    Profile = new UserProfile { UserId = "lessor-1", FullName = "Lessor Full Name" }
+                });
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+            _mockSpaceUsageRightRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<SpaceUsageRight, bool>>>()))
+                .ReturnsAsync((SpaceUsageRight)null!);
+            _mockSpaceUsageRightRepository
+                .Setup(r => r.AddAsync(It.IsAny<SpaceUsageRight>()))
+                .Returns(Task.CompletedTask);
+            _mockListingRepository
+                .Setup(r => r.UpdateAsync(listing))
+                .Returns(Task.CompletedTask);
+            _mockMapper
+                .Setup(m => m.Map<MessageResponse>((Message?)null))
+                .Returns((MessageResponse)null!);
+            _mockUnitOfWork.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+
+            // 2. ACT
+            var result = await _sut.ContractValidateOtpAsync(7, "123456");
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            contract.Status.Should().Be(ContractStatusEnum.Active);
+            contract.IsActive.Should().BeTrue();
+            contract.ContractSnapshot.Should().NotBeNullOrWhiteSpace();
+            contract.PostSignHash.Should().NotBeNullOrWhiteSpace();
+            contract.ContractVerification.IsLesseeAgreed.Should().BeTrue();
+            contract.LesseeName.Should().Be("Lessee Full Name");
+            listing.Status.Should().Be(ListingStatusEnum.Occupied);
+            listing.IsActive.Should().BeFalse();
+            listing.UpdatedBy.Should().Be("SystemContractSigning");
+            _mockSpaceUsageRightRepository.Verify(r => r.AddAsync(It.Is<SpaceUsageRight>(x =>
+                x.ContractId == 7 &&
+                x.SpaceId == 10 &&
+                x.UserId == "lessee-1" &&
+                x.GrantedByUserId == "lessor-1" &&
+                x.CanShare &&
+                x.CanGrantSharePermission)), Times.Once);
+            _mockListingRepository.Verify(r => r.UpdateAsync(listing), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateContractAsync_DraftContractOwnedByCurrentUser_UpdatesAndReturnsResponse()
+        {
+            // 1. ARRANGE
+            var request = CreateContractRequest();
+            var contract = new Contract
+            {
+                Id = 7,
+                LessorId = "lessor-1",
+                LesseeId = "lessee-1",
+                Status = ContractStatusEnum.Draft,
+                ContractSchedules = new List<ContractSchedule>(),
+                Lessor = new User { UserId = "lessor-1", Name = "Old Lessor" },
+                Lessee = new User { UserId = "lessee-1", Name = "Old Lessee" }
+            };
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync(contract);
+            SetupValidContractRequestValidation(request);
+            _mockMapper
+                .Setup(m => m.Map(request, contract))
+                .Callback(() =>
+                {
+                    contract.StartDate = request.StartDate;
+                    contract.Duration = request.Duration;
+                    contract.DurationUnit = request.DurationUnit;
+                    contract.Price = request.Price;
+                });
+            _mockMapper
+                .Setup(m => m.Map<ContractResponse>(contract))
+                .Returns(() => new ContractResponse { Id = contract.Id, LessorId = contract.LessorId, LesseeId = contract.LesseeId });
+
+            // 2. ACT
+            var result = await _sut.UpdateContractAsync(7, request);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            contract.ContractSchedules.Should().HaveCount(1);
+            contract.EndDate.Should().Be(request.StartDate.AddMonths(1));
+            contract.Lessor!.Name.Should().Be("Lessor Name");
+            contract.Lessee!.Name.Should().Be("Lessee Name");
+            _mockContractRepository.Verify(r => r.UpdateAsync(contract), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateContractAsync_ContractNotFound_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>()))
+                .ReturnsAsync((Contract)null!);
+
+            // 2. ACT
+            var result = await _sut.UpdateContractAsync(7, CreateContractRequest());
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+            _mockContractRepository.Verify(r => r.UpdateAsync(It.IsAny<Contract>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteContractAsync_DraftContractOwnedByCurrentUser_RemovesContract()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Draft });
+
+            // 2. ACT
+            var result = await _sut.DeleteContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteContractAsync_NonDraftContract_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", Status = ContractStatusEnum.Active });
+
+            // 2. ACT
+            var result = await _sut.DeleteContractAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockContractRepository.Verify(r => r.RemoveByIdAsync(It.IsAny<long>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SendContractOtpAsync_SigningContractParticipant_SavesOtpAndSendsEmail()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Signing });
+            _mockContractVerificationRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<ContractVerification, bool>>>(),
+                    It.IsAny<Func<IQueryable<ContractVerification>, IIncludableQueryable<ContractVerification, object>>>()))
+                .ReturnsAsync(new ContractVerification
+                {
+                    ContractId = 7,
+                    Contract = new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1" }
+                });
+            _mockUserRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<User, bool>>>()))
+                .ReturnsAsync(new User { UserId = "lessor-1", Email = "lessor@example.com" });
+
+            // 2. ACT
+            var result = await _sut.SendContractOtpAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().BeTrue();
+            var savedOtp = await _cache.GetStringAsync("OTP:SignContract:7:lessor-1");
+            savedOtp.Should().NotBeNullOrWhiteSpace();
+            savedOtp.Should().HaveLength(6);
+            _mockEmailService.Verify(s => s.SendContractOtpEmailAsync("lessor@example.com", It.IsAny<string>(), 7), Times.Once);
+        }
+
+        [Fact]
+        public async Task SendContractOtpAsync_AlreadySigned_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessor-1");
+            _mockContractRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1", Status = ContractStatusEnum.Signing });
+            _mockContractVerificationRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<ContractVerification, bool>>>(),
+                    It.IsAny<Func<IQueryable<ContractVerification>, IIncludableQueryable<ContractVerification, object>>>()))
+                .ReturnsAsync(new ContractVerification
+                {
+                    ContractId = 7,
+                    IsLessorAgreed = true,
+                    Contract = new Contract { Id = 7, LessorId = "lessor-1", LesseeId = "lessee-1" }
+                });
+
+            // 2. ACT
+            var result = await _sut.SendContractOtpAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            _mockEmailService.Verify(s => s.SendContractOtpEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<long>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeactivateExpiredContractsAsync_NoExpiredContracts_ReturnsZero()
+        {
+            // 1. ARRANGE
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(new List<Contract>());
+
+            // 2. ACT
+            var result = await _sut.DeactivateExpiredContractsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(0);
+            _mockContractRepository.Verify(r => r.UpdateAsync(It.IsAny<Contract>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeactivateExpiredContractsAsync_ExpiredContracts_MarksThemExpired()
+        {
+            // 1. ARRANGE
+            var contracts = new List<Contract>
+            {
+                new() { Id = 7, Status = ContractStatusEnum.Active, IsActive = true, EndDate = DateTime.Now.AddDays(-1) },
+                new() { Id = 8, Status = ContractStatusEnum.Active, IsActive = true, EndDate = DateTime.Now.AddDays(-2) }
+            };
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Contract, bool>>>()))
+                .ReturnsAsync(contracts);
+
+            // 2. ACT
+            var result = await _sut.DeactivateExpiredContractsAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(2);
+            contracts.Should().OnlyContain(c => c.Status == ContractStatusEnum.Expired && !c.IsActive && c.UpdatedBy == "SystemBackgroundWorker");
+            _mockContractRepository.Verify(r => r.UpdateAsync(It.IsAny<Contract>()), Times.Exactly(2));
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
         private void SetupValidContractRequestValidation(ContractRequest request)
         {
             _mockSpaceRepository
@@ -692,6 +1072,7 @@ namespace FlexiSpace.Application.Tests
                     SpaceId = request.SpaceId,
                     LessorId = "lessor-1",
                     LesseeId = "lessee-1",
+                    Lessor = new User { UserId = "lessor-1", Name = "Lessor Name" },
                     Lessee = new User { UserId = "lessee-1", Name = "Lessee Name" }
                 });
             _mockConversationRepository
@@ -733,6 +1114,18 @@ namespace FlexiSpace.Application.Tests
             var computeHashMethod = typeof(ContractService).GetMethod("ComputeSha256Hash", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
             var snapshot = (string)buildSnapshotMethod!.Invoke(_sut, new object[] { contract })!;
             return (string)computeHashMethod!.Invoke(null, new object[] { snapshot })!;
+        }
+
+        private string BuildPreSignSnapshotForTest(Contract contract)
+        {
+            var buildSnapshotMethod = typeof(ContractService).GetMethod("BuildPreSignSnapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            return (string)buildSnapshotMethod!.Invoke(_sut, new object[] { contract })!;
+        }
+
+        private static string ComputeSha256HashForTest(string payload)
+        {
+            var computeHashMethod = typeof(ContractService).GetMethod("ComputeSha256Hash", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            return (string)computeHashMethod!.Invoke(null, new object[] { payload })!;
         }
 
         private static ContractRequest CreateContractRequest() =>

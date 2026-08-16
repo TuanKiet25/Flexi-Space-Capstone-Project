@@ -22,13 +22,13 @@ namespace FlexiSpace.Application.Services
     public class TransactionService : ITransactionService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly PayOSClient _payOS;
+        private readonly IPayOSGateway _payOSGateway;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TransactionService(IUnitOfWork unitOfWork, PayOSClient payOS, IHttpContextAccessor httpContextAccessor   )
+        public TransactionService(IUnitOfWork unitOfWork, IPayOSGateway payOSGateway, IHttpContextAccessor httpContextAccessor   )
         {
             _unitOfWork = unitOfWork;
-            _payOS = payOS;
+            _payOSGateway = payOSGateway;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -63,8 +63,6 @@ namespace FlexiSpace.Application.Services
                 var wallet = await _unitOfWork.walletRepository.GetAsync(x => x.UserId == userIdString);
 
                 var orderCode = (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() % int.MaxValue);
-                var transactionCode = $"TXN_{orderCode}_{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
-
                 var transaction = new Transaction
                 {
                     UserId = userIdString,
@@ -77,7 +75,7 @@ namespace FlexiSpace.Application.Services
                     IsDeleted = false,
                 };
 
-                var paymentData = new PaymentData(
+                var checkoutUrl = await _payOSGateway.CreatePaymentLinkAsync(
                     orderCode: orderCode,
                     amount: (int)(request.Amount),
                     description: $"Top up wallet: {request.Amount}",
@@ -85,15 +83,13 @@ namespace FlexiSpace.Application.Services
                     cancelUrl: request.CancelUrl
                 );
 
-                var paymentLinkResponse = await _payOS.PaymentRequests.CreateAsync(paymentData);
-
                 await _unitOfWork.transactionRepository.AddAsync(transaction);
                 await _unitOfWork.SaveChangesAsync();
 
                 return new ServiceResult<string>
                 {
                     IsSuccess = true,
-                    Data = paymentLinkResponse.CheckoutUrl
+                    Data = checkoutUrl
                 };
             }
             catch (Exception ex)
@@ -110,8 +106,7 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var verifiedData = await _payOS.Webhooks.VerifyAsync(webhookData);
-                long payOSOrderCode = verifiedData.OrderCode;
+                long payOSOrderCode = await _payOSGateway.VerifyWebhookOrderCodeAsync(webhookData);
 
                 if (payOSOrderCode == 123)
                 {
@@ -177,16 +172,5 @@ namespace FlexiSpace.Application.Services
             }
         }
 
-        internal class PaymentData : CreatePaymentLinkRequest
-        {
-            public PaymentData(int orderCode, int amount, string description, string returnUrl, string cancelUrl)
-            {
-                OrderCode = orderCode;
-                Amount = amount;
-                Description = description;
-                ReturnUrl = returnUrl;
-                CancelUrl = cancelUrl;
-            }
-        }
     }
 }

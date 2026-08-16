@@ -2,7 +2,6 @@
 using FlexiSpace.Application.ViewModels.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PayOS;
 using PayOS.Models.Webhooks;
 
 namespace FlexiSpace.Web.Controllers
@@ -12,11 +11,9 @@ namespace FlexiSpace.Web.Controllers
     public class TransactionController : MyBaseController
     {
         private readonly ITransactionService _transactionService;
-        private readonly PayOSClient _payOS;
-        public TransactionController(ITransactionService transactionService, PayOSClient payOS)
+        public TransactionController(ITransactionService transactionService)
         {
             _transactionService = transactionService;
-            _payOS = payOS;
         }
         [HttpPost("create")]
         public async Task<IActionResult> CreateTransaction([FromBody] TransactionRequest request)

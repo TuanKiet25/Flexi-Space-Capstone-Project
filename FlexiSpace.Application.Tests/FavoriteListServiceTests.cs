@@ -140,6 +140,65 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetListingDetailAsync_FavoriteExists_ReturnsMappedListing()
+        {
+            // 1. ARRANGE
+            var listing = new Listing { Id = 7 };
+            var favoriteList = new FavoriteList
+            {
+                UserId = "user-1",
+                FavoriteListings = new List<FavoriteListing>
+                {
+                    new() { ListingId = 7, Listing = listing }
+                }
+            };
+            var response = new ListingResponse
+            {
+                Id = 7,
+                CreatorId = "owner-1",
+                LessorName = "Owner",
+                SpaceAddress = "Address",
+                SpaceCity = "City"
+            };
+
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockFavoriteListRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<FavoriteList, bool>>>(),
+                    It.IsAny<Func<IQueryable<FavoriteList>, IIncludableQueryable<FavoriteList, object>>>()))
+                .ReturnsAsync(favoriteList);
+            _mockMapper
+                .Setup(m => m.Map<ListingResponse>(listing))
+                .Returns(response);
+
+            // 2. ACT
+            var result = await _sut.GetListingDetailAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().Be(response);
+        }
+
+        [Fact]
+        public async Task GetListingDetailAsync_FavoriteMissing_ReturnsNotFound()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("user-1");
+            _mockFavoriteListRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<FavoriteList, bool>>>(),
+                    It.IsAny<Func<IQueryable<FavoriteList>, IIncludableQueryable<FavoriteList, object>>>()))
+                .ReturnsAsync(new FavoriteList { UserId = "user-1", FavoriteListings = new List<FavoriteListing>() });
+
+            // 2. ACT
+            var result = await _sut.GetListingDetailAsync(7);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.IsNotFound.Should().BeTrue();
+        }
+
+        [Fact]
         public async Task RemoveListingAsync_ExistingFavorite_RemovesListingAndReturnsUpdatedIds()
         {
             // 1. ARRANGE
