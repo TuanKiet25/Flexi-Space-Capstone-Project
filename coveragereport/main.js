@@ -295,23 +295,23 @@ var assemblies = [
       { "name": "FlexiSpace.Application.Events.Bookings.BookingRequestCreatedEvent", "rp": "FlexiSpace.Application_BookingRequestCreatedEvent.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 12, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Events.Bookings.BookingRequestCreatedNotificationHandler", "rp": "FlexiSpace.Application_BookingRequestCreatedNotificationHandler.html", "cl": 25, "ucl": 0, "cal": 25, "tl": 89, "cb": 4, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Events.Notification.SendPushOnNewMessageHandler", "rp": "FlexiSpace.Application_SendPushOnNewMessageHandler.html", "cl": 27, "ucl": 0, "cal": 27, "tl": 55, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.AIToolService", "rp": "FlexiSpace.Application_AIToolService.html", "cl": 68, "ucl": 1, "cal": 69, "tl": 109, "cb": 10, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.AIToolService", "rp": "FlexiSpace.Application_AIToolService.html", "cl": 69, "ucl": 0, "cal": 69, "tl": 109, "cb": 10, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.AmenityService", "rp": "FlexiSpace.Application_AmenityService.html", "cl": 40, "ucl": 0, "cal": 40, "tl": 72, "cb": 6, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.AuthService", "rp": "FlexiSpace.Application_AuthService.html", "cl": 184, "ucl": 46, "cal": 230, "tl": 332, "cb": 31, "tb": 40, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.ContractService", "rp": "FlexiSpace.Application_ContractService.html", "cl": 808, "ucl": 372, "cal": 1180, "tl": 1522, "cb": 181, "tb": 299, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.ContractService", "rp": "FlexiSpace.Application_ContractService.html", "cl": 930, "ucl": 250, "cal": 1180, "tl": 1522, "cb": 197, "tb": 299, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.ConversationService", "rp": "FlexiSpace.Application_ConversationService.html", "cl": 67, "ucl": 13, "cal": 80, "tl": 119, "cb": 3, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.DashboardService", "rp": "FlexiSpace.Application_DashboardService.html", "cl": 149, "ucl": 7, "cal": 156, "tl": 213, "cb": 16, "tb": 18, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.DashboardService", "rp": "FlexiSpace.Application_DashboardService.html", "cl": 156, "ucl": 0, "cal": 156, "tl": 213, "cb": 16, "tb": 18, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.DataSeederService", "rp": "FlexiSpace.Application_DataSeederService.html", "cl": 29, "ucl": 0, "cal": 29, "tl": 52, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.FavoriteListService", "rp": "FlexiSpace.Application_FavoriteListService.html", "cl": 90, "ucl": 5, "cal": 95, "tl": 136, "cb": 21, "tb": 30, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.ListingService", "rp": "FlexiSpace.Application_ListingService.html", "cl": 924, "ucl": 478, "cal": 1402, "tl": 1986, "cb": 241, "tb": 426, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.ListingService", "rp": "FlexiSpace.Application_ListingService.html", "cl": 1057, "ucl": 345, "cal": 1402, "tl": 1986, "cb": 300, "tb": 426, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.MessageService", "rp": "FlexiSpace.Application_MessageService.html", "cl": 55, "ucl": 6, "cal": 61, "tl": 101, "cb": 5, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.NotificationExpoService", "rp": "FlexiSpace.Application_NotificationExpoService.html", "cl": 45, "ucl": 0, "cal": 45, "tl": 71, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.NotificationService", "rp": "FlexiSpace.Application_NotificationService.html", "cl": 106, "ucl": 18, "cal": 124, "tl": 178, "cb": 21, "tb": 24, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.PrimaryBookingRequestService", "rp": "FlexiSpace.Application_PrimaryBookingRequestService.html", "cl": 209, "ucl": 37, "cal": 246, "tl": 334, "cb": 37, "tb": 42, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.PrimaryBookingRequestService", "rp": "FlexiSpace.Application_PrimaryBookingRequestService.html", "cl": 244, "ucl": 2, "cal": 246, "tl": 334, "cb": 37, "tb": 42, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.ReviewService", "rp": "FlexiSpace.Application_ReviewService.html", "cl": 161, "ucl": 92, "cal": 253, "tl": 351, "cb": 32, "tb": 40, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.TransactionHistoryService", "rp": "FlexiSpace.Application_TransactionHistoryService.html", "cl": 32, "ucl": 1, "cal": 33, "tl": 64, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.TransactionService", "rp": "FlexiSpace.Application_TransactionService.html", "cl": 116, "ucl": 0, "cal": 116, "tl": 176, "cb": 20, "tb": 24, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "FlexiSpace.Application.Services.UserAiImageHistoryService", "rp": "FlexiSpace.Application_UserAiImageHistoryService.html", "cl": 59, "ucl": 5, "cal": 64, "tl": 109, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "FlexiSpace.Application.Services.UserAiImageHistoryService", "rp": "FlexiSpace.Application_UserAiImageHistoryService.html", "cl": 60, "ucl": 4, "cal": 64, "tl": 109, "cb": 8, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "FlexiSpace.Application.Services.WalletService", "rp": "FlexiSpace.Application_WalletService.html", "cl": 175, "ucl": 40, "cal": 215, "tl": 298, "cb": 21, "tb": 22, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
 ];
@@ -327,34 +327,10 @@ var riskHotspotMetrics = [
 
 var riskHotspots = [
   {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "ValidateShareAvailabilityTime(FlexiSpace.Application.ViewModels.Requests.AvailabilitiesTimeRequest,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Nullable\u00601\u003CSystem.DateOnly\u003E)", "methodShortName": "ValidateShareAvailabilityTime(...)", "fileIndex": 0, "line": 467,
-    "metrics": [
-      { "value": 419, "exceeded": true },
-      { "value": 54, "exceeded": true },
-    ]},
-  {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "ValidationMessageAsync()", "methodShortName": "ValidationMessageAsync()", "fileIndex": 0, "line": 97,
-    "metrics": [
-      { "value": 138, "exceeded": true },
-      { "value": 60, "exceeded": true },
-    ]},
-  {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "IsDatePatternOverlapped(System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly)", "methodShortName": "IsDatePatternOverlapped(...)", "fileIndex": 0, "line": 696,
-    "metrics": [
-      { "value": 128, "exceeded": true },
-      { "value": 20, "exceeded": true },
-    ]},
-  {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ContractService", "reportPath": "FlexiSpace.Application_ContractService.html", "methodName": "MarkListingOccupiedAfterSuccessfulRentalAsync()", "methodShortName": "MarkListingOccupiedAfterSuccessfulRentalAsync()", "fileIndex": 0, "line": 1119,
     "metrics": [
       { "value": 106, "exceeded": true },
       { "value": 20, "exceeded": true },
-    ]},
-  {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "DescribeDateOverlap(System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly)", "methodShortName": "DescribeDateOverlap(...)", "fileIndex": 0, "line": 662,
-    "metrics": [
-      { "value": 106, "exceeded": true },
-      { "value": 16, "exceeded": true },
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ContractService", "reportPath": "FlexiSpace.Application_ContractService.html", "methodName": "ValidateRequestAsync()", "methodShortName": "ValidateRequestAsync()", "fileIndex": 0, "line": 1405,
@@ -369,10 +345,10 @@ var riskHotspots = [
       { "value": 34, "exceeded": true },
     ]},
   {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "UpdateShareListingAsync()", "methodShortName": "UpdateShareListingAsync()", "fileIndex": 0, "line": 1716,
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "ValidationMessageAsync()", "methodShortName": "ValidationMessageAsync()", "fileIndex": 0, "line": 97,
     "metrics": [
-      { "value": 79, "exceeded": true },
-      { "value": 26, "exceeded": true },
+      { "value": 64, "exceeded": true },
+      { "value": 60, "exceeded": true },
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "ValidateSpaceListingTimeConflictAsync()", "methodShortName": "ValidateSpaceListingTimeConflictAsync()", "fileIndex": 0, "line": 382,
@@ -387,22 +363,22 @@ var riskHotspots = [
       { "value": 32, "exceeded": true },
     ]},
   {
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "ValidateShareAvailabilityTime(FlexiSpace.Application.ViewModels.Requests.AvailabilitiesTimeRequest,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Nullable\u00601\u003CSystem.DateOnly\u003E)", "methodShortName": "ValidateShareAvailabilityTime(...)", "fileIndex": 0, "line": 467,
+    "metrics": [
+      { "value": 54, "exceeded": true },
+      { "value": 54, "exceeded": true },
+    ]},
+  {
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "UpdateShareListingAsync()", "methodShortName": "UpdateShareListingAsync()", "fileIndex": 0, "line": 1716,
+    "metrics": [
+      { "value": 48, "exceeded": true },
+      { "value": 26, "exceeded": true },
+    ]},
+  {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ContractService", "reportPath": "FlexiSpace.Application_ContractService.html", "methodName": "GetContractCalendarBySpaceAsync()", "methodShortName": "GetContractCalendarBySpaceAsync()", "fileIndex": 0, "line": 706,
     "metrics": [
       { "value": 45, "exceeded": true },
       { "value": 30, "exceeded": true },
-    ]},
-  {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "CreateShareListingAsync()", "methodShortName": "CreateShareListingAsync()", "fileIndex": 0, "line": 1605,
-    "metrics": [
-      { "value": 45, "exceeded": true },
-      { "value": 24, "exceeded": true },
-    ]},
-  {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "IsSpecificDateMatched(System.DateOnly,System.DateOnly,System.DateOnly,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E)", "methodShortName": "IsSpecificDateMatched(...)", "fileIndex": 0, "line": 723,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "CreateListingReportAsync()", "methodShortName": "CreateListingReportAsync()", "fileIndex": 0, "line": 1183,
@@ -411,16 +387,22 @@ var riskHotspots = [
       { "value": 14, "exceeded": false },
     ]},
   {
-    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "RenewExpiredListingAsync()", "methodShortName": "RenewExpiredListingAsync()", "fileIndex": 0, "line": 952,
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "CreateShareListingAsync()", "methodShortName": "CreateShareListingAsync()", "fileIndex": 0, "line": 1605,
     "metrics": [
-      { "value": 31, "exceeded": true },
-      { "value": 10, "exceeded": false },
+      { "value": 34, "exceeded": true },
+      { "value": 24, "exceeded": true },
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "IsAvailabilityOverlapped(FlexiSpace.Application.ViewModels.Requests.AvailabilitiesTimeRequest,FlexiSpace.Domain.Entities.AvailabilitiesTime)", "methodShortName": "IsAvailabilityOverlapped(...)", "fileIndex": 0, "line": 599,
     "metrics": [
-      { "value": 25, "exceeded": false },
+      { "value": 22, "exceeded": false },
       { "value": 22, "exceeded": true },
+    ]},
+  {
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "IsDatePatternOverlapped(System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly)", "methodShortName": "IsDatePatternOverlapped(...)", "fileIndex": 0, "line": 696,
+    "metrics": [
+      { "value": 20, "exceeded": false },
+      { "value": 20, "exceeded": true },
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.PrimaryBookingRequestService", "reportPath": "FlexiSpace.Application_PrimaryBookingRequestService.html", "methodName": "CreateBookingRequestAsync()", "methodShortName": "CreateBookingRequestAsync()", "fileIndex": 0, "line": 29,
@@ -431,7 +413,7 @@ var riskHotspots = [
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ContractService", "reportPath": "FlexiSpace.Application_ContractService.html", "methodName": "EnrichContractResponseForCurrentUser(FlexiSpace.Application.ViewModels.Responses.ContractResponse,FlexiSpace.Domain.Entities.Contract,System.String)", "methodShortName": "EnrichContractResponseForCurrentUser(...)", "fileIndex": 0, "line": 553,
     "metrics": [
-      { "value": 17, "exceeded": false },
+      { "value": 16, "exceeded": false },
       { "value": 16, "exceeded": true },
     ]},
   {
@@ -448,6 +430,12 @@ var riskHotspots = [
     ]},
   {
     "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.FavoriteListService", "reportPath": "FlexiSpace.Application_FavoriteListService.html", "methodName": "AddListingsAsync()", "methodShortName": "AddListingsAsync()", "fileIndex": 0, "line": 24,
+    "metrics": [
+      { "value": 16, "exceeded": false },
+      { "value": 16, "exceeded": true },
+    ]},
+  {
+    "assembly": "FlexiSpace.Application", "class": "FlexiSpace.Application.Services.ListingService", "reportPath": "FlexiSpace.Application_ListingService.html", "methodName": "DescribeDateOverlap(System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly,System.Nullable\u00601\u003CSystem.DateOnly\u003E,System.Collections.Generic.List\u00601\u003CSystem.DayOfWeek\u003E,System.DateOnly,System.DateOnly)", "methodShortName": "DescribeDateOverlap(...)", "fileIndex": 0, "line": 662,
     "metrics": [
       { "value": 16, "exceeded": false },
       { "value": 16, "exceeded": true },

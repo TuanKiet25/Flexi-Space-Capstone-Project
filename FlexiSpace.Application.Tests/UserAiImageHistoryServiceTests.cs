@@ -96,6 +96,21 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetByHistoryIdAsync_MissingUserId_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns(" ");
+
+            // 2. ACT
+            var result = await _sut.GetByHistoryIdAsync(9);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Be("UserId la bat buoc.");
+            _mockHistoryRepository.Verify(r => r.GetAsync(It.IsAny<Expression<Func<UserAiImageHistory, bool>>>()), Times.Never);
+        }
+
+        [Fact]
         public async Task GetByHistoryIdAsync_ExistingHistory_ReturnsMappedResponse()
         {
             // 1. ARRANGE

@@ -180,5 +180,22 @@ namespace FlexiSpace.Application.Tests
             result.Data.ExpiredTrend.Should().Contain(x => x.Value == 1 && !x.IsFuture);
             result.Data.ExpiredTrend.Should().Contain(x => x.Value == 1 && x.IsFuture);
         }
+
+        [Fact]
+        public async Task GetListingOverviewAsync_RepositoryThrowsException_ReturnsFailedResult()
+        {
+            // 1. ARRANGE
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("owner-1");
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>()))
+                .ThrowsAsync(new InvalidOperationException("Overview failure"));
+
+            // 2. ACT
+            var result = await _sut.GetListingOverviewAsync();
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("Overview failure");
+        }
     }
 }
