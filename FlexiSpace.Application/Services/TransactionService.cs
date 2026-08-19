@@ -126,9 +126,9 @@ namespace FlexiSpace.Application.Services
                 await _unitOfWork.transactionRepository.UpdateAsync(transaction);
 
                 var wallet = await _unitOfWork.walletRepository.GetAsync(x => x.UserId == userId);
-                if (wallet == null)
+                if(wallet == null)
                 {
-                    wallet = new Wallet
+                    var nWallet = new Wallet
                     {
                         UserId = userId,
                         Balance = transaction.Amount,
@@ -137,8 +137,9 @@ namespace FlexiSpace.Application.Services
                         IsDeleted = false,
                         IsActive = true
                     };
-                    await _unitOfWork.walletRepository.AddAsync(wallet);
-                    transaction.Wallet = wallet;
+                    await _unitOfWork.walletRepository.AddAsync(nWallet);
+                    transaction.Wallet = nWallet;
+                    await _unitOfWork.SaveChangesAsync();
                 }
                 else
                 {
@@ -151,9 +152,8 @@ namespace FlexiSpace.Application.Services
 
                 var transactionHistory = new TransactionHistory
                 {
-                    WalletId = wallet?.Id,
-                    Wallet = wallet,
-                    WalletAmount = wallet?.Balance ?? 0,
+                    WalletId = transaction.WalletId,
+                    WalletAmount = (wallet == null || wallet.Balance == 0) ? 0 : wallet.Balance,
                     TransactionAmount = transaction.Amount,
                     Status = TransactionEnum.Completed,
                     Description = $"Top up wallet: {transaction.Amount}",
