@@ -1011,18 +1011,18 @@ namespace FlexiSpace.Application.Services
             if (contract.Status != ContractStatusEnum.Signing)
             {
                 await ResetContractToDraftAfterSigningFailureAsync(contract);
-                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hop dong chua duoc chuyen sang phien ky." };
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hợp đồng chưa được chuyển sang phiên ký." };
             }
             if (string.IsNullOrWhiteSpace(contract.PreSignSnapshot) || string.IsNullOrWhiteSpace(contract.PreSignHash))
             {
                 await ResetContractToDraftAfterSigningFailureAsync(contract);
-                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Phien ky chua co ban hash goc. Vui long bat dau lai phien ky." };
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Phiên kí chưa có bản hash gốc. Vui lòng bắt đầu lại phiên ký." };
             }
             var currentPreSignHash = ComputeSha256Hash(BuildPreSignSnapshot(contract));
             if (!string.Equals(currentPreSignHash, contract.PreSignHash, StringComparison.OrdinalIgnoreCase))
             {
                 await ResetContractToDraftAfterSigningFailureAsync(contract);
-                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hop dong da co su thay doi so voi ban goc. Phien ky hien tai da bi huy." };
+                return new ServiceResult<MessageResponse> { IsSuccess = false, Message = "Hợp đồng đã có sự thay đổi so với bản gốc. Phiên ký hiện tại đã bị hủy." };
             }
 
 
