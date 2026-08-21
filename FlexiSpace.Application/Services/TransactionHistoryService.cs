@@ -60,5 +60,41 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
+
+        public async Task<ServiceResult<IEnumerable<TransactionHistoryResponse>>> GetTransactionHistoryByUserIdAsync(string userId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return new ServiceResult<IEnumerable<TransactionHistoryResponse>>
+                    {
+                        IsSuccess = false,
+                        Message = "UserId is required."
+                    };
+                }
+
+                var histories = await _unitOfWork.transactionHistoryRepository.GetAllAsync(
+                    filter: x => x.Wallet.UserId == userId && !x.IsDeleted,
+                    include: q => q.Include(x => x.Wallet)
+                );
+
+                var mapped = _mapper.Map<IEnumerable<TransactionHistoryResponse>>(histories);
+
+                return new ServiceResult<IEnumerable<TransactionHistoryResponse>>
+                {
+                    IsSuccess = true,
+                    Data = mapped
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<IEnumerable<TransactionHistoryResponse>>
+                {
+                    IsSuccess = false,
+                    Message = $"Error retrieving transaction history: {ex.Message}"
+                };
+            }
+        }
     }
 }

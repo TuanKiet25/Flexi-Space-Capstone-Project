@@ -26,11 +26,15 @@ namespace FlexiSpace.Application.Services
                 var wallets = await _unitOfWork.walletRepository.GetAllAsync(w => !w.IsDeleted);
                 decimal totalWalletBalance = wallets.Sum(w => w.Balance);
 
-                // 2. Fetch completed transaction histories related to posting listings or AI image tools
+                // 2. Fetch completed transaction histories
                 var histories = await _unitOfWork.transactionHistoryRepository.GetAllAsync(
-                    h => !h.IsDeleted && h.Status == TransactionEnum.Completed &&
-                         (h.Description == "Thanh toán bài đăng" || h.Description == "Thanh toán sử dụng công cụ AI")
+                    h => !h.IsDeleted && h.Status == TransactionEnum.Completed
                 );
+
+                // Calculate total money deposited into system by all users (positive transaction amounts)
+                decimal totalDeposited = histories
+                    .Where(h => h.TransactionAmount > 0)
+                    .Sum(h => h.TransactionAmount);
 
                 // Calculate listing spent and count
                 var listingTransactions = histories.Where(h => h.Description == "Thanh toán bài đăng").ToList();
@@ -47,6 +51,7 @@ namespace FlexiSpace.Application.Services
                 var dashboardStats = new DashboardResponse
                 {
                     TotalWalletBalance = totalWalletBalance,
+                    TotalDeposited = totalDeposited,
                     TotalSpent = totalSpent,
                     TotalListingSpent = totalListingSpent,
                     TotalAiImageSpent = totalAiImageSpent,
