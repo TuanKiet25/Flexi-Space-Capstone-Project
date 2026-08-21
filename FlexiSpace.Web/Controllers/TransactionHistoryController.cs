@@ -19,5 +19,12 @@ namespace FlexiSpace.Web.Controllers
             var result = await _transactionHistoryService.GetAllTransactionHistoryByUserId();
             return HandleResult(result);
         }
+
+        [HttpGet("GetTransactionHistoryByUserId/{userId}")]
+        public async Task<IActionResult> GetTransactionHistoryByUserId(string userId)
+        {
+            var result = await _transactionHistoryService.GetTransactionHistoryByUserIdAsync(userId);
+            return HandleResult(result);
+        }
     }
 }

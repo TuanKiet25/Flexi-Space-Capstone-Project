@@ -10,5 +10,6 @@ namespace FlexiSpace.Application.IServices
     public interface ITransactionHistoryService
     {
         Task<ServiceResult<IEnumerable<TransactionHistoryResponse>>> GetAllTransactionHistoryByUserId();
+        Task<ServiceResult<IEnumerable<TransactionHistoryResponse>>> GetTransactionHistoryByUserIdAsync(string userId);
     }
 }
