@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -16,10 +16,6 @@ namespace FlexiSpace.Infrastructure.Configurations
             builder.HasOne(s => s.ShareSpaceDetail)
                 .WithMany(d => d.ShareSpaceCategories)
                 .HasForeignKey(s => s.ShareSpaceDetailId)
-                .OnDelete(DeleteBehavior.Cascade);
-            builder.HasOne(s => s.BusinessCategory)
-                .WithMany()
-                .HasForeignKey(s => s.BussinessCategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
