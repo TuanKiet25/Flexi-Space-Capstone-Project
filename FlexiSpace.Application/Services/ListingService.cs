@@ -1671,29 +1671,6 @@ namespace FlexiSpace.Application.Services
                         Message = checkValidation.ToString()
                     };
                 }
-                //Validation cơ sở vật chất có trong space không
-                if (sharedListingRequest.ShareSpaceDetailShareSpaceAmenities != null &&
-                sharedListingRequest.ShareSpaceDetailShareSpaceAmenities.Any())
-                {
-                    var requestedAmenityIds = sharedListingRequest.ShareSpaceDetailShareSpaceAmenities
-                        .Select(x => x.AmenityId)
-                        .Distinct()
-                        .ToList();
-                    var validSpaceAmenities = await _unitOfWork.amenityRepository
-                        .GetAllAsync(x => x.SpaceId == sharedListingRequest.SpaceId);
-                    var validAmenityIds = validSpaceAmenities.Select(x => x.Id).ToList();
-                    var invalidIds = requestedAmenityIds.Except(validAmenityIds).ToList();
-
-                    if (invalidIds.Any())
-                    {
-
-                        return new ServiceResult<ShareListingResponse>
-                        {
-                            IsSuccess = false,
-                            Message = $"Lỗi bảo mật: Các tiện ích có ID [{string.Join(", ", invalidIds)}] không tồn tại hoặc không thuộc về Mặt bằng (Space) hiện tại!"
-                        };
-                    }
-                }
                 if(sharedListingRequest.ShareSpaceDetailIsLegalCommitted == false)
                 {
                     return new ServiceResult<ShareListingResponse>
@@ -1801,29 +1778,6 @@ namespace FlexiSpace.Application.Services
                         IsSuccess = false,
                         Message = checkValidation.ToString()
                     };
-                }
-                //Validation cơ sở vật chất có trong space không
-                if (sharedListingRequest.ShareSpaceDetailShareSpaceAmenities != null &&
-                sharedListingRequest.ShareSpaceDetailShareSpaceAmenities.Any())
-                {
-                    var requestedAmenityIds = sharedListingRequest.ShareSpaceDetailShareSpaceAmenities
-                        .Select(x => x.AmenityId)
-                        .Distinct()
-                        .ToList();
-                    var validSpaceAmenities = await _unitOfWork.amenityRepository
-                        .GetAllAsync(x => x.SpaceId == sharedListingRequest.SpaceId);
-                    var validAmenityIds = validSpaceAmenities.Select(x => x.Id).ToList();
-                    var invalidIds = requestedAmenityIds.Except(validAmenityIds).ToList();
-
-                    if (invalidIds.Any())
-                    {
-
-                        return new ServiceResult<ShareListingResponse>
-                        {
-                            IsSuccess = false,
-                            Message = $"Lỗi bảo mật: Các tiện ích có ID [{string.Join(", ", invalidIds)}] không tồn tại hoặc không thuộc về Mặt bằng (Space) hiện tại!"
-                        };
-                    }
                 }
                 _mapper.Map(sharedListingRequest, existingListing);
                 existingListing.UpdatedAt = DateTime.Now;

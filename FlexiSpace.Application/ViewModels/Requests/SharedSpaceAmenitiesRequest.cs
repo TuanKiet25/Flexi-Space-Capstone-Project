@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,8 @@ namespace FlexiSpace.Application.ViewModels.Requests
 {
     public class ShareSpaceAmenitiesRequest
     {
-        public long AmenityId { get; set; }
+        public string? Name { get; set; }
+        public int Quantity { get; set; }
         public bool IsIncluded { get; set; }
         public decimal Price { get; set; }
     }

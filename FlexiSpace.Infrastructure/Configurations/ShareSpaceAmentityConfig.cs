@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Domain.Entities;
+using FlexiSpace.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -13,10 +13,10 @@ namespace FlexiSpace.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<SharedSpaceAmenities> builder)
         {
-            builder.HasOne(s => s.Amenity)
-                   .WithMany()
-                   .HasForeignKey(s => s.AmenityId)
-                   .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(s => s.ShareSpaceDetail)
+                   .WithMany(d => d.ShareSpaceAmenities)
+                   .HasForeignKey(s => s.ShareSpaceDetailId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

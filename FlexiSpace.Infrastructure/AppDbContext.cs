@@ -40,6 +40,7 @@ namespace FlexiSpace.Infrastructure
         public virtual DbSet<UserAiImageHistory> UserAiImageHistories { get; set; }
         public virtual DbSet<DeviceToken> DeviceTokens { get; set; }
         public virtual DbSet<ListingViewDailyStat> ListingViewDailyStats { get; set; }
+        public virtual DbSet<Wallet> Wallets { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

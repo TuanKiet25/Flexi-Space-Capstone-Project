@@ -16,7 +16,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .OnDelete(DeleteBehavior.Restrict);
             builder.HasMany(l => l.PrimaryBookingRequests)
                    .WithOne(p => p.Listing)
-                     .HasForeignKey("ListingId")
+                   .HasForeignKey(p => p.ListingId)
                    .OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(l => l.ShareSpaceDetail)
                      .WithOne(s => s.Listing)
@@ -28,7 +28,7 @@ namespace FlexiSpace.Infrastructure.Configurations
                    .OnDelete(DeleteBehavior.Cascade);
             builder.HasMany(l => l.Reports)
                      .WithOne(r => r.Listing)
-                     .HasForeignKey("ListingId")
+                     .HasForeignKey(r => r.ListingId)
                      .OnDelete(DeleteBehavior.Cascade);
             builder.HasOne(l => l.Banner)
                    .WithOne(b => b.Listing)
