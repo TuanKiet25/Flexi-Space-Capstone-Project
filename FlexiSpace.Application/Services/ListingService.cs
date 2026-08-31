@@ -1008,7 +1008,7 @@ namespace FlexiSpace.Application.Services
                     return new ServiceResult<ListingResponse>
                     {
                         IsSuccess = false,
-                        Message = "KhÃ´ng tÃ¬m tháº¥y listing vá»›i Id Ä‘Ã£ cho."
+                        Message = "Không tìm thấy listing với Id đã cho."
                     };
                 }
 
@@ -1017,7 +1017,7 @@ namespace FlexiSpace.Application.Services
                     return new ServiceResult<ListingResponse>
                     {
                         IsSuccess = false,
-                        Message = "Báº¡n khÃ´ng cÃ³ quyá»n gia háº¡n listing nÃ y."
+                        Message = "Bạn không có quyền gia hạn listing này."
                     };
                 }
 
@@ -1026,11 +1026,11 @@ namespace FlexiSpace.Application.Services
                     return new ServiceResult<ListingResponse>
                     {
                         IsSuccess = false,
-                        Message = "Chá»‰ cÃ³ thá»ƒ gia háº¡n listing Ä‘ang háº¿t háº¡n."
+                        Message = "Chỉ có thể gia hạn listing đang hết hạn."
                     };
                 }
 
-                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toÃ¡n gia háº¡n bÃ i Ä‘Äƒng");
+                var wallet = await _walletService.SpendWalletBalance(amount, "Thanh toán gia hạn bài đăng");
                 if (wallet.IsSuccess == false)
                 {
                     return new ServiceResult<ListingResponse>
@@ -1051,6 +1051,7 @@ namespace FlexiSpace.Application.Services
                 }
 
                 _mapper.Map(listing, existingListing);
+                existingListing.CreatedAt = DateTime.Now;
                 existingListing.priorityLevel = amount;
                 existingListing.durationInDays = durationInDays;
                 existingListing.Status = ListingStatusEnum.Available;
