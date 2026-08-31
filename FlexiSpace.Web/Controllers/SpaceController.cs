@@ -1,5 +1,6 @@
-﻿using FlexiSpace.Application.IServices;
+using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests.Space;
+using FlexiSpace.Domain.Enum;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FlexiSpace.Web.Controllers
@@ -39,6 +40,14 @@ namespace FlexiSpace.Web.Controllers
         public async Task<IActionResult> GetSpaceById(long id)
         {
             var result = await _spaceService.GetById(id);
+            return HandleResult(result);
+        }
+
+        [HttpGet("GetListingsBySpaceId/{spaceId:long}")]
+        [HttpGet("{spaceId:long}/Listings")]
+        public async Task<IActionResult> GetListingsBySpaceId(long spaceId, [FromQuery] ListingStatusEnum? status, [FromQuery] ListingType? listingType)
+        {
+            var result = await _spaceService.GetListingsBySpaceId(spaceId, status, listingType);
             return HandleResult(result);
         }
 
