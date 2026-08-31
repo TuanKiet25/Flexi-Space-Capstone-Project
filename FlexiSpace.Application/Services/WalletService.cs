@@ -28,8 +28,9 @@ namespace FlexiSpace.Application.Services
         {
             try
             {
-                var wallets = await _unitOfWork.walletRepository.GetAllAsync(
+                var wallets = await _unitOfWork.walletRepository.GetAllWithSortAsync(
                     filter: x => !x.IsDeleted,
+                    orderBy: l => l.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt),
                     include: q => q.Include(w => w.User).ThenInclude(u => u.Profile)
                 );
 
