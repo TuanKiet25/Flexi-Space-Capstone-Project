@@ -1,6 +1,7 @@
-﻿using FlexiSpace.Application.ViewModels.Requests.Space;
+using FlexiSpace.Application.ViewModels.Requests.Space;
 using FlexiSpace.Application.ViewModels.Responses;
 using FlexiSpace.Application.ViewModels.Responses.Space;
+using FlexiSpace.Domain.Enum;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<IEnumerable<AddressOptionRP>>> GetAddress(string? provinceCode, string? districtCode);
         Task<ServiceResult<CreateSpaceRP>> Create(CreateSpaceRQ space);
         Task<ServiceResult<GetSpaceByIdRP>> GetById(long id);
+        Task<ServiceResult<IEnumerable<ShareListingResponse>>> GetListingsBySpaceId(long spaceId, ListingStatusEnum? status = null, ListingType? listingType = null);
         Task<ServiceResult<GetSpaceByIdRP>> Update(long id, CreateSpaceRQ space);
         Task<ServiceResult<string>> Delete(long id);
     }

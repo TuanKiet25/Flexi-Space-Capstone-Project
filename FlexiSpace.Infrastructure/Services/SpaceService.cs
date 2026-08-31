@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FlexiSpace.Application.IRepositories;
 using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels;
@@ -376,6 +376,45 @@ namespace FlexiSpace.Application.Services
             catch (Exception ex)
             {
                 return new ServiceResult<GetSpaceByIdRP>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        public async Task<ServiceResult<IEnumerable<ShareListingResponse>>> GetListingsBySpaceId(long spaceId, ListingStatusEnum? status = null, ListingType? listingType = null)
+        {
+            try
+            {
+                var listings = await _unitOfWork.listingRepository.GetAllWithSortAsync(
+                    l => !l.IsDeleted
+                        && l.SpaceId == spaceId
+                        && (status == null
+                            ? (l.Status == ListingStatusEnum.Available || l.Status == ListingStatusEnum.Occupied || l.Status == ListingStatusEnum.Expired)
+                            : l.Status == status)
+                        && (listingType == null || l.ListingType == listingType),
+                    orderBy: l => l.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt),
+                    include: q => q.Include(l => l.Space)
+                                    .Include(l => l.Lessor)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.AvailabilitiesTimes)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceAmenities)
+                                    .Include(l => l.ShareSpaceDetail)
+                                        .ThenInclude(s => s.ShareSpaceCategories)
+                                    .Include(l => l.PictureURLs));
+
+                var mappedListings = _mapper.Map<IEnumerable<ShareListingResponse>>(listings);
+                return new ServiceResult<IEnumerable<ShareListingResponse>>
+                {
+                    IsSuccess = true,
+                    Data = mappedListings
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<IEnumerable<ShareListingResponse>>
                 {
                     IsSuccess = false,
                     Message = ex.Message
