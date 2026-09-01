@@ -21,5 +21,6 @@ namespace FlexiSpace.Application.IServices
         Task<ServiceResult<bool>> SendContractOtpAsync(long contractId);
         Task<ServiceResult<MessageResponse>> ContractValidateOtpAsync(long contractId, string inputOtp);
         Task<ServiceResult<int>> DeactivateExpiredContractsAsync();
+        Task<ServiceResult<SubleaseContractInfoResponse>> GetSubleaseContractByListingIdAsync(long listingId);
     }
 }

@@ -1518,5 +1518,90 @@ namespace FlexiSpace.Application.Services
                 };
             }
         }
+
+        public async Task<ServiceResult<SubleaseContractInfoResponse>> GetSubleaseContractByListingIdAsync(long listingId)
+        {
+            try
+            {
+                var listing = await _unitOfWork.listingRepository.GetAsync(
+                    x => x.Id == listingId && !x.IsDeleted,
+                    include: q => q.Include(l => l.Space).Include(l => l.Lessor));
+
+                if (listing == null)
+                {
+                    return new ServiceResult<SubleaseContractInfoResponse>
+                    {
+                        IsSuccess = false,
+                        IsNotFound = true,
+                        Message = "Không tìm thấy bài đăng với Id đã cho."
+                    };
+                }
+
+                var contracts = await _unitOfWork.contractRepository.GetAllAsync(
+                    x => x.SpaceId == listing.SpaceId && !x.IsDeleted,
+                    include: q => q.Include(c => c.Lessor).Include(c => c.Lessee));
+
+                var contract = contracts
+                    .Where(x => x.LesseeId == listing.CreatorId)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefault();
+
+                if (contract == null)
+                {
+                    contract = contracts
+                        .Where(x => x.CanShare)
+                        .OrderByDescending(x => x.CreatedAt)
+                        .FirstOrDefault();
+                }
+
+                if (contract == null)
+                {
+                    return new ServiceResult<SubleaseContractInfoResponse>
+                    {
+                        IsSuccess = true,
+                        Data = new SubleaseContractInfoResponse
+                        {
+                            HasContract = false,
+                            ListingId = listingId,
+                            SpaceId = listing.SpaceId,
+                            Message = "Không tìm thấy hợp đồng cho thuê lại của bài đăng này."
+                        }
+                    };
+                }
+
+                var response = new SubleaseContractInfoResponse
+                {
+                    HasContract = true,
+                    ContractId = contract.Id,
+                    ListingId = listingId,
+                    SpaceId = contract.SpaceId,
+                    LessorId = contract.LessorId,
+                    LessorName = !string.IsNullOrWhiteSpace(contract.LessorName) ? contract.LessorName : contract.Lessor?.Profile?.FullName,
+                    LesseeId = contract.LesseeId,
+                    LesseeName = !string.IsNullOrWhiteSpace(contract.LesseeName) ? contract.LesseeName : contract.Lessee?.Profile?.FullName,
+                    StartDate = contract.StartDate,
+                    EndDate = contract.EndDate,
+                    CanShare = contract.CanShare,
+                    Acreage = contract.Acreage,
+                    Status = contract.Status,
+                    Source = contract.Source,
+                    Message = "Lấy thông tin hợp đồng cho thuê lại thành công."
+                };
+
+                return new ServiceResult<SubleaseContractInfoResponse>
+                {
+                    IsSuccess = true,
+                    Data = response
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<SubleaseContractInfoResponse>
+                {
+                    IsSuccess = false,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }
