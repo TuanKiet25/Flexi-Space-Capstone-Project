@@ -1,4 +1,4 @@
-﻿using FlexiSpace.Application.IServices;
+using FlexiSpace.Application.IServices;
 using FlexiSpace.Application.ViewModels.Requests;
 using FlexiSpace.Application.ViewModels.Requests.Contract;
 using FlexiSpace.Web.Hubs;
@@ -140,6 +140,14 @@ namespace FlexiSpace.Web.Controllers
                 IsSuccess = true,
                 Message = result.Message
             });
+        }
+
+        [HttpGet("sublease-info/{listingId}")]
+        [HttpGet("GetSubleaseContractByListingId/{listingId}")]
+        public async Task<IActionResult> GetSubleaseContractByListingId(long listingId)
+        {
+            var result = await _contractService.GetSubleaseContractByListingIdAsync(listingId);
+            return HandleResult(result);
         }
     }
 }
