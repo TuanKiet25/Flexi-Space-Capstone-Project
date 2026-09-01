@@ -282,8 +282,10 @@ namespace FlexiSpace.Application.Services
                 return "Bạn không có quyền đăng listing cho mặt bằng này.";
             }
 
+            var shareRightSpaceId = space.ParentSpaceId ?? space.Id;
+
             var usageRights = await _unitOfWork.spaceUsageRightRepository.GetAllAsync(x =>
-                x.SpaceId == space.Id &&
+                x.SpaceId == shareRightSpaceId &&
                 x.UserId == currentUserId &&
                 !x.IsDeleted &&
                 x.IsActive &&
@@ -360,8 +362,10 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
+                var contractSpaceId = space.ParentSpaceId ?? space.Id;
+
                 var contracts = await _unitOfWork.contractRepository.GetAllAsync(x =>
-                    x.SpaceId == spaceId &&
+                    x.SpaceId == contractSpaceId &&
                     x.LesseeId == currentUserId &&
                     x.CanShare &&
                     !x.IsDeleted &&
