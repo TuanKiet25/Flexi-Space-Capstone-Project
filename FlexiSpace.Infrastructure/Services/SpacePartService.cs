@@ -44,7 +44,7 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = validation };
                 }
 
-                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id);
+                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id, currentUserId);
                 if (splitValidation != null)
                 {
                     return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = splitValidation };
@@ -95,7 +95,7 @@ namespace FlexiSpace.Infrastructure.Services
                     return new ServiceResult<IEnumerable<SpacePartResponse>> { IsSuccess = false, Message = validation };
                 }
 
-                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id);
+                var splitValidation = await ValidateParentSpaceCanBeSplitAsync(parentSpace!.Id, currentUserId);
                 if (splitValidation != null)
                 {
                     return new ServiceResult<IEnumerable<SpacePartResponse>> { IsSuccess = false, Message = splitValidation };
@@ -452,15 +452,16 @@ namespace FlexiSpace.Infrastructure.Services
 
             return rights.Any();
         }
-
-        private async Task<string?> ValidateParentSpaceCanBeSplitAsync(long parentSpaceId)
+     
+        private async Task<string?> ValidateParentSpaceCanBeSplitAsync(long parentSpaceId, string userId)
         {
             var hasSignedListing = (await _unitOfWork.listingRepository.GetAllAsync(x =>
                 x.SpaceId == parentSpaceId &&
                 !x.IsDeleted &&
                 x.IsActive &&
-                x.Status == ListingStatusEnum.Occupied)).Any();
-
+                x.Status == ListingStatusEnum.Occupied
+                && x.CreatorId == userId)).Any();
+           
             if (hasSignedListing)
             {
                 return "Cannot split this space because its listing has already been signed.";
@@ -469,7 +470,8 @@ namespace FlexiSpace.Infrastructure.Services
             var hasActiveContract = (await _unitOfWork.contractRepository.GetAllAsync(x =>
                 x.SpaceId == parentSpaceId &&
                 !x.IsDeleted &&
-                x.Status == ContractStatusEnum.Active)).Any();
+                x.Status == ContractStatusEnum.Active
+                && x.LessorId == userId )).Any();
 
             if (hasActiveContract)
             {
