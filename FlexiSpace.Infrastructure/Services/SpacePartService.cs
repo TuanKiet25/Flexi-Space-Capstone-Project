@@ -182,13 +182,7 @@ namespace FlexiSpace.Infrastructure.Services
         {
             try
             {
-                var currentUserId = _currentUserService.UserId;
-                if (string.IsNullOrWhiteSpace(currentUserId))
-                {
-                    return new ServiceResult<SpacePartResponse> { IsSuccess = false, Message = "Register first!" };
-                }
-
-                var part = await LoadPartAsync(id, currentUserId);
+                var part = await LoadPartAsync(id);
                 if (part == null)
                 {
                     return new ServiceResult<SpacePartResponse> { IsSuccess = false, IsNotFound = true, Message = "Space part not found." };
@@ -314,13 +308,9 @@ namespace FlexiSpace.Infrastructure.Services
             var basicValidation = await ValidatePartBasicInfoAsync(request);
             if (basicValidation != null) return basicValidation;
 
-            var siblingParts = await _unitOfWork.spaceRepository.GetAllAsync(
-                x => x.ParentSpaceId == parentSpace.Id && !x.IsDeleted && (excludedPartId == null || x.Id != excludedPartId.Value));
-
-            var totalArea = siblingParts.Sum(x => x.Area) + request.Area;
-            if (totalArea > parentSpace.Area)
+            if (request.Area > parentSpace.Area)
             {
-                return $"Total area of active space parts ({totalArea}) cannot exceed parent space area ({parentSpace.Area}).";
+                return $"Space part area ({request.Area}) cannot exceed parent space area ({parentSpace.Area}).";
             }
 
             return null;
@@ -392,13 +382,12 @@ namespace FlexiSpace.Infrastructure.Services
                 }
             }
 
-            var siblingParts = await _unitOfWork.spaceRepository.GetAllAsync(
-                x => x.ParentSpaceId == parentSpace.Id && !x.IsDeleted);
-
-            var totalArea = siblingParts.Sum(x => x.Area) + request.Parts.Sum(x => x.Area);
-            if (totalArea > parentSpace.Area)
+            var invalidPart = request.Parts
+                .Select((part, index) => new { Part = part, Index = index })
+                .FirstOrDefault(x => x.Part.Area > parentSpace.Area);
+            if (invalidPart != null)
             {
-                return $"Total area of active space parts ({totalArea}) cannot exceed parent space area ({parentSpace.Area}).";
+                return $"Part #{invalidPart.Index + 1}: Space part area ({invalidPart.Part.Area}) cannot exceed parent space area ({parentSpace.Area}).";
             }
 
             return null;
