@@ -60,6 +60,21 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
+                var currentUserId = _currentUserService.UserId;
+                var existingPendingRequest = await _unitOfWork.primaryBookingRequestRepository.GetAsync(
+                    x => x.ListingId == request.ListingId &&
+                         x.LesseeId == currentUserId &&
+                         !x.IsDeleted &&
+                         x.Status == PrimaryBookingRequestStatusEnum.Pending);
+                if (existingPendingRequest != null)
+                {
+                    return new ServiceResult<BookingResponse>
+                    {
+                        IsSuccess = false,
+                        Message = "You already have a pending booking request for this listing."
+                    };
+                }
+
                 var newBooking = _mapper.Map<PrimaryBookingRequest>(request);
                 newBooking.ExpectedEndDate = request.DurationUnit switch
                 {
@@ -69,7 +84,7 @@ namespace FlexiSpace.Application.Services
                     DurationUnitEnum.Years  => request.ExpectedStartDate.AddYears(request.Duration),
                     _ => throw new ArgumentOutOfRangeException(nameof(request.DurationUnit), "Đơn vị thời gian không hợp lệ.")
                 };
-                newBooking.LesseeId = _currentUserService.UserId;
+                newBooking.LesseeId = currentUserId;
                 newBooking.LessorId = listing.CreatorId;
                 if(newBooking.LesseeId == newBooking.LessorId)
                 {
