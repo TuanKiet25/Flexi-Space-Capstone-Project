@@ -181,7 +181,7 @@ namespace FlexiSpace.Infrastructure.Services
                     };
                 }
 
-                if (userBanners.Count() > bannerPriorityLevel.DurationForBanner) {
+                if (userBanners.Count() >= bannerPriorityLevel.DurationForBanner) {
                     return new ServiceResult<BannerResponse>
                     {
                         IsSuccess = false,

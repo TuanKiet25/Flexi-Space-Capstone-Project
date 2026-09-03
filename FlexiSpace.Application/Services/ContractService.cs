@@ -1147,18 +1147,37 @@ namespace FlexiSpace.Application.Services
                 {
                     listing.Status = ListingStatusEnum.Occupied;
                     listing.IsActive = false;
+                    await SoftDeleteBannerAfterRentalAsync(listing.Id);
                 }
             }
             else
             {
                 listing.Status = ListingStatusEnum.Occupied;
                 listing.IsActive = false;
+                await SoftDeleteBannerAfterRentalAsync(listing.Id);
             }
 
             listing.UpdatedAt = DateTime.Now;
             listing.UpdatedBy = "SystemContractSigning";
             await _unitOfWork.listingRepository.UpdateAsync(listing);
             await InvalidateListingCacheAsync(listing.Id);
+        }
+
+        private async Task SoftDeleteBannerAfterRentalAsync(long listingId)
+        {
+            var banner = await _unitOfWork.bannerRepository.GetAsync(
+                x => x.ListingId == listingId && !x.IsDeleted);
+
+            if (banner == null)
+            {
+                return;
+            }
+
+            banner.IsDeleted = true;
+            banner.IsActive = false;
+            banner.UpdatedAt = DateTime.Now;
+            banner.UpdatedBy = "SystemContractSigning";
+            await _unitOfWork.bannerRepository.UpdateAsync(banner);
         }
 
         private async Task InvalidateListingCacheAsync(long listingId)

@@ -27,6 +27,7 @@ namespace FlexiSpace.Application.Tests
         private readonly Mock<ISpaceRepository> _mockSpaceRepository;
         private readonly Mock<ISpaceUsageRightRepository> _mockSpaceUsageRightRepository;
         private readonly Mock<IPrimaryBookingRequestRepository> _mockBookingRepository;
+        private readonly Mock<IBannerRepository> _mockBannerRepository;
         private readonly Mock<IConversationRepository> _mockConversationRepository;
         private readonly Mock<IMessageRepository> _mockMessageRepository;
         private readonly Mock<IProfileRepository> _mockProfileRepository;
@@ -46,6 +47,7 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository = new Mock<ISpaceRepository>();
             _mockSpaceUsageRightRepository = new Mock<ISpaceUsageRightRepository>();
             _mockBookingRepository = new Mock<IPrimaryBookingRequestRepository>();
+            _mockBannerRepository = new Mock<IBannerRepository>();
             _mockConversationRepository = new Mock<IConversationRepository>();
             _mockMessageRepository = new Mock<IMessageRepository>();
             _mockProfileRepository = new Mock<IProfileRepository>();
@@ -61,6 +63,7 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.spaceUsageRightRepository).Returns(_mockSpaceUsageRightRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.primaryBookingRequestRepository).Returns(_mockBookingRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.bannerRepository).Returns(_mockBannerRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.conversationRepository).Returns(_mockConversationRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.messageRepository).Returns(_mockMessageRepository.Object);
             _mockUnitOfWork.SetupGet(u => u.profileRepository).Returns(_mockProfileRepository.Object);
