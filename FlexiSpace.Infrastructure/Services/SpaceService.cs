@@ -349,7 +349,7 @@ namespace FlexiSpace.Application.Services
             try
             {
                 var space = await _spaceRepository.GetAsync(
-                    x => x.Id == id && !x.IsDeleted && x.ParentSpaceId == null,
+                    x => x.Id == id && !x.IsDeleted,
                     include: x => x.Include(s => s.Owner)
                               .Include(s => s.PrimaryBookingRequest)
                               .Include(s => s.Listing)
