@@ -723,21 +723,24 @@ namespace FlexiSpace.Application.Services
                     return new ServiceResult<List<ContractCalendarEntryResponse>> { IsSuccess = false, IsNotFound = true, Message = "Không tìm thấy mặt bằng." };
                 }
 
+                var listings = await _unitOfWork.listingRepository.GetAllAsync(
+                    x => !x.IsDeleted && x.SpaceId == spaceId);
+
                 // 1. Lấy tất cả hợp đồng đang Active của mặt bằng này
                 var contracts = await _unitOfWork.contractRepository.GetAllAsync(
                     x => !x.IsDeleted && x.SpaceId == spaceId && x.Status == ContractStatusEnum.Active,
                     include: q => q.Include(c => c.ContractSchedules).Include(c => c.PrimaryBookingRequest));
 
-                // 2. SỬA PHÂN QUYỀN: Kiểm tra xem user hiện tại là Chủ mặt bằng HAY là một trong những Người thuê
-                bool isOwner = space.OwnerId == currentUserId;
+                // 2. Chỉ người tạo listing hoặc người đã ký hợp đồng active mới được xem lịch
+                bool isListingCreator = listings.Any(l => l.CreatorId == currentUserId);
                 bool isLessee = contracts.Any(c => c.LesseeId == currentUserId);
 
-                if (!isOwner && !isLessee)
+                if (!isListingCreator && !isLessee)
                 {
                     return new ServiceResult<List<ContractCalendarEntryResponse>>
                     {
                         IsSuccess = false,
-                        Message = "Bạn không có quyền xem lịch của mặt bằng này. Chỉ chủ mặt bằng và những người đang thuê mới được phép."
+                        Message = "Bạn không có quyền xem lịch của mặt bằng này. Chỉ người tạo mặt bằng và người đã ký hợp đồng mới được phép."
                     };
                 }
 
