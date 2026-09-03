@@ -716,19 +716,26 @@ namespace FlexiSpace.Application.Services
                     };
                 }
 
-                var space = await _unitOfWork.spaceRepository.GetAsync(x => x.Id == spaceId && !x.IsDeleted);
+                var space = await _unitOfWork.spaceRepository.GetAsync(
+                    x => x.Id == spaceId && !x.IsDeleted,
+                    include: q => q.Include(x => x.ChildSpaces));
 
                 if (space == null)
                 {
                     return new ServiceResult<List<ContractCalendarEntryResponse>> { IsSuccess = false, IsNotFound = true, Message = "Không tìm thấy mặt bằng." };
                 }
 
+                var calendarSpaceIds = new List<long> { spaceId };
+                calendarSpaceIds.AddRange((space.ChildSpaces ?? Enumerable.Empty<Space>())
+                    .Where(x => !x.IsDeleted)
+                    .Select(x => x.Id));
+
                 var listings = await _unitOfWork.listingRepository.GetAllAsync(
-                    x => !x.IsDeleted && x.SpaceId == spaceId);
+                    x => !x.IsDeleted && calendarSpaceIds.Contains(x.SpaceId));
 
                 // 1. Lấy tất cả hợp đồng đang Active của mặt bằng này
                 var contracts = await _unitOfWork.contractRepository.GetAllAsync(
-                    x => !x.IsDeleted && x.SpaceId == spaceId && x.Status == ContractStatusEnum.Active,
+                    x => !x.IsDeleted && calendarSpaceIds.Contains(x.SpaceId) && x.Status == ContractStatusEnum.Active,
                     include: q => q.Include(c => c.ContractSchedules).Include(c => c.PrimaryBookingRequest));
 
                 // 2. Chỉ người tạo listing hoặc người đã ký hợp đồng active mới được xem lịch

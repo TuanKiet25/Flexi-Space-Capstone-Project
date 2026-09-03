@@ -371,6 +371,11 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
                 .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>() ))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
             _mockListingRepository
                 .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
                 .ReturnsAsync(new List<Listing> { new() { SpaceId = 10, CreatorId = "lessor-1" } });
@@ -409,6 +414,55 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
+        public async Task GetContractCalendarBySpaceAsync_ParentSpaceIncludesSpacePartCalendar()
+        {
+            // 1. ARRANGE
+            var from = new DateTime(2026, 8, 3);
+            var to = new DateTime(2026, 8, 3);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("listing-creator");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>() ))
+                .ReturnsAsync(new Space
+                {
+                    Id = 10,
+                    OwnerId = "space-owner",
+                    ChildSpaces = new List<Space> { new() { Id = 11 } }
+                });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
+                .ReturnsAsync(new List<Listing> { new() { SpaceId = 11, CreatorId = "listing-creator" } });
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>() ))
+                .ReturnsAsync(new List<Contract>
+                {
+                    new()
+                    {
+                        Id = 9,
+                        SpaceId = 11,
+                        LesseeId = "lessee-1",
+                        Status = ContractStatusEnum.Active,
+                        StartDate = from,
+                        EndDate = to,
+                        ContractSchedules = new List<ContractSchedule>
+                        {
+                            new() { DayOfWeek = DayOfWeek.Monday, StartTime = TimeSpan.FromHours(9), EndTime = TimeSpan.FromHours(11) }
+                        }
+                    }
+                });
+
+            // 2. ACT
+            var result = await _sut.GetContractCalendarBySpaceAsync(10, from, to);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeTrue();
+            result.Data.Should().ContainSingle(e => e.ContractId == 9);
+        }
+
+        [Fact]
         public async Task GetContractCalendarBySpaceAsync_CurrentUserIsLessee_ReturnsSharedCalendarEntries()
         {
             // 1. ARRANGE
@@ -417,6 +471,11 @@ namespace FlexiSpace.Application.Tests
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("lessee-1");
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>() ))
                 .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
             _mockListingRepository
                 .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
@@ -479,6 +538,11 @@ namespace FlexiSpace.Application.Tests
             _mockCurrentUserService.SetupGet(s => s.UserId).Returns("space-owner-only");
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>() ))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "space-owner-only" });
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(
+                    It.IsAny<Expression<Func<Space, bool>>>(),
+                    It.IsAny<Func<IQueryable<Space>, IIncludableQueryable<Space, object>>>() ))
                 .ReturnsAsync(new Space { Id = 10, OwnerId = "space-owner-only" });
             _mockListingRepository
                 .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
