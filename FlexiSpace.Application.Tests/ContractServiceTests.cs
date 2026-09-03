@@ -362,7 +362,7 @@ namespace FlexiSpace.Application.Tests
         }
 
         [Fact]
-        public async Task GetContractCalendarBySpaceAsync_CurrentUserIsOwner_ReturnsCalendarEntries()
+        public async Task GetContractCalendarBySpaceAsync_CurrentUserIsListingCreator_ReturnsCalendarEntries()
         {
             // 1. ARRANGE
             var from = new DateTime(2026, 8, 3);
@@ -371,6 +371,9 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
                 .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
+                .ReturnsAsync(new List<Listing> { new() { SpaceId = 10, CreatorId = "lessor-1" } });
             _mockContractRepository
                 .Setup(r => r.GetAllAsync(
                     It.IsAny<Expression<Func<Contract, bool>>>(),
@@ -415,6 +418,9 @@ namespace FlexiSpace.Application.Tests
             _mockSpaceRepository
                 .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
                 .ReturnsAsync(new Space { Id = 10, OwnerId = "lessor-1" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
+                .ReturnsAsync(new List<Listing>());
             _mockContractRepository
                 .Setup(r => r.GetAllAsync(
                     It.IsAny<Expression<Func<Contract, bool>>>(),
@@ -463,6 +469,32 @@ namespace FlexiSpace.Application.Tests
             result.Data.Should().HaveCount(2);
             result.Data!.Select(e => e.ContractId).Should().Contain(new[] { 7L, 8L });
             result.Data.Select(e => e.DisplayLabel).Should().Contain(new[] { "Tenant One - Office", "Tenant Two - Retail" });
+        }
+
+        [Fact]
+        public async Task GetContractCalendarBySpaceAsync_CurrentUserIsOnlySpaceOwner_ReturnsForbidden()
+        {
+            // 1. ARRANGE
+            var from = new DateTime(2026, 8, 3);
+            _mockCurrentUserService.SetupGet(s => s.UserId).Returns("space-owner-only");
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>() ))
+                .ReturnsAsync(new Space { Id = 10, OwnerId = "space-owner-only" });
+            _mockListingRepository
+                .Setup(r => r.GetAllAsync(It.IsAny<Expression<Func<Listing, bool>>>() ))
+                .ReturnsAsync(new List<Listing> { new() { SpaceId = 10, CreatorId = "listing-creator" } });
+            _mockContractRepository
+                .Setup(r => r.GetAllAsync(
+                    It.IsAny<Expression<Func<Contract, bool>>>(),
+                    It.IsAny<Func<IQueryable<Contract>, IIncludableQueryable<Contract, object>>>() ))
+                .ReturnsAsync(new List<Contract>());
+
+            // 2. ACT
+            var result = await _sut.GetContractCalendarBySpaceAsync(10, from, from);
+
+            // 3. ASSERT
+            result.IsSuccess.Should().BeFalse();
+            result.Message.Should().Contain("không có quyền");
         }
 
         [Fact]
