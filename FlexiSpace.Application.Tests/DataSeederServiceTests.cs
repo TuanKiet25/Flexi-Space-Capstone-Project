@@ -16,12 +16,15 @@ namespace FlexiSpace.Application.Tests
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IUserRepository> _mockUserRepository;
+        private readonly Mock<ISpaceRepository> _mockSpaceRepository;
 
         public DataSeederServiceTests()
         {
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockUserRepository = new Mock<IUserRepository>();
+            _mockSpaceRepository = new Mock<ISpaceRepository>();
             _mockUnitOfWork.SetupGet(u => u.userRepository).Returns(_mockUserRepository.Object);
+            _mockUnitOfWork.SetupGet(u => u.spaceRepository).Returns(_mockSpaceRepository.Object);
         }
 
         [Fact]
@@ -84,6 +87,43 @@ namespace FlexiSpace.Application.Tests
             _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
         }
 
+        [Fact]
+        public async Task SeedAdminAccountAsync_MockAccounts_CreateOwnerSpaceAndRenterWithoutSpace()
+        {
+            var owner = (User)null!;
+            var renter = (User)null!;
+            var userLookup = 0;
+            var sut = new DataSeederService(_mockUnitOfWork.Object, CreateMockAccountsConfiguration());
+
+            _mockUserRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<User, bool>>>()))
+                .ReturnsAsync(() => ++userLookup == 1 ? owner : renter);
+            _mockUserRepository
+                .Setup(r => r.AddAsync(It.IsAny<User>()))
+                .Callback<User>(user =>
+                {
+                    if (user.Email == "owner@flexispace.com") owner = user;
+                    if (user.Email == "renter@flexispace.com") renter = user;
+                })
+                .Returns(Task.CompletedTask);
+            _mockSpaceRepository
+                .Setup(r => r.GetAsync(It.IsAny<Expression<Func<Space, bool>>>()))
+                .ReturnsAsync((Space)null!);
+            _mockSpaceRepository
+                .Setup(r => r.AddAsync(It.IsAny<Space>()))
+                .Returns(Task.CompletedTask);
+
+            await sut.SeedAdminAccountAsync();
+
+            _mockUserRepository.Verify(r => r.AddAsync(It.Is<User>(u =>
+                u.Email == "owner@flexispace.com" && u.Role == RoleEnum.USER && u.IsActive && u.UserStatus == UserStatus.Active)), Times.Once);
+            _mockUserRepository.Verify(r => r.AddAsync(It.Is<User>(u =>
+                u.Email == "renter@flexispace.com" && u.Role == RoleEnum.USER && u.IsActive && u.UserStatus == UserStatus.Active)), Times.Once);
+            _mockSpaceRepository.Verify(r => r.AddAsync(It.Is<Space>(s =>
+                s.OwnerId == owner.UserId && s.IsActive)), Times.Once);
+            _mockUnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+
         private static IConfiguration CreateValidConfiguration() =>
             CreateConfiguration(new Dictionary<string, string?>
             {
@@ -91,6 +131,15 @@ namespace FlexiSpace.Application.Tests
                 ["AdminAccount:Password"] = "Password123!",
                 ["AdminAccount:Name"] = "Admin",
                 ["AdminAccount:PhoneNumber"] = "0123456789"
+            });
+
+        private static IConfiguration CreateMockAccountsConfiguration() =>
+            CreateConfiguration(new Dictionary<string, string?>
+            {
+                ["MockAccounts:Owner:Email"] = "owner@flexispace.com",
+                ["MockAccounts:Owner:Password"] = "Password123!",
+                ["MockAccounts:Renter:Email"] = "renter@flexispace.com",
+                ["MockAccounts:Renter:Password"] = "Password123!"
             });
 
         private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
